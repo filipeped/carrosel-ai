@@ -204,14 +204,16 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen px-6 py-8 max-w-7xl mx-auto">
-      <header className="mb-8 flex items-baseline justify-between flex-wrap gap-4">
+    <main className="min-h-screen px-4 sm:px-6 py-6 sm:py-8 max-w-7xl mx-auto">
+      <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-4">
         <div>
-          <div className="text-xs tracking-[4px] uppercase opacity-60">Digital Paisagismo</div>
-          <h1 className="text-3xl md:text-4xl mt-1" style={{ fontFamily: "Georgia, serif" }}>
+          <div className="text-[10px] sm:text-xs tracking-[4px] uppercase opacity-60">Digital Paisagismo</div>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl mt-1" style={{ fontFamily: "Georgia, serif" }}>
             Gerador de <i>Carrossel</i>
           </h1>
-          <div className="text-xs opacity-60 mt-1">IA escolhe a melhor foto pra capa e casa a copy com o que aparece em cada imagem.</div>
+          <div className="text-xs opacity-60 mt-1 leading-relaxed">
+            IA escolhe a melhor foto pra capa e casa a copy com o que aparece em cada imagem.
+          </div>
         </div>
         <Steps current={step} />
       </header>
@@ -257,20 +259,20 @@ export default function Home() {
 function Steps({ current }: { current: number }) {
   const names = ["Tema", "Curadoria", "Editor"];
   return (
-    <div className="flex items-center gap-2 text-xs tracking-widest uppercase">
+    <div className="flex items-center gap-2 text-[10px] sm:text-xs tracking-widest uppercase">
       {names.map((n, i) => {
         const idx = i + 1;
         return (
-          <div key={n} className="flex items-center gap-2">
+          <div key={n} className="flex items-center gap-1.5 sm:gap-2">
             <span
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 ${
                 idx === current ? "bg-white text-black" : idx < current ? "bg-white/30" : "bg-white/10"
               }`}
             >
               {idx}
             </span>
             <span className={idx === current ? "" : "opacity-50"}>{n}</span>
-            {idx < 3 && <span className="opacity-20 mx-2">—</span>}
+            {idx < 3 && <span className="opacity-20 mx-1 sm:mx-2">—</span>}
           </div>
         );
       })}
@@ -352,7 +354,7 @@ function Step1({
         placeholder="Ex: entradas monumentais em condominios fechados..."
         className="w-full bg-black/30 border border-white/15 rounded p-3 text-sm"
       />
-      <div className="mt-4 flex gap-2 flex-wrap">
+      <div className="mt-4 grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
         <button
           disabled={anyLoading}
           onClick={autoViral}
@@ -432,20 +434,24 @@ function Step2({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <div className="text-sm opacity-80">
-          IA escolheu as 6 melhores. Capa = foto com maior impacto visual. <b>Quer trocar alguma?</b>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+        <div className="text-sm opacity-80 leading-relaxed">
+          IA escolheu as 6 melhores. Capa = foto com maior impacto visual.{" "}
+          <b>Quer trocar alguma?</b>
         </div>
         <div className="flex gap-2">
-          <button onClick={onBack} className="px-4 py-2 text-xs tracking-wider uppercase opacity-70 hover:opacity-100">
-            Voltar
+          <button
+            onClick={onBack}
+            className="flex-1 sm:flex-none px-4 py-2 text-xs tracking-wider uppercase opacity-70 hover:opacity-100"
+          >
+            ← Voltar
           </button>
           <button
             disabled={loading}
             onClick={onConfirm}
-            className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
+            className="flex-1 sm:flex-none bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
           >
-            {loading ? "Processando..." : "Confirmar e gerar copy →"}
+            {loading ? "Processando..." : "Gerar copy →"}
           </button>
         </div>
       </div>
@@ -454,7 +460,7 @@ function Step2({
         <div className="mb-4 text-xs opacity-60 italic">Curadoria: {selection.rationale}</div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-6">
         {selected.map((s, i) => (
           <div key={i} className="relative">
             <div
@@ -506,7 +512,7 @@ function Step2({
               </b>
             </div>
           )}
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
             {selection.alternatives.map((alt, i) => (
               <button
                 key={alt.id}
@@ -608,28 +614,28 @@ function Step3({
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-8 flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 sm:mb-8 gap-3">
         <div>
           <div className="text-[10px] tracking-[4px] uppercase opacity-50 mb-1">
             Step 3 — Editor & Publicação
           </div>
-          <h2 className="text-xl" style={{ fontFamily: "Georgia, serif" }}>
+          <h2 className="text-lg sm:text-xl leading-snug" style={{ fontFamily: "Georgia, serif" }}>
             Ajuste os slides, gere a <i>legenda</i> e poste.
           </h2>
         </div>
         <div className="flex gap-2 items-center">
           <button
             onClick={onBack}
-            className="px-4 py-2 text-xs tracking-wider uppercase opacity-60 hover:opacity-100 transition-opacity"
+            className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs tracking-wider uppercase opacity-60 hover:opacity-100 transition-opacity"
           >
             ← Voltar
           </button>
           <button
             disabled={busyAll}
             onClick={downloadAll}
-            className="border border-white/15 px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
+            className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
           >
-            {busyAll ? "Gerando..." : "Baixar todos PNG"}
+            {busyAll ? "Gerando..." : "Baixar PNGs"}
           </button>
         </div>
       </div>
@@ -669,7 +675,7 @@ function Step3({
         publishing={busyPost}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {slides.map((s, i) => (
           <SlideEditor
             key={i}
@@ -1040,16 +1046,16 @@ function CaptionPanel({
   }
 
   return (
-    <div className="mb-8 border border-white/10 rounded-xl bg-gradient-to-br from-white/[0.03] to-transparent p-6">
-      <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
+    <div className="mb-6 sm:mb-8 border border-white/10 rounded-xl bg-gradient-to-br from-white/[0.03] to-transparent p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-4">
         <div className="flex-1">
           <div className="text-[10px] tracking-[4px] uppercase opacity-50 mb-1">
             Legendas
           </div>
-          <h3 className="text-lg mb-1" style={{ fontFamily: "Georgia, serif" }}>
+          <h3 className="text-base sm:text-lg mb-1 leading-snug" style={{ fontFamily: "Georgia, serif" }}>
             Gere 3 versões no <i>seu tom real</i> e poste.
           </h3>
-          <div className="text-xs opacity-70">
+          <div className="text-xs opacity-70 leading-relaxed">
             IA lê seus 20 posts top e imita seu ritmo, hashtags e emojis.
           </div>
           <label className="mt-3 inline-flex items-center gap-2 text-xs opacity-75 cursor-pointer select-none">
@@ -1062,11 +1068,11 @@ function CaptionPanel({
             Ler também as fotos com Claude Vision antes
           </label>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <button
             onClick={generate}
             disabled={loading}
-            className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40 transition-colors hover:bg-white/90"
+            className="w-full sm:w-auto bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40 transition-colors hover:bg-white/90"
           >
             {loading ? "Gerando..." : options ? "Gerar de novo" : "Gerar legendas"}
           </button>
@@ -1074,7 +1080,7 @@ function CaptionPanel({
             <button
               onClick={onPublish}
               disabled={publishing || !selectedCaption || !options}
-              className="bg-[#d6e7c4] text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-[0_4px_20px_rgba(214,231,196,0.4)]"
+              className="w-full sm:w-auto bg-[#d6e7c4] text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-[0_4px_20px_rgba(214,231,196,0.4)]"
               title={
                 !options
                   ? "Gere as legendas primeiro"
