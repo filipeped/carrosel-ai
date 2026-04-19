@@ -6,12 +6,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Extrai JSON (objeto ou array) do output do Claude mesmo com texto antes/depois
-// ou code-fence markdown.
+// ou code-fence markdown. Com fallback de reparo pra JSONs malformados.
 export function extractJson<T = unknown>(text: string): T {
   if (!text) throw new Error("empty response");
-  let s = text.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+  const s = text.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
 
-  // tenta objeto primeiro
   const objStart = s.indexOf("{");
   const objEnd = s.lastIndexOf("}");
   const arrStart = s.indexOf("[");
@@ -20,7 +19,6 @@ export function extractJson<T = unknown>(text: string): T {
   const hasObj = objStart !== -1 && objEnd > objStart;
   const hasArr = arrStart !== -1 && arrEnd > arrStart;
 
-  // pega o que aparecer primeiro
   let slice: string;
   if (hasObj && (!hasArr || objStart < arrStart)) {
     slice = s.slice(objStart, objEnd + 1);
@@ -29,7 +27,27 @@ export function extractJson<T = unknown>(text: string): T {
   } else {
     throw new Error("no JSON in response: " + text.slice(0, 200));
   }
-  return JSON.parse(slice);
+
+  try {
+    return JSON.parse(slice);
+  } catch {
+    // LLM as vezes manda: trailing commas, newlines crus dentro de strings,
+    // aspas/controle nao-escapados. Tenta reparar e parsear de novo.
+    let repaired = slice.replace(/,\s*([}\]])/g, "$1");
+    // escapa newlines/tabs/cr dentro de strings ja delimitadas
+    repaired = repaired.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match, inner) => {
+      const fixed = inner
+        .replace(/\r/g, "\\r")
+        .replace(/\n/g, "\\n")
+        .replace(/\t/g, "\\t");
+      return `"${fixed}"`;
+    });
+    try {
+      return JSON.parse(repaired);
+    } catch (e: any) {
+      throw new Error(`JSON parse failed: ${e.message} | raw: ${slice.slice(0, 300)}`);
+    }
+  }
 }
 
 export function escapeHtml(s: string): string {
