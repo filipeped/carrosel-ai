@@ -4,23 +4,10 @@
 export const BRAND_HANDLE = process.env.BRAND_HANDLE || "@DIGITALPAISAGISMO";
 export const BRAND_EDITION = process.env.BRAND_EDITION || "";
 
-export function baseStyle(fontsBaseUrl = ""): string {
-  return `
-    @font-face { font-family:'Fraunces'; font-style:normal; font-weight:400;
-      src:url('${fontsBaseUrl}/fonts/Fraunces-Regular.woff2') format('woff2'); }
-    @font-face { font-family:'Fraunces'; font-style:normal; font-weight:300;
-      src:url('${fontsBaseUrl}/fonts/Fraunces-Light.woff2') format('woff2'); }
-    @font-face { font-family:'Fraunces'; font-style:italic; font-weight:400;
-      src:url('${fontsBaseUrl}/fonts/Fraunces-Italic.woff2') format('woff2'); }
-    @font-face { font-family:'Fraunces'; font-style:italic; font-weight:300;
-      src:url('${fontsBaseUrl}/fonts/Fraunces-LightItalic.woff2') format('woff2'); }
-    @font-face { font-family:'Archivo'; font-style:normal; font-weight:400;
-      src:url('${fontsBaseUrl}/fonts/Archivo-Regular.woff2') format('woff2'); }
-    @font-face { font-family:'Archivo'; font-style:normal; font-weight:500;
-      src:url('${fontsBaseUrl}/fonts/Archivo-Medium.woff2') format('woff2'); }
-    @font-face { font-family:'JetBrains Mono'; font-style:normal; font-weight:400;
-      src:url('${fontsBaseUrl}/fonts/JetBrainsMono-Regular.woff2') format('woff2'); }
+export const FONTS_LINK = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">`;
 
+export function baseStyle(_fontsBaseUrl = ""): string {
+  return `
     :root {
       --paper: #f1ede3;
       --ink: #131a12;

@@ -1,4 +1,4 @@
-import { baseStyle, BRAND_HANDLE } from "./base";
+import { baseStyle, BRAND_HANDLE, FONTS_LINK } from "./base";
 import { escapeHtml } from "../lib/utils";
 
 export type CtaData = {
@@ -24,7 +24,7 @@ function highlightItalic(title: string, italicWords: string[] = []): string {
 export function renderCta(d: CtaData, fontsBaseUrl = ""): string {
   const handleUpper = BRAND_HANDLE || "";
   const chips = d.chips && d.chips.length ? d.chips : ["SALVAR", "COMPARTILHAR"];
-  return `<!doctype html><html><head><meta charset="utf-8"/><style>
+  return `<!doctype html><html><head><meta charset="utf-8"/>${FONTS_LINK}<style>
 ${baseStyle(fontsBaseUrl)}
 .cta .content { margin-top:auto; }
 .cta-big {

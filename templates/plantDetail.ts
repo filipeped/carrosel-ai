@@ -1,4 +1,4 @@
-import { baseStyle, BRAND_HANDLE } from "./base";
+import { baseStyle, BRAND_HANDLE, FONTS_LINK } from "./base";
 import { escapeHtml } from "../lib/utils";
 
 export type PlantDetailData = {
@@ -27,7 +27,7 @@ export function renderPlantDetail(d: PlantDetailData, fontsBaseUrl = ""): string
   const total = d.total ? String(d.total).padStart(2, "0") : "";
   const indexLabel = idx && total ? `${idx} / ${total}` : idx || "";
 
-  return `<!doctype html><html><head><meta charset="utf-8"/><style>
+  return `<!doctype html><html><head><meta charset="utf-8"/>${FONTS_LINK}<style>
 ${baseStyle(fontsBaseUrl)}
 .plant .chrome { padding-top: 48px; justify-content: flex-start; }
 .plant .content { max-width: 82%; }

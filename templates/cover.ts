@@ -1,4 +1,4 @@
-import { baseStyle, BRAND_HANDLE } from "./base";
+import { baseStyle, BRAND_HANDLE, FONTS_LINK } from "./base";
 import { escapeHtml } from "../lib/utils";
 
 export type CoverData = {
@@ -27,7 +27,7 @@ export function renderCover(d: CoverData, fontsBaseUrl = ""): string {
   const topLabel = d.topLabel || "GUIA BOTANICO";
   const edition = d.edition || "";
   const handleUpper = (BRAND_HANDLE || "").replace(/^@/, "");
-  return `<!doctype html><html><head><meta charset="utf-8"/><style>
+  return `<!doctype html><html><head><meta charset="utf-8"/>${FONTS_LINK}<style>
 ${baseStyle(fontsBaseUrl)}
 .cover .chrome { padding: 75px 68px 110px; justify-content: flex-end; }
 .cover-mark {

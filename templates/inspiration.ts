@@ -1,4 +1,4 @@
-import { baseStyle, BRAND_HANDLE } from "./base";
+import { baseStyle, BRAND_HANDLE, FONTS_LINK } from "./base";
 import { escapeHtml } from "../lib/utils";
 
 export type InspirationData = {
@@ -17,7 +17,7 @@ export function renderInspiration(d: InspirationData, fontsBaseUrl = ""): string
   const indexLabel = idx && total ? `${idx} / ${total}` : idx || "";
   const kicker = d.topLabel || "INSPIRACAO";
 
-  return `<!doctype html><html><head><meta charset="utf-8"/><style>
+  return `<!doctype html><html><head><meta charset="utf-8"/>${FONTS_LINK}<style>
 ${baseStyle(fontsBaseUrl)}
 .insp .content { max-width: 84%; }
 .insp-title {
