@@ -6,6 +6,7 @@ import { extractJson } from "./utils";
 import { getSupabase, ImageBankRow } from "./supabase";
 import type { SlideSpec } from "./pipeline";
 import { getRecentlyUsedImageIds, saveCarrossel } from "./history";
+import { getBrandVoiceReferences } from "./brand-voice";
 
 /**
  * Enriquece linhas da busca semantica (que retornam campos limitados)
@@ -274,11 +275,17 @@ ${COPY_FROM_ANALYSIS_SCHEMA}
 
 Verifique: cada elemento que voce citar no copy TEM que estar na descricao/plantas/materiais da imagem correspondente. Alucinacao = falha grave.`;
 
+  // Injeta tom real do perfil (top-20 posts) pra copy dos slides tb imitar ritmo
+  const voiceRefs = await getBrandVoiceReferences();
+  const systemComVoice = voiceRefs
+    ? `${BRAND_VOICE}\n\n${voiceRefs}\n\nNO TEXTO DO SLIDE (diferente da legenda): sem emoji, sem hashtag. Mas o RITMO/tom/vocabulario dos exemplos acima serve como referencia.\n\n${COPY_FROM_ANALYSIS_SCHEMA}`
+    : BRAND_VOICE + "\n\n" + COPY_FROM_ANALYSIS_SCHEMA;
+
   const r = await getAi().chat.completions.create({
     model: MODEL,
     max_tokens: 1800,
     messages: [
-      { role: "system", content: BRAND_VOICE + "\n\n" + COPY_FROM_ANALYSIS_SCHEMA },
+      { role: "system", content: systemComVoice },
       { role: "user", content: userMsg },
     ],
   });

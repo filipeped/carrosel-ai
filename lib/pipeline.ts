@@ -87,38 +87,34 @@ ${COPY_SCHEMA}`;
 
 export type CaptionOption = { abordagem: string; hook: string; legenda: string; hashtags: string[] };
 
-const CAPTION_SYSTEM = `Voce e copywriter senior de Instagram pra paisagismo alto padrao (@digitalpaisagismo).
+const CAPTION_SYSTEM = `Voce e o copywriter do @digitalpaisagismo (perfil real, paisagismo alto padrao brasileiro, ja produzindo conteudo). Sua tarefa: escrever legendas pra POST do Instagram, imitando o TOM REAL do perfil que vou colar abaixo.
 
 VOCE RECEBE ATE 6 IMAGENS REAIS DO CARROSSEL. Antes de escrever:
-1. Observe cada imagem individualmente — luz (dourada/rasante/difusa), hora do dia, clima, estacao;
-2. Identifique especies visiveis — folhagens dominantes, texturas, contrastes cromaticos;
-3. Note estrutura/materialidade — pedras, madeira, espelho d'agua, corten, pergolados;
-4. Capture atmosfera — refugio, drama, minimalismo, urbanidade, tropicalidade;
-5. So depois escreva a legenda usando DETALHES VISUAIS REAIS da imagem, nao genericos.
+1. Observe cada imagem — luz (dourada/rasante/difusa), hora do dia, estacao
+2. Identifique especies visiveis, texturas, materiais (pedra/madeira/agua/corten)
+3. Capture atmosfera — refugio, drama, minimalismo, urbanidade, tropicalidade
+4. Escreva citando DETALHES VISUAIS REAIS, nao genericos
 
-Na legenda, cite pelo menos 1 detalhe visual concreto que so quem olhou a foto saberia (ex: "a sombra filtrada pelo licuala", "o travertino bege contrastando com a folha brilhante do monstera", "a agua espelhando a copa das palmeiras"). ISSO e o que diferencia legenda certeira de legenda generica.
+Na legenda, cite pelo menos 1 detalhe visual concreto que so quem olhou a foto saberia (ex: "o caminho em pedra que desvia entre os maciços", "o reflexo da palmeira na agua parada", "o travertino que pega luz no final da tarde").
 
 REGRA DURA DE HONESTIDADE VISUAL:
-- Se o tema pede muro verde e as fotos mostram jardins tropicais, NAO finja que ha muro verde nas fotos. Fale do principio geral do tema usando as fotos como referencia tangencial, e seja honesto.
-- Se o tema pede noturno e as fotos sao diurnas, NAO chame de noturno. NAO escreva "luz quente", "luz dourada", "luz direcional", "contraluz", "penumbra" se as fotos sao DIFUSAS DIURNAS. Cite a luz difusa real que voce ve.
-- Se o tema pede jardim seco mas aparece jardim tropical, NAO cite "agave" ou "pata-de-elefante" se voce nao ve. Cite o que ha.
-- NUNCA afirme "no slide 3 aparece X" se voce nao ve X no slide 3. Isso e alucinacao grave.
-- NUNCA cite uma especie por nome cientifico se voce nao a ve claramente. Prefira nome popular ou "folhagem tropical densa" generico.
-- Se ha dissonancia entre tema e imagens, reconheca e use o tema como conceito orientador, nao como descricao literal do que esta visivel.
-- Atributos de LUZ sao faceis de testar: fotos difusas/nubladas NAO tem "luz dourada" ou "luz rasante". NAO minta sobre luz.
+- Tema nao bate com foto? Use tema como conceito, nao descricao literal.
+- Fotos difusas/nubladas NAO tem "luz dourada" nem "luz rasante". Nao minta sobre luz.
+- Nunca cite especie por nome cientifico se voce nao ve claramente. Prefira nome popular ou descricao ("folhagem tropical densa").
+- Nunca afirme "no slide 3 aparece X" se voce nao ve X no slide 3.
 
-Gere 3 legendas em abordagens diferentes:
-- Storytelling editorial
-- Autoridade tecnica botanica
-- Pergunta provocativa
+3 ABORDAGENS DIFERENTES (alinhadas ao tom real do @digitalpaisagismo):
+- **direta_emocional** — afirmacao factual curta que conecta emocionalmente ("Chegar em casa e sentir a natureza em cada detalhe"). Parte de um insight concreto do resultado, nao de tecnica.
+- **contraste_verdade** — provocacao honesta que quebra crenca comum ("A maioria dos jardins de alto padrao usa as mesmas 5 plantas. Nao e coincidencia."). Ativa ego do publico AA.
+- **tecnico_relacional** — explica o porque tecnico sem jargao, sempre conectando ao USO do espaco ("Um bom paisagismo nao e so sobre plantas. E sobre criar espacos que fazem sentido com a sua rotina.").
 
 REGRAS DURAS:
-- TAMANHO: cada legenda entre 120 e 260 PALAVRAS. Nao exceda 260.
-- HASHTAGS: 12-16 por legenda, TODAS em minusculas, SEM caracteres especiais, SEM acentos, SEM camelCase. Ex: #paisagismoaltopadrao (certo), #paisagismoAltopAdrao (ERRADO), #paisagismodeautor (certo). Se tiver duvida, so minuscula plana.
-- EMOJI: ABSOLUTAMENTE PROIBIDO em qualquer legenda ou hook. Zero emoji. Nem arrow pra baixo, nem emoji ornamental, nada.
-- Nao uso arrow-chars (→, ↓, ↑). Se precisar de lista, use bullets com "—" no comeco da linha OU simplesmente quebra de linha.
-- Tom sofisticado, nunca casual ("ola pessoal", "confira", "top", "incrivel", "imperdivel" = proibidos).
-- Nomes cientificos entre *asteriscos* (italico).
+- TAMANHO: 120-260 palavras por legenda. Nao exceda.
+- HASHTAGS: 12-16 por legenda. TODAS minusculas, SEM acento, SEM camelCase, SEM char especial. Ex correto: #paisagismoaltopadrao. Errado: #paisagismoAltoPadrao.
+- EMOJI: permitido moderadamente (maximo 3 por legenda) APENAS os que o perfil ja usa: 🌿 ✨ 🌴 📐 👇 📍. PROIBIDO: 😍 🔥 💯 🤩 ❤️ 🙌 💪 🚀 (cringe, fora do tom).
+- Proibido: arrow-chars (→↓↑), "ola pessoal", "confira", "top", "incrivel", "imperdivel", "voce nao vai acreditar", clickbait vazio.
+- Quando citar nome cientifico, pode em italico via *asteriscos* OU sem italico (ambos ok).
+- IMITE O RITMO dos posts reais que vou colar abaixo — quebras de linha, comecos, CTAs, repertorio.
 
 Retorne JSON puro (sem markdown):
 { "options": [{ "abordagem", "hook", "legenda", "hashtags": [] }] }`;
@@ -167,22 +163,26 @@ async function _runCaption(
   let parsed: any = extractJson(raw);
   if (Array.isArray(parsed)) parsed = { options: parsed };
 
-  // Saneamento pos-IA: garante minusculas nas hashtags, remove emoji e
-  // tira setas unicode que escapam mesmo com o prompt proibir.
+  // Saneamento pos-IA: permite emoji do repertorio do perfil, bane os cringe.
   if (parsed?.options && Array.isArray(parsed.options)) {
+    const ALLOWED_EMOJI = new Set(["🌿", "✨", "🌴", "📐", "👇", "📍", "🌱", "🍃"]);
     const EMOJI_RE = /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu;
     const ARROWS = /[→↑↓←➤➡]/g;
+    const cleanString = (s: string) =>
+      s
+        .replace(EMOJI_RE, (m) => (ALLOWED_EMOJI.has(m) ? m : ""))
+        .replace(ARROWS, "")
+        .trim();
     parsed.options = parsed.options.map((o: any) => ({
       ...o,
-      hook: String(o.hook || "").replace(EMOJI_RE, "").replace(ARROWS, "").trim(),
-      legenda: String(o.legenda || "").replace(EMOJI_RE, "").replace(ARROWS, "").trim(),
+      hook: cleanString(String(o.hook || "")),
+      legenda: cleanString(String(o.legenda || "")),
       hashtags: Array.isArray(o.hashtags)
         ? o.hashtags
             .map((t: any) => String(t).trim())
             .filter(Boolean)
             .map((t: string) => {
               let s = t.startsWith("#") ? t.slice(1) : t;
-              // normaliza acentos
               s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
               s = s.toLowerCase().replace(/[^a-z0-9]/g, "");
               return s ? "#" + s : "";
