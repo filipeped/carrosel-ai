@@ -126,8 +126,10 @@ export default function Home() {
     { name: "Escrevendo copy dos 6 slides (imitando seu tom)", seconds: 10 },
   ]);
 
-  async function doSmartSearch() {
-    if (!prompt.trim()) return;
+  async function doSmartSearch(overridePrompt?: string) {
+    const effective = (overridePrompt ?? prompt).trim();
+    if (!effective) return;
+    if (overridePrompt) setPrompt(overridePrompt);
     setLoading(true);
     setCurrentFlow("search");
     setError("");
@@ -135,7 +137,7 @@ export default function Home() {
       const r = await fetch("/api/search-smart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, candidateCount: 24 }),
+        body: JSON.stringify({ prompt: effective, candidateCount: 24 }),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -285,7 +287,7 @@ function Step1({
   prompt: string;
   setPrompt: (s: string) => void;
   loading: boolean;
-  onSearch: () => void;
+  onSearch: (overridePrompt?: string) => void;
 }) {
   const [ideas, setIdeas] = useState<{ titulo: string; hook: string }[] | null>(null);
   const [ideasLoading, setIdeasLoading] = useState(false);
@@ -329,9 +331,8 @@ function Step1({
       if (d.error) throw new Error(d.error);
       const best = d.ideias?.[0];
       if (!best?.titulo) throw new Error("Sem ideia retornada");
-      setPrompt(best.titulo);
-      await new Promise((r) => setTimeout(r, 50));
-      onSearch();
+      // passa direto pro search — evita closure stale do prompt
+      onSearch(best.titulo);
     } catch (e: any) {
       setIdeasErr(e.message);
     } finally {
@@ -607,43 +608,54 @@ function Step3({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
-        <div className="text-sm opacity-80">Edite cada slide. Preview e download sao instantaneos.</div>
-        <div className="flex gap-2">
-          <button onClick={onBack} className="px-4 py-2 text-xs tracking-wider uppercase opacity-70 hover:opacity-100">
-            Voltar
+      <div className="flex items-start justify-between mb-8 flex-wrap gap-3">
+        <div>
+          <div className="text-[10px] tracking-[4px] uppercase opacity-50 mb-1">
+            Step 3 — Editor & Publicação
+          </div>
+          <h2 className="text-xl" style={{ fontFamily: "Georgia, serif" }}>
+            Ajuste os slides, gere a <i>legenda</i> e poste.
+          </h2>
+        </div>
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={onBack}
+            className="px-4 py-2 text-xs tracking-wider uppercase opacity-60 hover:opacity-100 transition-opacity"
+          >
+            ← Voltar
           </button>
           <button
             disabled={busyAll}
             onClick={downloadAll}
-            className="border border-white/20 px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5"
+            className="border border-white/15 px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
           >
-            {busyAll ? "Gerando..." : "Baixar todos os PNG"}
-          </button>
-          <button
-            disabled={busyPost || !selectedCaption}
-            onClick={postarNoInstagram}
-            className="bg-[#d6e7c4] text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
-            title={!selectedCaption ? "Copie uma legenda antes de postar" : "Postar no Instagram"}
-          >
-            {busyPost ? "Postando..." : "Postar no Instagram"}
+            {busyAll ? "Gerando..." : "Baixar todos PNG"}
           </button>
         </div>
       </div>
 
       {postResult?.ok && (
-        <div className="mb-4 border border-[#d6e7c4]/40 bg-[#d6e7c4]/10 rounded px-4 py-3 text-sm">
-          Post publicado!{" "}
-          {postResult.permalink && (
-            <a href={postResult.permalink} target="_blank" rel="noreferrer" className="underline">
-              ver no Instagram
-            </a>
-          )}
+        <div className="mb-6 border border-[#d6e7c4]/50 bg-[#d6e7c4]/10 rounded-lg px-5 py-4 text-sm flex items-center gap-3">
+          <span className="text-xl">✓</span>
+          <div className="flex-1">
+            <div className="font-medium">Post publicado no Instagram</div>
+            {postResult.permalink && (
+              <a
+                href={postResult.permalink}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs opacity-80 underline hover:opacity-100"
+              >
+                {postResult.permalink}
+              </a>
+            )}
+          </div>
         </div>
       )}
       {postResult?.error && (
-        <div className="mb-4 border border-red-400/40 bg-red-400/10 rounded px-4 py-3 text-sm text-red-200">
-          Erro ao postar: {postResult.error}
+        <div className="mb-6 border border-red-400/40 bg-red-400/10 rounded-lg px-5 py-4 text-sm text-red-200">
+          <div className="font-medium mb-1">Erro ao postar no Instagram</div>
+          <div className="text-xs opacity-80">{postResult.error}</div>
         </div>
       )}
 
@@ -652,6 +664,9 @@ function Step3({
         prompt={prompt}
         orderedImages={orderedImages}
         onCaptionPicked={setSelectedCaption}
+        selectedCaption={selectedCaption}
+        onPublish={postarNoInstagram}
+        publishing={busyPost}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -968,17 +983,24 @@ function CaptionPanel({
   prompt,
   orderedImages,
   onCaptionPicked,
+  selectedCaption,
+  onPublish,
+  publishing,
 }: {
   slides: SlideData[];
   prompt: string;
   orderedImages: ImageRow[];
   onCaptionPicked?: (fullText: string) => void;
+  selectedCaption?: string;
+  onPublish?: () => void;
+  publishing?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<CaptionOption[] | null>(null);
   const [error, setError] = useState("");
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [readImages, setReadImages] = useState(true);
+  const [pickedIdx, setPickedIdx] = useState<number | null>(null);
   const captionProgress = useProgressSim(loading, [
     { name: "Claude lendo as 6 fotos do carrossel", seconds: 12 },
     { name: "Escrevendo 3 legendas no seu tom real", seconds: 20 },
@@ -1008,60 +1030,130 @@ function CaptionPanel({
     }
   }
 
-  async function copyAll(opt: CaptionOption, i: number) {
+  async function pickCaption(opt: CaptionOption, i: number) {
     const full = `${opt.legenda}\n\n${(opt.hashtags || []).join(" ")}`;
     await navigator.clipboard.writeText(full);
     setCopiedIdx(i);
+    setPickedIdx(i);
     if (onCaptionPicked) onCaptionPicked(full);
     setTimeout(() => setCopiedIdx(null), 1500);
   }
 
   return (
-    <div className="mb-8 border border-white/10 rounded-lg bg-white/[0.02] p-5">
-      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <div>
-          <div className="text-xs tracking-widest uppercase opacity-60 mb-1">Legendas virais</div>
-          <div className="text-sm opacity-80">
-            3 abordagens diferentes (storytelling, autoridade, pergunta).
+    <div className="mb-8 border border-white/10 rounded-xl bg-gradient-to-br from-white/[0.03] to-transparent p-6">
+      <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
+        <div className="flex-1">
+          <div className="text-[10px] tracking-[4px] uppercase opacity-50 mb-1">
+            Legendas
           </div>
-          <label className="mt-2 inline-flex items-center gap-2 text-xs opacity-85 cursor-pointer select-none">
+          <h3 className="text-lg mb-1" style={{ fontFamily: "Georgia, serif" }}>
+            Gere 3 versões no <i>seu tom real</i> e poste.
+          </h3>
+          <div className="text-xs opacity-70">
+            IA lê seus 20 posts top e imita seu ritmo, hashtags e emojis.
+          </div>
+          <label className="mt-3 inline-flex items-center gap-2 text-xs opacity-75 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={readImages}
               onChange={(e) => setReadImages(e.target.checked)}
-              className="accent-white"
+              className="accent-[#d6e7c4]"
             />
-            Ler as fotos com Claude Vision antes (+certeiro, +10s)
+            Ler também as fotos com Claude Vision antes
           </label>
         </div>
-        <button
-          onClick={generate}
-          disabled={loading}
-          className="bg-white text-black px-4 py-2 rounded tracking-wider uppercase text-xs disabled:opacity-40"
-        >
-          {loading ? "Gerando..." : options ? "Gerar de novo" : "Gerar legendas"}
-        </button>
-      </div>
-      {error && <div className="text-red-300 text-sm mt-2">Erro: {error}</div>}
-      <ProgressBar progress={captionProgress} />
-      {options && options.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          {options.map((opt, i) => (
-            <div key={i} className="border border-white/10 rounded bg-black/30 p-4 flex flex-col">
-              <div className="text-[10px] tracking-widest uppercase opacity-60 mb-2">{opt.abordagem}</div>
-              <div className="text-sm whitespace-pre-wrap leading-relaxed mb-3 flex-1">{opt.legenda}</div>
-              <div className="text-xs opacity-70 mb-3 break-words">
-                {(opt.hashtags || []).join(" ")}
-              </div>
-              <button
-                onClick={() => copyAll(opt, i)}
-                className="mt-auto text-xs tracking-wider uppercase bg-white/10 hover:bg-white/20 border border-white/15 rounded px-3 py-2"
-              >
-                {copiedIdx === i ? "Copiado!" : "Copiar legenda + hashtags"}
-              </button>
-            </div>
-          ))}
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={generate}
+            disabled={loading}
+            className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40 transition-colors hover:bg-white/90"
+          >
+            {loading ? "Gerando..." : options ? "Gerar de novo" : "Gerar legendas"}
+          </button>
+          {onPublish && (
+            <button
+              onClick={onPublish}
+              disabled={publishing || !selectedCaption || !options}
+              className="bg-[#d6e7c4] text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-[0_4px_20px_rgba(214,231,196,0.4)]"
+              title={
+                !options
+                  ? "Gere as legendas primeiro"
+                  : !selectedCaption
+                    ? "Escolha uma legenda clicando em 'Usar esta'"
+                    : publishing
+                      ? "Postando..."
+                      : "Postar no Instagram agora"
+              }
+            >
+              {publishing ? "Postando..." : "Postar no Instagram ↗"}
+            </button>
+          )}
         </div>
+      </div>
+      {error && (
+        <div className="text-red-300 text-sm mb-3 bg-red-400/10 border border-red-400/30 rounded px-3 py-2">
+          {error}
+        </div>
+      )}
+      <ProgressBar progress={captionProgress} />
+
+      {options && options.length > 0 && (
+        <>
+          <div className="text-[10px] tracking-widest uppercase opacity-50 mt-5 mb-3">
+            Escolha uma abaixo · a marcada será usada no post
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {options.map((opt, i) => {
+              const isActive = pickedIdx === i;
+              return (
+                <div
+                  key={i}
+                  className={`relative rounded-lg p-4 flex flex-col transition-all duration-200 ${
+                    isActive
+                      ? "border-2 border-[#d6e7c4] bg-[#d6e7c4]/5 shadow-[0_8px_30px_rgba(214,231,196,0.15)]"
+                      : "border border-white/10 bg-black/20 hover:border-white/25"
+                  }`}
+                >
+                  {isActive && (
+                    <div className="absolute -top-2 -right-2 bg-[#d6e7c4] text-black text-[9px] tracking-widest uppercase px-2 py-1 rounded-full font-bold">
+                      Escolhida
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        isActive ? "bg-[#d6e7c4]" : "bg-white/30"
+                      }`}
+                    />
+                    <div className="text-[10px] tracking-widest uppercase opacity-70">
+                      {opt.abordagem}
+                    </div>
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap leading-relaxed mb-3 flex-1 opacity-90">
+                    {opt.legenda}
+                  </div>
+                  <div className="text-[11px] opacity-60 mb-3 break-words leading-relaxed">
+                    {(opt.hashtags || []).join(" ")}
+                  </div>
+                  <button
+                    onClick={() => pickCaption(opt, i)}
+                    className={`mt-auto text-xs tracking-wider uppercase rounded-md px-3 py-2.5 transition-colors ${
+                      isActive
+                        ? "bg-[#d6e7c4] text-black hover:bg-[#c9dbb4]"
+                        : "bg-white/10 hover:bg-white/20 border border-white/15"
+                    }`}
+                  >
+                    {copiedIdx === i
+                      ? "Copiado ✓"
+                      : isActive
+                        ? "Usar esta legenda"
+                        : "Usar esta"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
