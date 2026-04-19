@@ -27,12 +27,15 @@ export function renderCta(d: CtaData, fontsBaseUrl = ""): string {
   return `<!doctype html><html><head><meta charset="utf-8"/><style>
 ${baseStyle(fontsBaseUrl)}
 .cta-big {
-  display: flex;
+  display: block;
   font-family: 'Fraunces', serif; font-weight: 300;
   font-size: 68px; line-height: 1.04; letter-spacing: -1.4px;
   color: #fff;
 }
-.cta-big em { font-style: italic; font-weight: 300; color: #d6e7c4; }
+.cta-big em {
+  font-style: italic; font-weight: 300; color: #d6e7c4;
+  margin-left: 0.12em; margin-right: 0.05em;
+}
 .cta-row {
   display: flex; gap: 10px; margin-top: 28px; flex-wrap: wrap;
 }
