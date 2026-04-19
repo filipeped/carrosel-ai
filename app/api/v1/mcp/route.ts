@@ -64,7 +64,7 @@ const TOOLS: Tool[] = [
   {
     name: "caption_generate",
     description:
-      "Gera 3 opcoes de legenda viral pro Instagram (storytelling editorial, autoridade tecnica, pergunta provocativa) baseado em slides ja definidos.",
+      "Gera 3 opcoes de legenda viral pro Instagram (storytelling editorial, autoridade tecnica, pergunta provocativa) baseado em slides ja definidos. Se voce passar imageUrls (ate 6 URLs das fotos reais do carrossel), a IA LE as imagens via Claude Vision antes de escrever — legendas ficam MUITO mais certeiras e citam detalhes visuais reais (luz, especies visiveis, materiais).",
     inputSchema: {
       type: "object",
       properties: {
@@ -73,6 +73,11 @@ const TOOLS: Tool[] = [
           type: "array",
           description: "Array de slides (formato igual ao retorno de carousel_create.slides)",
           items: { type: "object" },
+        },
+        imageUrls: {
+          type: "array",
+          description: "Opcional. Ate 6 URLs das fotos reais do carrossel (ex.: imagens[slide.imageIdx].url). IA vai ler via Vision antes de escrever.",
+          items: { type: "string" },
         },
       },
       required: ["slides"],
@@ -214,7 +219,7 @@ export async function POST(req: NextRequest) {
           });
         }
         if (name === "caption_generate") {
-          const r = await generateCaption(args.prompt || "", args.slides);
+          const r = await generateCaption(args.prompt || "", args.slides, args.imageUrls);
           return rpcOk(id, {
             content: [{ type: "text", text: JSON.stringify(r, null, 2) }],
             structuredContent: r,

@@ -86,18 +86,54 @@ ${COPY_SCHEMA}`;
 
 export type CaptionOption = { abordagem: string; hook: string; legenda: string; hashtags: string[] };
 
-const CAPTION_SYSTEM = `Voce e copywriter senior de Instagram pra paisagismo de alto padrao (@digitalpaisagismo). Gere 3 legendas em abordagens diferentes (storytelling editorial, autoridade tecnica, pergunta). Retorne JSON: { "options": [{ "abordagem", "hook", "legenda", "hashtags": [] }] }`;
+const CAPTION_SYSTEM = `Voce e copywriter senior de Instagram pra paisagismo alto padrao (@digitalpaisagismo).
 
-export async function generateCaption(prompt: string, slides: SlideSpec[]): Promise<{ options: CaptionOption[] }> {
+VOCE RECEBE ATE 6 IMAGENS REAIS DO CARROSSEL. Antes de escrever:
+1. Observe cada imagem individualmente — luz (dourada/rasante/difusa), hora do dia, clima, estacao;
+2. Identifique especies visiveis — folhagens dominantes, texturas, contrastes cromaticos;
+3. Note estrutura/materialidade — pedras, madeira, espelho d'agua, corten, pergolados;
+4. Capture atmosfera — refugio, drama, minimalismo, urbanidade, tropicalidade;
+5. So depois escreva a legenda usando DETALHES VISUAIS REAIS da imagem, nao genericos.
+
+Na legenda, cite pelo menos 1 detalhe visual concreto que so quem olhou a foto saberia (ex: "a sombra filtrada pelo licuala", "o travertino bege contrastando com a folha brilhante do monstera", "a agua espelhando a copa das palmeiras"). ISSO e o que diferencia legenda certeira de legenda generica.
+
+Gere 3 legendas em abordagens diferentes:
+- Storytelling editorial
+- Autoridade tecnica botanica
+- Pergunta provocativa
+
+Retorne JSON puro (sem markdown):
+{ "options": [{ "abordagem", "hook", "legenda", "hashtags": [] }] }`;
+
+export async function generateCaption(
+  prompt: string,
+  slides: SlideSpec[],
+  imageUrls?: string[],
+): Promise<{ options: CaptionOption[] }> {
   const summary = slides
     .map((s, i) => `  [${i + 1}] ${s.type}: ${s.title || s.nomePopular || s.pergunta || ""}`)
     .join("\n");
+
+  // Monta content multimodal quando imageUrls sao passadas
+  const userContent: Array<
+    | { type: "text"; text: string }
+    | { type: "image_url"; image_url: { url: string } }
+  > = [
+    { type: "text", text: `Tema do carrossel: "${prompt}"\n\nSlides:\n${summary}\n\nSegue ${imageUrls?.length || 0} imagens do carrossel. Leia cada uma antes de gerar as 3 legendas. JSON puro.` },
+  ];
+  if (imageUrls && imageUrls.length) {
+    // limite de 6 imagens pra evitar timeout
+    for (const url of imageUrls.slice(0, 6)) {
+      userContent.push({ type: "image_url", image_url: { url } });
+    }
+  }
+
   const r = await getAi().chat.completions.create({
     model: MODEL,
-    max_tokens: 2200,
+    max_tokens: 2400,
     messages: [
       { role: "system", content: CAPTION_SYSTEM },
-      { role: "user", content: `Tema: "${prompt}"\nSlides:\n${summary}\nRetorne JSON puro.` },
+      { role: "user", content: userContent as any },
     ],
   });
   const raw = r.choices[0]?.message?.content || "";

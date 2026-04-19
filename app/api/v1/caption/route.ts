@@ -9,9 +9,9 @@ export async function POST(req: NextRequest) {
   const err = requireAuth(req);
   if (err) return err;
   try {
-    const { prompt, slides } = await req.json();
+    const { prompt, slides, imageUrls } = await req.json();
     if (!slides?.length) return NextResponse.json({ error: "slides required" }, { status: 400 });
-    return NextResponse.json(await generateCaption(prompt || "", slides));
+    return NextResponse.json(await generateCaption(prompt || "", slides, imageUrls));
   } catch (e: any) {
     return NextResponse.json({ error: e.message || String(e) }, { status: 500 });
   }

@@ -392,7 +392,7 @@ function Step3({
         </div>
       </div>
 
-      <CaptionPanel slides={slides} prompt={prompt} />
+      <CaptionPanel slides={slides} prompt={prompt} selectedImages={selectedImages} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {slides.map((s, i) => (
@@ -416,21 +416,40 @@ type CaptionOption = {
   hashtags: string[];
 };
 
-function CaptionPanel({ slides, prompt }: { slides: SlideData[]; prompt: string }) {
+function CaptionPanel({
+  slides,
+  prompt,
+  selectedImages,
+}: {
+  slides: SlideData[];
+  prompt: string;
+  selectedImages: ImageRow[];
+}) {
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<CaptionOption[] | null>(null);
   const [error, setError] = useState("");
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [readImages, setReadImages] = useState(true);
 
   async function generate() {
     setLoading(true);
     setError("");
     setOptions(null);
     try {
+      // coleta URLs unicas das imagens realmente usadas nos slides
+      const imageUrls = readImages
+        ? Array.from(
+            new Set(
+              slides
+                .map((s) => selectedImages[s.imageIdx]?.url)
+                .filter((u): u is string => !!u),
+            ),
+          ).slice(0, 6)
+        : undefined;
       const r = await fetch("/api/caption", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, slides }),
+        body: JSON.stringify({ prompt, slides, imageUrls }),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -458,6 +477,15 @@ function CaptionPanel({ slides, prompt }: { slides: SlideData[]; prompt: string 
             IA gera 3 legendas completas pro Instagram em abordagens diferentes (storytelling, autoridade,
             pergunta).
           </div>
+          <label className="mt-2 inline-flex items-center gap-2 text-xs opacity-85 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={readImages}
+              onChange={(e) => setReadImages(e.target.checked)}
+              className="accent-white"
+            />
+            Ler as fotos com Claude Vision antes (mais certeiro, +10s)
+          </label>
         </div>
         <button
           onClick={generate}
