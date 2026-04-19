@@ -5,6 +5,7 @@ import { embed } from "./embeddings";
 import { searchImagesSemantic } from "./plant-matcher";
 import type { ImageBankRow } from "./supabase";
 import { extractJson } from "./utils";
+import { getBrandVoiceReferences } from "./brand-voice";
 
 export type SlideSpec = {
   type: "cover" | "inspiration" | "plantDetail" | "cta";
@@ -148,11 +149,17 @@ async function _runCaption(
     }
   }
 
+  // Carrega exemplos reais de tom do perfil (top 20 posts por engajamento)
+  const brandVoiceRefs = await getBrandVoiceReferences();
+  const systemWithVoice = brandVoiceRefs
+    ? `${CAPTION_SYSTEM}\n\n================\n${brandVoiceRefs}\n================\n\nAgora gere as 3 legendas imitando o TOM dos exemplos acima.`
+    : CAPTION_SYSTEM;
+
   const r = await getAi().chat.completions.create({
     model: MODEL,
     max_tokens: 4000,
     messages: [
-      { role: "system", content: CAPTION_SYSTEM },
+      { role: "system", content: systemWithVoice },
       { role: "user", content: userContent as any },
     ],
   });
