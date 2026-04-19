@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type ImageRow = {
   id: number;
@@ -538,10 +538,27 @@ function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: string 
     };
   }, [slide, imageUrl]);
 
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.33);
+
+  useEffect(() => {
+    if (!wrapRef.current) return;
+    const el = wrapRef.current;
+    const compute = () => {
+      const w = el.clientWidth;
+      if (w > 0) setScale(w / 1080);
+    };
+    compute();
+    const obs = new ResizeObserver(compute);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <div
+      ref={wrapRef}
       className="relative w-full overflow-hidden bg-black"
-      style={{ aspectRatio: "1080/1350", containerType: "inline-size" } as React.CSSProperties}
+      style={{ aspectRatio: "1080/1350" }}
     >
       <iframe
         srcDoc={html}
@@ -554,7 +571,7 @@ function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: string 
           position: "absolute",
           top: 0,
           left: 0,
-          transform: "scale(calc(100cqw / 1080))",
+          transform: `scale(${scale})`,
           transformOrigin: "top left",
           pointerEvents: "none",
         }}
