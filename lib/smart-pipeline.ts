@@ -300,30 +300,45 @@ export function validateSlidesAgainstImages(
   imagesOrdered: AnalyzedImage[],
 ): SlideSpec[] {
   return slides.map((s, i) => {
-    if (s.type !== "plantDetail") return s;
-    const img = imagesOrdered[s.imageIdx] || imagesOrdered[i];
-    if (!img) return s;
+    // FORCA imageIdx = posicao do slide. Evita duplicacao de foto entre
+    // slides diferentes (ex.: IA alucinava plantDetail com imageIdx=5 e
+    // o CTA tambem com imageIdx=5 — mesma foto em 2 slots).
+    const fixedIdx = i;
+    const img = imagesOrdered[fixedIdx];
+    if (!img) return { ...s, imageIdx: fixedIdx };
+
+    if (s.type !== "plantDetail") {
+      return { ...s, imageIdx: fixedIdx };
+    }
+
+    // Valida: planta citada DEVE aparecer em plantas[] ou descricao da imagem DESSE slot.
     const plantasLista = (img.plantas || []).map(norm);
     const desc = norm(img.analise_visual?.descricao_visual || "");
     const hero = norm(img.analise_visual?.hero_element || "");
     const pool = [...plantasLista, desc, hero].join(" | ");
     const nomeSci = norm(s.nomeCientifico || "");
     const nomePop = norm(s.nomePopular || "");
-    // checa se alguma palavra significativa do nome esta no pool
     const tokens = [...nomeSci.split(/\s+/), ...nomePop.split(/[-\s]+/)].filter((t) => t.length >= 4);
     const hit = tokens.some((t) => pool.includes(t));
-    if (hit) return s;
-    // Converte pra inspiration preservando a imagem
+    if (hit) return { ...s, imageIdx: fixedIdx };
+
+    // Fallback: converte em inspiration com titulo conceitual (nao o nome da especie alucinada)
+    const heroLabel = (img.analise_visual?.hero_element || "").trim();
     return {
       type: "inspiration",
-      imageIdx: s.imageIdx,
-      title: s.nomePopular || img.analise_visual?.hero_element || "Composicao",
-      subtitle: img.analise_visual?.hero_element || "",
-      topLabel: "COMPOSICAO",
+      imageIdx: fixedIdx,
+      title: heroLabel ? capFirst(heroLabel) : "Composicao vegetal",
+      subtitle: (img.analise_visual?.descricao_visual || "").split(".")[0].slice(0, 110),
+      topLabel: "INSPIRACAO",
       nomePopular: null,
       nomeCientifico: null,
     } as SlideSpec;
   });
+}
+
+function capFirst(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 export async function searchAndSelect(
