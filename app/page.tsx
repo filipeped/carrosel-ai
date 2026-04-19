@@ -48,24 +48,90 @@ type Selection = {
   rationale?: string;
 };
 
+// Barra de progresso com fases nomeadas e timer estimado.
+type ProgressState = { pct: number; phase: string; etaSec: number } | null;
+
+function useProgressSim(active: boolean, phases: { name: string; seconds: number }[]) {
+  const [state, setState] = useState<ProgressState>(null);
+  useEffect(() => {
+    if (!active) {
+      setState(null);
+      return;
+    }
+    const totalSec = phases.reduce((s, p) => s + p.seconds, 0);
+    const start = Date.now();
+    const tick = () => {
+      const elapsed = (Date.now() - start) / 1000;
+      let acc = 0;
+      let phaseName = phases[0].name;
+      for (const p of phases) {
+        if (elapsed < acc + p.seconds) {
+          phaseName = p.name;
+          break;
+        }
+        acc += p.seconds;
+      }
+      // Avanca ate 95% baseado no tempo estimado, deixa 5% pro fim real
+      const pct = Math.min(95, (elapsed / totalSec) * 95);
+      const etaSec = Math.max(0, totalSec - elapsed);
+      setState({ pct, phase: phaseName, etaSec });
+    };
+    tick();
+    const id = setInterval(tick, 300);
+    return () => clearInterval(id);
+  }, [active]);
+  return state;
+}
+
+function ProgressBar({ progress }: { progress: ProgressState }) {
+  if (!progress) return null;
+  return (
+    <div className="mt-4 border border-white/10 rounded-lg bg-white/[0.03] p-4">
+      <div className="flex items-center justify-between mb-2 text-xs">
+        <span className="opacity-85">{progress.phase}</span>
+        <span className="tabular-nums opacity-70">
+          {Math.round(progress.pct)}% · {Math.ceil(progress.etaSec)}s
+        </span>
+      </div>
+      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-[#d6e7c4] transition-all duration-300 ease-out"
+          style={{ width: `${progress.pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("");
+  const [currentFlow, setCurrentFlow] = useState<"search" | "copy" | null>(null);
   const [error, setError] = useState("");
 
   const [selection, setSelection] = useState<Selection | null>(null);
   const [slides, setSlides] = useState<SlideData[]>([]);
-  const [allImages, setAllImages] = useState<ImageRow[]>([]); // cover + inner + cta + alternatives
+  const [allImages, setAllImages] = useState<ImageRow[]>([]);
+
+  const searchProgress = useProgressSim(currentFlow === "search", [
+    { name: "Interpretando o tema", seconds: 6 },
+    { name: "Buscando candidatas no banco de 1500 fotos", seconds: 8 },
+    { name: "IA analisando cada foto (qualidade, luz, composição)", seconds: 25 },
+    { name: "Selecionando as 6 melhores + capa", seconds: 10 },
+  ]);
+
+  const copyProgress = useProgressSim(currentFlow === "copy", [
+    { name: "Lendo descrição visual de cada foto", seconds: 3 },
+    { name: "Escrevendo copy dos 6 slides (imitando seu tom)", seconds: 10 },
+  ]);
 
   async function doSmartSearch() {
     if (!prompt.trim()) return;
     setLoading(true);
-    setStatus("Buscando 24 candidatas...");
+    setCurrentFlow("search");
     setError("");
     try {
-      setStatus("IA analisando cada foto (pode levar 20-40s)...");
       const r = await fetch("/api/search-smart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -81,14 +147,14 @@ export default function Home() {
       setError(e.message);
     } finally {
       setLoading(false);
-      setStatus("");
+      setCurrentFlow(null);
     }
   }
 
   async function confirmAndGenerateCopy() {
     if (!selection) return;
     setLoading(true);
-    setStatus("Escrevendo copy com base nas fotos...");
+    setCurrentFlow("copy");
     setError("");
     try {
       const ordered = [selection.cover, ...selection.inner, selection.cta];
@@ -109,7 +175,7 @@ export default function Home() {
       setError(e.message);
     } finally {
       setLoading(false);
-      setStatus("");
+      setCurrentFlow(null);
     }
   }
 
@@ -155,17 +221,22 @@ export default function Home() {
       )}
 
       {step === 1 && (
-        <Step1 prompt={prompt} setPrompt={setPrompt} loading={loading} status={status} onSearch={doSmartSearch} />
+        <>
+          <Step1 prompt={prompt} setPrompt={setPrompt} loading={loading} onSearch={doSmartSearch} />
+          <ProgressBar progress={searchProgress} />
+        </>
       )}
       {step === 2 && selection && (
-        <Step2
-          selection={selection}
-          loading={loading}
-          status={status}
-          onBack={() => setStep(1)}
-          onConfirm={confirmAndGenerateCopy}
-          onSwap={swapSelection}
-        />
+        <>
+          <Step2
+            selection={selection}
+            loading={loading}
+            onBack={() => setStep(1)}
+            onConfirm={confirmAndGenerateCopy}
+            onSwap={swapSelection}
+          />
+          <ProgressBar progress={copyProgress} />
+        </>
       )}
       {step === 3 && selection && (
         <Step3
@@ -209,20 +280,22 @@ function Step1({
   prompt,
   setPrompt,
   loading,
-  status,
   onSearch,
 }: {
   prompt: string;
   setPrompt: (s: string) => void;
   loading: boolean;
-  status: string;
   onSearch: () => void;
 }) {
   const [ideas, setIdeas] = useState<{ titulo: string; hook: string }[] | null>(null);
   const [ideasLoading, setIdeasLoading] = useState(false);
   const [ideasErr, setIdeasErr] = useState("");
   const [autoLoading, setAutoLoading] = useState(false);
-  const [autoStatus, setAutoStatus] = useState("");
+
+  const ideasProgress = useProgressSim(ideasLoading || autoLoading, [
+    { name: "Gerando 16 ideias virais (fase 1)", seconds: 20 },
+    { name: "Filtrando as 8 mais fortes (curadoria IA)", seconds: 18 },
+  ]);
 
   async function generateIdeas() {
     setIdeasLoading(true);
@@ -247,7 +320,6 @@ function Step1({
     setAutoLoading(true);
     setIdeasErr("");
     try {
-      setAutoStatus("Buscando tema viral...");
       const r = await fetch("/api/ideas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -258,15 +330,12 @@ function Step1({
       const best = d.ideias?.[0];
       if (!best?.titulo) throw new Error("Sem ideia retornada");
       setPrompt(best.titulo);
-      setAutoStatus("Gerando carrossel com o melhor tema...");
-      // pequena pausa pra state flush, depois dispara o search
       await new Promise((r) => setTimeout(r, 50));
       onSearch();
     } catch (e: any) {
       setIdeasErr(e.message);
     } finally {
       setAutoLoading(false);
-      setAutoStatus("");
     }
   }
 
@@ -289,14 +358,14 @@ function Step1({
           className="bg-[color:var(--color-accent,#d6e7c4)] text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
           style={{ background: "#d6e7c4" }}
         >
-          {autoLoading ? autoStatus || "..." : "Sugerir + gerar carrossel viral"}
+          {autoLoading ? "Processando..." : "Sugerir + gerar carrossel viral"}
         </button>
         <button
           disabled={anyLoading || !prompt.trim()}
           onClick={onSearch}
           className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
         >
-          {loading ? status || "Processando..." : "Gerar carrossel smart"}
+          {loading ? "Processando..." : "Gerar carrossel smart"}
         </button>
         <button
           type="button"
@@ -307,6 +376,7 @@ function Step1({
           {ideasLoading ? "Pensando..." : ideas ? "Gerar mais ideias" : "Sugerir temas virais"}
         </button>
       </div>
+      <ProgressBar progress={ideasProgress} />
       {ideasErr && <div className="mt-4 text-red-300 text-sm">Erro: {ideasErr}</div>}
       {ideas && ideas.length > 0 && (
         <div className="mt-6">
@@ -337,14 +407,12 @@ function Step1({
 function Step2({
   selection,
   loading,
-  status,
   onBack,
   onConfirm,
   onSwap,
 }: {
   selection: Selection;
   loading: boolean;
-  status: string;
   onBack: () => void;
   onConfirm: () => void;
   onSwap: (role: "cover" | "cta" | "inner", altIdx: number, innerPos?: number) => void;
@@ -376,7 +444,7 @@ function Step2({
             onClick={onConfirm}
             className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
           >
-            {loading ? status || "..." : "Confirmar e gerar copy →"}
+            {loading ? "Processando..." : "Confirmar e gerar copy →"}
           </button>
         </div>
       </div>
@@ -877,6 +945,11 @@ function CaptionPanel({
   const [error, setError] = useState("");
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [readImages, setReadImages] = useState(true);
+  const captionProgress = useProgressSim(loading, [
+    { name: "Claude lendo as 6 fotos do carrossel", seconds: 12 },
+    { name: "Escrevendo 3 legendas no seu tom real", seconds: 20 },
+    { name: "Limpando hashtags e emojis", seconds: 3 },
+  ]);
 
   async function generate() {
     setLoading(true);
@@ -936,6 +1009,7 @@ function CaptionPanel({
         </button>
       </div>
       {error && <div className="text-red-300 text-sm mt-2">Erro: {error}</div>}
+      <ProgressBar progress={captionProgress} />
       {options && options.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
           {options.map((opt, i) => (
