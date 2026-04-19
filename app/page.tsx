@@ -50,7 +50,7 @@ type Selection = {
 
 export default function Home() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [prompt, setPrompt] = useState("5 plantas tropicais que sustentam jardins de sombra filtrada");
+  const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -279,6 +279,7 @@ function Step1({
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         rows={3}
+        placeholder="Ex: entradas monumentais em condominios fechados..."
         className="w-full bg-black/30 border border-white/15 rounded p-3 text-sm"
       />
       <div className="mt-4 flex gap-2 flex-wrap">
