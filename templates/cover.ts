@@ -96,6 +96,7 @@ ${baseStyle(fontsBaseUrl)}
 }
 </style></head><body><div class="slide cover">
   <div class="bg"><img src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/></div>
+  <div class="color-grade"></div>
   <div class="veil veil-cover"></div>
   ${d.numeral ? `<div class="cover-mark">${escapeHtml(d.numeral)}</div>` : ""}
   <div class="chrome">

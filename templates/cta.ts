@@ -58,6 +58,7 @@ ${baseStyle(fontsBaseUrl)}
 }
 </style></head><body><div class="slide cta">
   <div class="bg"><img src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/></div>
+  <div class="color-grade"></div>
   <div class="veil veil-cta"></div>
   <div class="chrome">
     <div class="meta-top">

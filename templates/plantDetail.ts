@@ -65,6 +65,7 @@ ${baseStyle(fontsBaseUrl)}
 }
 </style></head><body><div class="slide plant">
   <div class="bg"><img src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/></div>
+  <div class="color-grade"></div>
   <div class="veil veil-side"></div>
   <div class="chrome">
     <div class="meta-top">

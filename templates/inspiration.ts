@@ -48,6 +48,7 @@ ${baseStyle(fontsBaseUrl)}
 .insp-kicker .line { width: 36px; height: 1px; background: rgba(255,255,255,.6); display: block; }
 </style></head><body><div class="slide insp">
   <div class="bg"><img src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/></div>
+  <div class="color-grade"></div>
   <div class="veil veil-bottom"></div>
   <div class="chrome">
     <div class="meta-top">

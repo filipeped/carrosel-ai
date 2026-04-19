@@ -39,13 +39,32 @@ export function baseStyle(fontsBaseUrl = ""): string {
     }
     .slide { position:relative; width:1080px; height:1350px; overflow:hidden; }
 
-    /* ---- imagem de fundo (sem filter, overlays fazem o trabalho) ---- */
+    /* ---- imagem de fundo com tratamento editorial sutil ---- */
     .bg {
       position:absolute; inset:0; z-index:0; overflow:hidden;
     }
     .bg img {
       width:100%; height:100%; object-fit:cover; display:block;
       object-position:center center;
+      /* curva editorial: contraste + saturacao + nitidez aparente */
+      filter:
+        brightness(0.96)
+        contrast(1.12)
+        saturate(1.12);
+      transform: scale(1.015); /* evita borda fina do filter */
+    }
+
+    /* color grade sutil: highlights levemente quentes, sombras verde-profundo */
+    .color-grade {
+      position:absolute; inset:0; z-index:1;
+      background:
+        radial-gradient(ellipse at top, rgba(235, 220, 190, 0.06) 0%, transparent 55%),
+        linear-gradient(180deg,
+          rgba(200, 220, 200, 0.03) 0%,
+          rgba(0, 0, 0, 0) 35%,
+          rgba(10, 20, 12, 0.14) 100%);
+      mix-blend-mode: multiply;
+      pointer-events: none;
     }
 
     /* ---- veu de gradiente (aplicado pela classe do template) ---- */
