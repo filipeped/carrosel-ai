@@ -73,7 +73,7 @@ ${baseStyle(fontsBaseUrl)}
   display: flex; width: 44px; height: 1px; background: #fff;
 }
 </style></head><body><div class="slide">
-  <div class="bg"><img src="${escapeHtml(d.imageUrl)}"/></div>
+  <div class="bg"><img src="${escapeHtml(d.imageUrl)}" width="1080" height="1350"/></div>
   <div class="veil veil-cover"></div>
   <div class="chrome">
     <div class="meta-top">

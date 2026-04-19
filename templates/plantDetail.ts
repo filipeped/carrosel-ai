@@ -48,7 +48,7 @@ ${baseStyle(fontsBaseUrl)}
   margin-top: 18px;
 }
 </style></head><body><div class="slide">
-  <div class="bg"><img src="${escapeHtml(d.imageUrl)}"/></div>
+  <div class="bg"><img src="${escapeHtml(d.imageUrl)}" width="1080" height="1350"/></div>
   <div class="veil veil-side"></div>
   <div class="chrome">
     <div class="meta-top">
