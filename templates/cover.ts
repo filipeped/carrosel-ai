@@ -38,8 +38,9 @@ ${baseStyle(fontsBaseUrl)}
   letter-spacing: 4px;
   text-transform: uppercase;
   color: #fff;
-  opacity: 0.9;
+  opacity: 0.92;
   margin-bottom: 12px;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
 }
 .title-line {
   display: flex;
@@ -52,6 +53,7 @@ ${baseStyle(fontsBaseUrl)}
   font-size: 260px;
   line-height: 0.82;
   color: #fff;
+  text-shadow: 0 3px 22px rgba(0,0,0,0.55), 0 2px 4px rgba(0,0,0,0.55);
 }
 .headline {
   font-family: 'Playfair', serif;
@@ -61,6 +63,7 @@ ${baseStyle(fontsBaseUrl)}
   color: #fff;
   padding-top: 68px;
   letter-spacing: -1px;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.55);
 }
 .headline i { font-family: 'Cormorant', 'Playfair', serif; font-style: italic; font-weight: 400; }
 .edition {
@@ -68,6 +71,7 @@ ${baseStyle(fontsBaseUrl)}
   font-family: 'Playfair', serif;
   font-size: 18px; letter-spacing: 4px;
   text-transform: uppercase; color: #fff; opacity: 0.9;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
 }
 </style></head><body><div class="slide">
 <img class="bg" src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/>

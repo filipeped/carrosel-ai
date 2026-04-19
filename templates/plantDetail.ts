@@ -20,6 +20,7 @@ ${baseStyle(fontsBaseUrl)}
   line-height: 0.92;
   color: #fff;
   letter-spacing: -1.5px;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.55);
 }
 .cientifico {
   font-family: 'Cormorant', 'Playfair', serif;
@@ -29,10 +30,11 @@ ${baseStyle(fontsBaseUrl)}
   color: #fff;
   opacity: 0.95;
   margin-top: 14px;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.5);
 }
 .left-shadow {
   position: absolute; inset: 0;
-  background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.1) 55%, rgba(0,0,0,0) 75%);
+  background: linear-gradient(90deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0) 75%);
 }
 </style></head><body><div class="slide">
 <img class="bg" src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/>

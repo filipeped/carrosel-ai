@@ -21,18 +21,20 @@ ${baseStyle(fontsBaseUrl)}
   line-height: 0.95;
   color: #fff;
   letter-spacing: -1px;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.55);
 }
 .subtitle {
   font-family: 'Cormorant', 'Playfair', serif;
   font-style: italic;
   font-weight: 400;
   font-size: 32px;
-  color: #fff; opacity: 0.9;
+  color: #fff; opacity: 0.92;
   margin-top: 16px;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.5);
 }
 .bottom-shadow {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.2) 45%, rgba(0,0,0,0.75) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.25) 45%, rgba(0,0,0,0.80) 100%);
 }
 </style></head><body><div class="slide">
 <img class="bg" src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/>

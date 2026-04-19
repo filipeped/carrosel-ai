@@ -33,11 +33,12 @@ ${baseStyle(fontsBaseUrl)}
   line-height: 0.98;
   color: #fff;
   letter-spacing: -1px;
+  text-shadow: 0 3px 20px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.55);
 }
 .pergunta i { font-family: 'Cormorant', 'Playfair', serif; font-style: italic; font-weight: 400; }
 .side-shadow-strong {
   position: absolute; inset: 0;
-  background: linear-gradient(90deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 55%, rgba(0,0,0,0) 75%);
+  background: linear-gradient(90deg, rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.25) 55%, rgba(0,0,0,0) 75%);
 }
 </style></head><body><div class="slide">
 <img class="bg" src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/>

@@ -31,31 +31,67 @@ export function baseStyle(fontsBaseUrl = ""): string {
       color: #fff;
       overflow: hidden;
       position: relative;
+      background: #0a0d0b;
     }
     .slide { position: relative; width: 1080px; height: 1350px; overflow: hidden; }
+
+    /* ---- Tratamento cinematografico da foto ---- */
     .bg {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       object-fit: cover;
+      /* leve escurecimento + contraste + saturacao editorial */
+      filter: brightness(0.82) contrast(1.10) saturate(1.08);
+      transform: scale(1.02);
     }
+
+    /* Vinheta radial sutil pra dar profundidade */
+    .vignette-soft {
+      position: absolute; inset: 0;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(0,0,0,0) 45%,
+        rgba(0,0,0,0.45) 100%
+      );
+      pointer-events: none;
+    }
+
+    /* Gradiente vertical classico (mais forte embaixo) */
     .vignette {
       position: absolute; inset: 0;
       background: linear-gradient(
         180deg,
-        rgba(0,0,0,0.15) 0%,
+        rgba(0,0,0,0.20) 0%,
         rgba(0,0,0,0.25) 50%,
-        rgba(0,0,0,0.55) 100%
+        rgba(0,0,0,0.60) 100%
       );
     }
+
+    /* Sombra lateral esquerda (pra textos que ficam no canto) */
     .side-shadow {
       position: absolute; inset: 0;
       background: linear-gradient(
         90deg,
-        rgba(0,0,0,0.55) 0%,
-        rgba(0,0,0,0.15) 45%,
+        rgba(0,0,0,0.60) 0%,
+        rgba(0,0,0,0.20) 45%,
         rgba(0,0,0,0) 65%
       );
     }
+
+    /* ---- Tratamento tipografico ---- */
+    /* Sombra editorial: duas camadas pra dar peso sem poluir */
+    .tx-shadow {
+      text-shadow:
+        0 2px 10px rgba(0,0,0,0.45),
+        0 1px 2px rgba(0,0,0,0.55);
+    }
+    .tx-shadow-strong {
+      text-shadow:
+        0 3px 20px rgba(0,0,0,0.55),
+        0 2px 4px rgba(0,0,0,0.60);
+    }
+
+    /* Handles e labels */
     .handle {
       position: absolute;
       bottom: 42px;
@@ -66,6 +102,7 @@ export function baseStyle(fontsBaseUrl = ""): string {
       color: #fff;
       text-transform: uppercase;
       opacity: 0.95;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.5);
     }
     .top-label {
       position: absolute;
@@ -77,6 +114,7 @@ export function baseStyle(fontsBaseUrl = ""): string {
       color: #fff;
       text-transform: uppercase;
       opacity: 0.9;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.5);
     }
   `;
 }
