@@ -38,9 +38,56 @@ export type SmartSelection = {
   rationale?: string;
 };
 
-function composite(img: AnalyzedImage, semanticScore = 1): number {
+function composite(img: AnalyzedImage, semanticScore = 1, aderencia = 1): number {
   const a = img.analise_visual;
-  return 0.5 * a.cover_potential + 0.2 * a.composicao + 0.15 * a.qualidade + 0.15 * semanticScore * 10;
+  // aderencia ao tema pesa 30% do score composto (antes nao pesava)
+  return (
+    0.35 * a.cover_potential +
+    0.15 * a.composicao +
+    0.10 * a.qualidade +
+    0.10 * semanticScore * 10 +
+    0.30 * aderencia * 10
+  );
+}
+
+/**
+ * Mede quao aderente uma imagem e ao tema.
+ * Conta interseccao entre palavras do tema (lowercase, 4+ chars) e
+ * palavras da analise_visual (descricao_visual, hero_element, palavras_chave).
+ * Retorna 0-1.
+ */
+function aderenciaTema(prompt: string, img: AnalyzedImage): number {
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  const STOP = new Set([
+    "para", "pela", "pelo", "como", "sobre", "todo", "toda", "essa", "esse", "este",
+    "esta", "quando", "onde", "porque", "mais", "menos", "pelo", "pela", "alto",
+    "padrao", "jardim", "jardins", "paisagismo", "projeto", "carrossel", "instagram",
+    "visual", "voce", "apenas", "entre", "ainda", "sempre", "contra", "tambem",
+  ]);
+  const termos = norm(prompt)
+    .replace(/[^a-z0-9 ]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 4 && !STOP.has(w));
+  if (!termos.length) return 0.5;
+  const hay = norm(
+    [
+      img.analise_visual.descricao_visual,
+      img.analise_visual.hero_element,
+      (img.analise_visual.palavras_chave || []).join(" "),
+      (img.analise_visual.mood_real || []).join(" "),
+      (img.plantas || []).join(" "),
+      (img.elementos_form || []).join(" "),
+      (img.estilo || []).join(" "),
+      img.descricao || "",
+    ].join(" "),
+  );
+  let hits = 0;
+  for (const t of termos) if (hay.includes(t)) hits++;
+  return hits / termos.length;
 }
 
 const SELECT_SYSTEM = `Voce e curador de carrossel de Instagram pra @digitalpaisagismo. Dado um TEMA e uma lista de imagens analisadas (cada uma com descricao_visual, hero_element, scores), escolha as 6 melhores em roles especificos.
@@ -73,14 +120,21 @@ export async function rankAndSelect(
     throw new Error(`Apenas ${analyzed.length} imagens disponiveis — minimo 6`);
   }
 
-  // Top-12 por score composto pra IA escolher
-  const ranked = [...analyzed].sort((a, b) => composite(b) - composite(a));
-  const top12 = ranked.slice(0, 12);
+  // Score composto agora inclui aderencia ao tema (30%)
+  const withAder = analyzed.map((im) => ({
+    img: im,
+    ader: aderenciaTema(prompt, im),
+    score: 0,
+  }));
+  withAder.forEach((x) => (x.score = composite(x.img, 1, x.ader)));
+  withAder.sort((a, b) => b.score - a.score);
+  const ranked = withAder.map((x) => x.img);
+  const top12 = withAder.slice(0, 12);
 
   const summary = top12
     .map(
-      (im) =>
-        `id=${im.id} | cover=${im.analise_visual.cover_potential.toFixed(1)} comp=${im.analise_visual.composicao.toFixed(1)} | ${im.analise_visual.descricao_visual} | hero: ${im.analise_visual.hero_element}`,
+      ({ img, ader }) =>
+        `id=${img.id} | cover=${img.analise_visual.cover_potential.toFixed(1)} comp=${img.analise_visual.composicao.toFixed(1)} ader=${(ader * 100).toFixed(0)}% | ${img.analise_visual.descricao_visual} | hero: ${img.analise_visual.hero_element}`,
     )
     .join("\n");
 
@@ -164,11 +218,23 @@ plantDetail: { type:"plantDetail", imageIdx, nomePopular, nomeCientifico, title:
 inspiration: { type:"inspiration", imageIdx, title, subtitle, topLabel, nomePopular:null, nomeCientifico:null }
 cta: { type:"cta", imageIdx:5, pergunta, italicWords:[] }
 
-REGRAS:
+REGRAS ESTRUTURAIS:
 - slides[0].type DEVE ser "cover"; slides[5].type DEVE ser "cta"
 - numeral: 1-2 digitos numericos puros ou null
-- USE detalhes visuais das fotos (descricao_visual, hero_element) nos textos. Cite luz, textura, especies visiveis.
-- Numeros em titulos: 3, 4 ou 5 apenas (nunca 6+).`;
+- Numeros em titulos: 3, 4 ou 5 apenas (nunca 6+)
+
+REGRAS DE COERENCIA (CRITICAS):
+- A descricao_visual de cada imagem e SUA FONTE DE VERDADE. Nao invente elementos.
+- NUNCA afirme "no slide N aparece X" se X nao esta na descricao_visual do slide N.
+- NUNCA crie plantDetail com especie que nao esta em plantas[] da imagem ou descricao_visual.
+- Se o tema cita algo (ex: muro verde, jardim noturno, jardim seco, palmeiras) e NENHUMA imagem mostra,
+  ADAPTE o copy — foque no PRINCIPIO em vez de descrever algo ausente. Nao minta.
+- Se uma imagem mostra um jardim tropical e o tema pede seco, NAO chame a cena de "seco" — trate como
+  exemplo complementar, contraponto ou principio universal.
+- Se for criar plantDetail, escolha especies que REALMENTE aparecem na lista "plantas" ou "descricao_visual"
+  da imagem aquela imageIdx. Se nao tiver planta identificada na foto, use inspiration em vez de plantDetail.
+
+Copy deve ser sofisticado, sem clichê. Citar luz, textura, materiais quando presentes.`;
 
 export async function generateCopyFromAnalysis(
   prompt: string,
@@ -178,18 +244,26 @@ export async function generateCopyFromAnalysis(
   const imgSummary = ordered
     .map((im, i) => {
       const a = im.analise_visual;
-      const plantas = (im.plantas || []).slice(0, 4).join(", ");
-      return `[${i}] ${a.descricao_visual} | hero: ${a.hero_element} | mood: ${(a.mood_real || []).join(", ")} | plantas conhecidas: ${plantas}`;
+      const plantas = (im.plantas || []).slice(0, 6).join(", ");
+      const materiais = (im.elementos_form || []).slice(0, 4).join(", ");
+      return `[${i}] VE: ${a.descricao_visual}
+     hero: ${a.hero_element}
+     plantas identificadas na foto: ${plantas || "(nao identificado)"}
+     materiais/elementos: ${materiais || "(nao catalogado)"}
+     mood: ${(a.mood_real || []).join(", ")}`;
     })
-    .join("\n");
+    .join("\n\n");
 
-  const userMsg = `Tema: "${prompt}"
-Imagens ja selecionadas e ordenadas (indice 0=capa, 1-4=miolo, 5=cta):
+  const userMsg = `Tema pedido pelo usuario: "${prompt}"
+
+Imagens disponiveis e o que cada uma MOSTRA (fonte de verdade):
 ${imgSummary}
 
 Hints de curadoria: ${selection.rationale || "-"}
 
-${COPY_FROM_ANALYSIS_SCHEMA}`;
+${COPY_FROM_ANALYSIS_SCHEMA}
+
+Verifique: cada elemento que voce citar no copy TEM que estar na descricao/plantas/materiais da imagem correspondente. Alucinacao = falha grave.`;
 
   const r = await getAi().chat.completions.create({
     model: MODEL,

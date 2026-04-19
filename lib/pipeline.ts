@@ -97,6 +97,13 @@ VOCE RECEBE ATE 6 IMAGENS REAIS DO CARROSSEL. Antes de escrever:
 
 Na legenda, cite pelo menos 1 detalhe visual concreto que so quem olhou a foto saberia (ex: "a sombra filtrada pelo licuala", "o travertino bege contrastando com a folha brilhante do monstera", "a agua espelhando a copa das palmeiras"). ISSO e o que diferencia legenda certeira de legenda generica.
 
+REGRA DURA DE HONESTIDADE VISUAL:
+- Se o tema pede muro verde e as fotos mostram jardins tropicais, NAO finja que ha muro verde nas fotos. Fale do principio geral do tema usando as fotos como referencia tangenc­ial, e seja honesto: trate as imagens pelo que REALMENTE sao.
+- Se o tema pede noturno e as fotos sao diurnas, NAO chame de noturno. Cite a luz real que voce ve.
+- Se o tema pede jardim seco mas aparece jardim tropical, NAO cite "agave" ou "pata-de-elefante" se voce nao ve. Cite o que ha.
+- NUNCA afirme "no slide 3 aparece Heliconia rostrata" se voce nao ve Heliconia rostrata no slide 3. Isso e alucinacao grave.
+- Se ha dissonancia entre tema e imagens, reconheca e use o tema como conceito orientador, nao como descricao literal do que esta visivel.
+
 Gere 3 legendas em abordagens diferentes:
 - Storytelling editorial
 - Autoridade tecnica botanica
