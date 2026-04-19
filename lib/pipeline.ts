@@ -105,7 +105,7 @@ Gere 3 legendas em abordagens diferentes:
 Retorne JSON puro (sem markdown):
 { "options": [{ "abordagem", "hook", "legenda", "hashtags": [] }] }`;
 
-export async function generateCaption(
+async function _runCaption(
   prompt: string,
   slides: SlideSpec[],
   imageUrls?: string[],
@@ -114,15 +114,18 @@ export async function generateCaption(
     .map((s, i) => `  [${i + 1}] ${s.type}: ${s.title || s.nomePopular || s.pergunta || ""}`)
     .join("\n");
 
-  // Monta content multimodal quando imageUrls sao passadas
   const userContent: Array<
     | { type: "text"; text: string }
     | { type: "image_url"; image_url: { url: string } }
   > = [
-    { type: "text", text: `Tema do carrossel: "${prompt}"\n\nSlides:\n${summary}\n\nSegue ${imageUrls?.length || 0} imagens do carrossel. Leia cada uma antes de gerar as 3 legendas. JSON puro.` },
+    {
+      type: "text",
+      text: `Tema do carrossel: "${prompt}"\n\nSlides:\n${summary}\n\n${
+        imageUrls?.length ? `Segue ${imageUrls.length} imagens do carrossel. Leia cada uma antes de gerar as 3 legendas.` : "Gere as 3 legendas com base nos slides acima."
+      } JSON puro.`,
+    },
   ];
   if (imageUrls && imageUrls.length) {
-    // limite de 6 imagens pra evitar timeout
     for (const url of imageUrls.slice(0, 6)) {
       userContent.push({ type: "image_url", image_url: { url } });
     }
@@ -130,7 +133,7 @@ export async function generateCaption(
 
   const r = await getAi().chat.completions.create({
     model: MODEL,
-    max_tokens: 2400,
+    max_tokens: 4000,
     messages: [
       { role: "system", content: CAPTION_SYSTEM },
       { role: "user", content: userContent as any },
@@ -140,6 +143,32 @@ export async function generateCaption(
   let parsed: any = extractJson(raw);
   if (Array.isArray(parsed)) parsed = { options: parsed };
   return parsed;
+}
+
+export async function generateCaption(
+  prompt: string,
+  slides: SlideSpec[],
+  imageUrls?: string[],
+): Promise<{ options: CaptionOption[] }> {
+  try {
+    return await _runCaption(prompt, slides, imageUrls);
+  } catch (err: any) {
+    const msg = String(err?.message || err);
+    const visionFailed =
+      imageUrls &&
+      imageUrls.length > 0 &&
+      (msg.includes("no JSON") ||
+        msg.includes("anexada") ||
+        msg.includes("anexar") ||
+        msg.includes("nao recebi") ||
+        msg.includes("não recebi") ||
+        msg.includes("image"));
+    if (visionFailed) {
+      console.warn("[caption] vision falhou, retry sem imagens:", msg.slice(0, 120));
+      return await _runCaption(prompt, slides, undefined);
+    }
+    throw err;
+  }
 }
 
 export async function runFullCarousel(prompt: string, opts: { imageCount?: number; withCaption?: boolean } = {}) {

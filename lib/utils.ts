@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { jsonrepair } from "jsonrepair";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -31,23 +32,125 @@ export function extractJson<T = unknown>(text: string): T {
   try {
     return JSON.parse(slice);
   } catch {
-    // LLM as vezes manda: trailing commas, newlines crus dentro de strings,
-    // aspas/controle nao-escapados. Tenta reparar e parsear de novo.
-    let repaired = slice.replace(/,\s*([}\]])/g, "$1");
-    // escapa newlines/tabs/cr dentro de strings ja delimitadas
-    repaired = repaired.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match, inner) => {
-      const fixed = inner
+    // Tentativa 1: jsonrepair — lib dedicada, lida com a maioria dos casos
+    try {
+      const repaired = jsonrepair(slice);
+      return JSON.parse(repaired);
+    } catch {
+      /* fallthrough */
+    }
+
+    // Tentativa 2: escapa newlines/tabs/trailing commas manualmente
+    let manual = slice.replace(/,\s*([}\]])/g, "$1");
+    manual = manual.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (_m, inner) => {
+      const fixed = String(inner)
         .replace(/\r/g, "\\r")
         .replace(/\n/g, "\\n")
         .replace(/\t/g, "\\t");
       return `"${fixed}"`;
     });
     try {
-      return JSON.parse(repaired);
-    } catch (e: any) {
-      throw new Error(`JSON parse failed: ${e.message} | raw: ${slice.slice(0, 300)}`);
+      return JSON.parse(manual);
+    } catch {
+      /* fallthrough */
+    }
+
+    // Tentativa 3: JSON truncado — completa com chaves/colchetes
+    const attempts = completeTruncated(slice);
+    for (const cand of attempts) {
+      try {
+        return JSON.parse(jsonrepair(cand));
+      } catch {
+        try {
+          return JSON.parse(cand);
+        } catch {
+          /* continue */
+        }
+      }
+    }
+
+    // Tentativa 4: array parcial — extrai objetos completos
+    const partialArr = extractPartialArray(slice);
+    if (partialArr !== null) return partialArr as T;
+
+    throw new Error(
+      `JSON parse failed | raw inicial: ${slice.slice(0, 200)} | raw final: ${slice.slice(-200)}`,
+    );
+  }
+}
+
+// Tenta completar JSON truncado adicionando os fechamentos mais provaveis.
+function completeTruncated(s: string): string[] {
+  const out: string[] = [];
+  // Remove ultima virgula ou aspas penduradas
+  let base = s.replace(/[,\s]*$/, "");
+  // Se terminou no meio de uma string, corta ate a ultima aspa e feche-a
+  const lastQuote = base.lastIndexOf('"');
+  const lastBrace = Math.max(base.lastIndexOf("}"), base.lastIndexOf("]"));
+  if (lastQuote > lastBrace) {
+    base = base.slice(0, lastQuote); // corta antes de abrir string truncada
+    base = base.replace(/[,\s]*$/, "");
+  }
+
+  // Conta brackets nao fechados
+  let openCurly = 0, openSquare = 0;
+  for (const c of base) {
+    if (c === "{") openCurly++;
+    else if (c === "}") openCurly--;
+    else if (c === "[") openSquare++;
+    else if (c === "]") openSquare--;
+  }
+  // Fecha na ordem mais provavel
+  let close = "";
+  while (openCurly-- > 0) close += "}";
+  while (openSquare-- > 0) close += "]";
+  if (close) out.push(base + close);
+
+  // Variante: corta ate ultimo `}` de um objeto completo dentro do array
+  const lastObjEnd = base.lastIndexOf("}");
+  if (lastObjEnd > 0) {
+    const truncated = base.slice(0, lastObjEnd + 1);
+    // se estamos num array, fecha com ]
+    const openBr = countChar(truncated, "[") - countChar(truncated, "]");
+    const openCu = countChar(truncated, "{") - countChar(truncated, "}");
+    let tail = "";
+    for (let i = 0; i < openCu; i++) tail += "}";
+    for (let i = 0; i < openBr; i++) tail += "]";
+    out.push(truncated + tail);
+  }
+  return out;
+}
+
+function countChar(s: string, c: string): number {
+  let n = 0;
+  for (const ch of s) if (ch === c) n++;
+  return n;
+}
+
+// Se for array "[...,{obj},{obj_parcial...", tenta extrair so os objetos completos
+function extractPartialArray(s: string): unknown[] | null {
+  if (!s.trimStart().startsWith("[")) return null;
+  const objs: unknown[] = [];
+  let depth = 0;
+  let start = -1;
+  for (let i = 1; i < s.length; i++) {
+    const c = s[i];
+    if (c === "{" && depth === 0) start = i;
+    if (c === "{") depth++;
+    else if (c === "}") {
+      depth--;
+      if (depth === 0 && start >= 0) {
+        const chunk = s.slice(start, i + 1);
+        try {
+          objs.push(JSON.parse(chunk));
+        } catch {
+          /* ignora obj malformado */
+        }
+        start = -1;
+      }
     }
   }
+  return objs.length ? objs : null;
 }
 
 export function escapeHtml(s: string): string {
