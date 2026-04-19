@@ -221,6 +221,8 @@ function Step1({
   const [ideas, setIdeas] = useState<{ titulo: string; hook: string }[] | null>(null);
   const [ideasLoading, setIdeasLoading] = useState(false);
   const [ideasErr, setIdeasErr] = useState("");
+  const [autoLoading, setAutoLoading] = useState(false);
+  const [autoStatus, setAutoStatus] = useState("");
 
   async function generateIdeas() {
     setIdeasLoading(true);
@@ -241,6 +243,35 @@ function Step1({
     }
   }
 
+  async function autoViral() {
+    setAutoLoading(true);
+    setIdeasErr("");
+    try {
+      setAutoStatus("Buscando tema viral...");
+      const r = await fetch("/api/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nicho: prompt || undefined }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      const best = d.ideias?.[0];
+      if (!best?.titulo) throw new Error("Sem ideia retornada");
+      setPrompt(best.titulo);
+      setAutoStatus("Gerando carrossel com o melhor tema...");
+      // pequena pausa pra state flush, depois dispara o search
+      await new Promise((r) => setTimeout(r, 50));
+      onSearch();
+    } catch (e: any) {
+      setIdeasErr(e.message);
+    } finally {
+      setAutoLoading(false);
+      setAutoStatus("");
+    }
+  }
+
+  const anyLoading = loading || autoLoading;
+
   return (
     <div className="max-w-3xl">
       <label className="block mb-2 text-sm opacity-80">Tema do carrossel</label>
@@ -252,7 +283,15 @@ function Step1({
       />
       <div className="mt-4 flex gap-2 flex-wrap">
         <button
-          disabled={loading}
+          disabled={anyLoading}
+          onClick={autoViral}
+          className="bg-[color:var(--color-accent,#d6e7c4)] text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
+          style={{ background: "#d6e7c4" }}
+        >
+          {autoLoading ? autoStatus || "..." : "Sugerir + gerar carrossel viral"}
+        </button>
+        <button
+          disabled={anyLoading || !prompt.trim()}
           onClick={onSearch}
           className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
         >
@@ -260,7 +299,7 @@ function Step1({
         </button>
         <button
           type="button"
-          disabled={ideasLoading}
+          disabled={ideasLoading || autoLoading}
           onClick={generateIdeas}
           className="border border-white/20 px-5 py-2.5 rounded tracking-wider uppercase text-xs hover:bg-white/5 disabled:opacity-40"
         >
