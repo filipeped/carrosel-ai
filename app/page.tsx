@@ -148,6 +148,7 @@ export default function Home() {
           slides={slides}
           setSlides={setSlides}
           selectedImages={selectedImages}
+          prompt={prompt}
           onBack={() => setStep(2)}
         />
       )}
@@ -282,11 +283,13 @@ function Step3({
   slides,
   setSlides,
   selectedImages,
+  prompt,
   onBack,
 }: {
   slides: SlideData[];
   setSlides: (s: SlideData[]) => void;
   selectedImages: ImageRow[];
+  prompt: string;
   onBack: () => void;
 }) {
   function update(i: number, patch: Partial<SlideData>) {
@@ -328,6 +331,8 @@ function Step3({
         </div>
       </div>
 
+      <CaptionPanel slides={slides} prompt={prompt} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {slides.map((s, i) => (
           <SlideEditor
@@ -339,6 +344,90 @@ function Step3({
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+type CaptionOption = {
+  abordagem: string;
+  hook: string;
+  legenda: string;
+  hashtags: string[];
+};
+
+function CaptionPanel({ slides, prompt }: { slides: SlideData[]; prompt: string }) {
+  const [loading, setLoading] = useState(false);
+  const [options, setOptions] = useState<CaptionOption[] | null>(null);
+  const [error, setError] = useState("");
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+
+  async function generate() {
+    setLoading(true);
+    setError("");
+    setOptions(null);
+    try {
+      const r = await fetch("/api/caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, slides }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setOptions(d.options || []);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function copyAll(opt: CaptionOption, i: number) {
+    const full = `${opt.legenda}\n\n${(opt.hashtags || []).join(" ")}`;
+    await navigator.clipboard.writeText(full);
+    setCopiedIdx(i);
+    setTimeout(() => setCopiedIdx(null), 1500);
+  }
+
+  return (
+    <div className="mb-8 border border-white/10 rounded-lg bg-white/[0.02] p-5">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <div className="text-xs tracking-widest uppercase opacity-60 mb-1">Legendas virais</div>
+          <div className="text-sm opacity-80">
+            IA gera 3 legendas completas pro Instagram em abordagens diferentes (storytelling, autoridade,
+            pergunta).
+          </div>
+        </div>
+        <button
+          onClick={generate}
+          disabled={loading}
+          className="bg-white text-black px-4 py-2 rounded tracking-wider uppercase text-xs disabled:opacity-40"
+        >
+          {loading ? "Gerando..." : options ? "Gerar de novo" : "Gerar legendas"}
+        </button>
+      </div>
+
+      {error && <div className="text-red-300 text-sm mt-2">Erro: {error}</div>}
+
+      {options && options.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          {options.map((opt, i) => (
+            <div key={i} className="border border-white/10 rounded bg-black/30 p-4 flex flex-col">
+              <div className="text-[10px] tracking-widest uppercase opacity-60 mb-2">{opt.abordagem}</div>
+              <div className="text-sm whitespace-pre-wrap leading-relaxed mb-3 flex-1">{opt.legenda}</div>
+              <div className="text-xs opacity-70 mb-3 break-words">
+                {(opt.hashtags || []).join(" ")}
+              </div>
+              <button
+                onClick={() => copyAll(opt, i)}
+                className="mt-auto text-xs tracking-wider uppercase bg-white/10 hover:bg-white/20 border border-white/15 rounded px-3 py-2"
+              >
+                {copiedIdx === i ? "Copiado!" : "Copiar legenda + hashtags"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
