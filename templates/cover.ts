@@ -56,12 +56,15 @@ ${baseStyle(fontsBaseUrl)}
   margin-bottom: 16px;
 }
 .cover-head {
-  display: flex;
+  display: block;
   font-family: 'Fraunces', serif; font-weight: 400;
-  font-size: 68px; line-height: 1.02; letter-spacing: -1px;
+  font-size: 68px; line-height: 1.04; letter-spacing: -1px;
   color: #fff;
 }
-.cover-head em { font-style: italic; font-weight: 300; color: #d6e7c4; }
+.cover-head em {
+  font-style: italic; font-weight: 300; color: #d6e7c4;
+  margin-left: 0.12em; margin-right: 0.05em;
+}
 .swipe {
   display: flex; align-items: center; gap: 14px;
   margin-top: 32px;

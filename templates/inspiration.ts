@@ -30,12 +30,15 @@ ${baseStyle(fontsBaseUrl)}
   display: flex; width: 38px; height: 1px; background: rgba(255,255,255,0.6);
 }
 .insp-title {
-  display: flex;
+  display: block;
   font-family: 'Fraunces', serif; font-weight: 400;
-  font-size: 74px; line-height: 1.0; letter-spacing: -1.4px;
+  font-size: 74px; line-height: 1.04; letter-spacing: -1.4px;
   color: #fff;
 }
-.insp-title em { font-style: italic; font-weight: 300; color: #d6e7c4; }
+.insp-title em {
+  font-style: italic; font-weight: 300; color: #d6e7c4;
+  margin-left: 0.12em; margin-right: 0.05em;
+}
 .insp-sub {
   display: flex;
   font-family: 'Archivo', sans-serif;
