@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { claude, MODEL, BRAND_VOICE } from "@/lib/claude";
+import { ai, MODEL, BRAND_VOICE } from "@/lib/claude";
 import { renderMany } from "@/lib/renderer";
 import { pngsToPdf } from "@/lib/pdf";
 import { renderCover } from "@/templates/cover";
@@ -23,7 +23,7 @@ const COPY_SCHEMA = `Retorne JSON com:
   "cta": { "pergunta": string, "italicWords": string[] }
 }`;
 
-function copyPromptIdentifier(plant: any, images: any[]): string {
+function copyPromptIdentifier(plant: any): string {
   return `Gerar carrossel sobre: ${plant.nome_popular} (${plant.nome_cientifico}).
 Dados da planta: familia=${plant.familia ?? "?"}, luminosidade=${plant.luminosidade ?? "?"}, altura=${plant.altura ?? "?"}, clima=${plant.clima ?? "?"}, origem=${plant.origem ?? "?"}.
 Descricao curta: ${(plant.descricao || "").slice(0, 400)}
@@ -63,24 +63,24 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as GenInput;
     const origin = req.nextUrl.origin;
 
-    // 1. gera copy
+    // 1. gera copy via gateway
     const copyUser =
       body.mode === "identifier"
-        ? copyPromptIdentifier(body.plant, body.images)
+        ? copyPromptIdentifier(body.plant)
         : copyPromptThematic(body.prompt, body.images);
 
-    const msg = await claude.messages.create({
+    const resp = await ai.chat.completions.create({
       model: MODEL,
       max_tokens: 1500,
-      system: BRAND_VOICE + "\n\n" + COPY_SCHEMA,
-      messages: [{ role: "user", content: copyUser }],
+      messages: [
+        { role: "system", content: BRAND_VOICE + "\n\n" + COPY_SCHEMA },
+        { role: "user", content: copyUser },
+      ],
     });
-    const rawText = msg.content.find((c) => c.type === "text");
-    const copy = JSON.parse(
-      (rawText && rawText.type === "text" ? rawText.text : "").match(/\{[\s\S]*\}/)?.[0] ?? "{}",
-    );
+    const rawText = resp.choices[0]?.message?.content || "";
+    const copy = JSON.parse(rawText.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
 
-    // 2. escolhe imagens pros 6 slides
+    // 2. escolhe imagens
     const coverImg =
       body.mode === "identifier"
         ? body.images[0]?.url || body.plant?.imagem_principal
@@ -119,7 +119,6 @@ export async function POST(req: NextRequest) {
       const s = slidesCopy[i] || { title: "", subtitle: "" };
       const img = slideImgs[i] || slideImgs[0];
       if (body.mode === "identifier" && i === 0) {
-        // primeiro slide usa plantDetail (nome popular + cientifico)
         htmls.push(
           renderPlantDetail(
             {
@@ -151,13 +150,10 @@ export async function POST(req: NextRequest) {
       ),
     );
 
-    // 4. render paralelo
+    // 4. render paralelo + PDF
     const pngs = await renderMany(htmls);
-
-    // 5. PDF combinado
     const pdf = await pngsToPdf(pngs);
 
-    // 6. retorna tudo em base64
     return NextResponse.json({
       pngs: pngs.map((p) => p.toString("base64")),
       pdf: pdf.toString("base64"),

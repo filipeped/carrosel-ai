@@ -1,8 +1,16 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 
-export const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+// Cliente OpenAI apontando pro gateway CLIProxyAPI (chat/vision rotea pra Claude).
+// Ver C:\Users\filip\.claude\memory\reference_clawdbot_gateway.md
+const GATEWAY_BASE = process.env.GATEWAY_BASE_URL || "http://76.13.225.142:8317/v1";
+const GATEWAY_KEY = process.env.GATEWAY_API_KEY!;
 
-export const MODEL = "claude-sonnet-4-6";
+export const ai = new OpenAI({
+  apiKey: GATEWAY_KEY,
+  baseURL: GATEWAY_BASE,
+});
+
+export const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-4-6";
 
 export const BRAND_VOICE = `Voce e copywriter de carrossel do @digitalpaisagismo, perfil de paisagismo de alto padrao brasileiro.
 

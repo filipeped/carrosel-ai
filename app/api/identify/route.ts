@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { claude, MODEL } from "@/lib/claude";
+import { ai, MODEL } from "@/lib/claude";
 import { matchVegetacao } from "@/lib/plant-matcher";
 
 export const runtime = "nodejs";
@@ -26,21 +26,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "imageBase64 required" }, { status: 400 });
     }
 
-    const msg = await claude.messages.create({
+    const resp = await ai.chat.completions.create({
       model: MODEL,
       max_tokens: 600,
-      system: SYSTEM,
       messages: [
+        { role: "system", content: SYSTEM },
         {
           role: "user",
           content: [
             {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
-                data: imageBase64,
-              },
+              type: "image_url",
+              image_url: { url: `data:${mimeType};base64,${imageBase64}` },
             },
             { type: "text", text: "Identifique a planta principal. Responda so com o JSON." },
           ],
@@ -48,27 +44,18 @@ export async function POST(req: NextRequest) {
       ],
     });
 
-    const text = msg.content.find((c) => c.type === "text");
-    if (!text || text.type !== "text") {
-      return NextResponse.json({ error: "no text in response" }, { status: 500 });
-    }
-
-    // extrai JSON
-    const jsonMatch = text.text.match(/\{[\s\S]*\}/);
+    const text = resp.choices[0]?.message?.content || "";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return NextResponse.json({ error: "no JSON", raw: text.text }, { status: 500 });
+      return NextResponse.json({ error: "no JSON", raw: text }, { status: 500 });
     }
     const parsed = JSON.parse(jsonMatch[0]);
 
-    // tenta match no vegetacoes
     const veg = parsed.nome_cientifico
       ? await matchVegetacao(parsed.nome_cientifico, parsed.nome_popular)
       : null;
 
-    return NextResponse.json({
-      ...parsed,
-      vegetacao_match: veg,
-    });
+    return NextResponse.json({ ...parsed, vegetacao_match: veg });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: String(e) }, { status: 500 });

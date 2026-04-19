@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { claude, MODEL } from "@/lib/claude";
+import { ai, MODEL } from "@/lib/claude";
 import { embed } from "@/lib/embeddings";
 import { searchImagesSemantic } from "@/lib/plant-matcher";
 
@@ -22,18 +22,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "prompt required" }, { status: 400 });
     }
 
-    // 1. extrai filtros
-    const msg = await claude.messages.create({
+    // 1. extrai filtros via gateway
+    const resp = await ai.chat.completions.create({
       model: MODEL,
       max_tokens: 400,
-      system: EXTRACT_SYSTEM,
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        { role: "system", content: EXTRACT_SYSTEM },
+        { role: "user", content: prompt },
+      ],
     });
-    const txt = msg.content.find((c) => c.type === "text");
-    const text = txt && txt.type === "text" ? txt.text : "{}";
+    const text = resp.choices[0]?.message?.content || "{}";
     const filters = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
 
-    // 2. embedding da query expandida
+    // 2. embedding da query (OpenAI direto — gateway nao suporta embeddings)
     const queryEmb = await embed(filters.query_expandida || prompt);
 
     // 3. busca semantica com filtros
