@@ -8,7 +8,8 @@ const config: NextConfig = {
     ],
   },
   outputFileTracingIncludes: {
-    "/api/generate": ["./node_modules/@sparticuz/chromium/bin/**"],
+    "/api/render-slide": ["./node_modules/@sparticuz/chromium/bin/**"],
+    "/api/v1/carousel": ["./node_modules/@sparticuz/chromium/bin/**"],
   },
 };
 
