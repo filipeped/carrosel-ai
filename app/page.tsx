@@ -49,7 +49,7 @@ type Selection = {
 };
 
 // Barra de progresso com fases nomeadas e timer estimado.
-type ProgressState = { pct: number; phase: string; etaSec: number } | null;
+export type ProgressState = { pct: number; phase: string; etaSec: number } | null;
 
 function useProgressSim(active: boolean, phases: { name: string; seconds: number }[]) {
   const [state, setState] = useState<ProgressState>(null);
@@ -566,6 +566,14 @@ function Step3({
   const [postResult, setPostResult] = useState<{ ok: boolean; permalink?: string; error?: string } | null>(null);
   const [selectedCaption, setSelectedCaption] = useState<string>("");
 
+  const publishProgress = useProgressSim(busyPost, [
+    { name: "Capturando os 6 slides do preview", seconds: 8 },
+    { name: "Subindo PNGs pro Supabase Storage", seconds: 10 },
+    { name: "Instagram: criando containers de mídia", seconds: 12 },
+    { name: "Instagram: aguardando processamento", seconds: 15 },
+    { name: "Publicando carrossel", seconds: 8 },
+  ]);
+
   async function downloadAll() {
     setBusyAll(true);
     try {
@@ -673,6 +681,7 @@ function Step3({
         selectedCaption={selectedCaption}
         onPublish={postarNoInstagram}
         publishing={busyPost}
+        publishProgress={publishProgress}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -992,6 +1001,7 @@ function CaptionPanel({
   selectedCaption,
   onPublish,
   publishing,
+  publishProgress,
 }: {
   slides: SlideData[];
   prompt: string;
@@ -1000,6 +1010,7 @@ function CaptionPanel({
   selectedCaption?: string;
   onPublish?: () => void;
   publishing?: boolean;
+  publishProgress?: ProgressState;
 }) {
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<CaptionOption[] | null>(null);
@@ -1102,6 +1113,7 @@ function CaptionPanel({
         </div>
       )}
       <ProgressBar progress={captionProgress} />
+      {publishing && publishProgress && <ProgressBar progress={publishProgress} />}
 
       {options && options.length > 0 && (
         <>
