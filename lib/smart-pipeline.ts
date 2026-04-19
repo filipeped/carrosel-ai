@@ -324,12 +324,16 @@ export function validateSlidesAgainstImages(
 
     // Fallback: converte em inspiration com titulo conceitual (nao o nome da especie alucinada)
     const heroLabel = (img.analise_visual?.hero_element || "").trim();
+    const moods = (img.analise_visual?.mood_real || []).slice(0, 3).map(capFirst);
+    const subtitle = moods.length
+      ? moods.join(" · ")
+      : (img.elementos_form || []).slice(0, 2).map(capFirst).join(" · ") || "";
     return {
       type: "inspiration",
       imageIdx: fixedIdx,
       title: heroLabel ? capFirst(heroLabel) : "Composicao vegetal",
-      subtitle: (img.analise_visual?.descricao_visual || "").split(".")[0].slice(0, 110),
-      topLabel: "INSPIRACAO",
+      subtitle,
+      topLabel: "COMPOSIÇÃO",
       nomePopular: null,
       nomeCientifico: null,
     } as SlideSpec;
