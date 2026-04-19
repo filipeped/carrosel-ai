@@ -1,143 +1,184 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAi, MODEL } from "@/lib/claude";
 import { extractJson } from "@/lib/utils";
+import { getBrandVoiceReferences } from "@/lib/brand-voice";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
 
 // ---------------------------------------------------------------------------
-// Estrategista senior — persona consolidada
+// Persona + contexto real do perfil
 // ---------------------------------------------------------------------------
-const PERSONA = `Voce e estrategista-chefe de conteudo pra @digitalpaisagismo (paisagismo brasileiro alto padrao, ticket medio de projeto R$ 200k–R$ 2M).
+const PERSONA = `Voce e estrategista de conteudo do @digitalpaisagismo. Perfil brasileiro de paisagismo que fecha projetos R$ 200k+.
 
-Referencias do publico (AA/AAA): Matheus Ilt, Alex Hanazaki, Isabel Duprat, Gilberto Elkis, Benedito Abbud, Burle Marx. Leem Casa Vogue, Dezeen, AD, The World of Interiors. Compram projeto paisagistico assinado.
+PUBLICO REAL que ENGAJA com o perfil:
+- DONOS DE CASA (80%) — querendo contratar projeto paisagistico, pesquisando referencias antes de falar com paisagista
+- ARQUITETOS (15%) — buscando repertorio pra mostrar ao cliente
+- PAISAGISTAS (5%) — comparando tecnica, pouco salvam
 
-Consumo: salvam posts pra mostrar ao arquiteto, compartilham com paisagista, comentam com referencia tecnica.
-
-SEU OBJETIVO: gerar ideias de carrossel que:
-- Param o scroll (hook forte na capa)
-- Sao SALVAS pelo leitor (promessa tecnica cumprida)
-- Sao COMPARTILHADAS entre profissionais (autoridade tecnica)
-- Geram COMENTARIOS de projeto/execucao (provoca discussao)`;
+OBJETIVO: ideias que o DONO DE CASA salva pra mostrar ao marido/esposa/arquiteto, nao o paisagista pra debater tecnica.`;
 
 // ---------------------------------------------------------------------------
-// Exemplos positivos (calibracao em linguagem) — o que um bom titulo parece
+// Calibracao pelos posts REAIS que viraram
 // ---------------------------------------------------------------------------
-const BONS_EXEMPLOS = `Exemplos de titulos BONS pra @digitalpaisagismo (calibre por esses):
+const CALIBRACAO = `CALIBRACAO DE VIRALIDADE — tom que REALMENTE performa no perfil:
 
-[LISTA TECNICA] "5 folhagens de contraste alto que sustentam jardins de sombra filtrada"
-[AUTORIA] "O principio de escalonamento que Burle Marx usou em Copacabana — e poucos replicam"
-[ANTI-CONSELHO] "Por que menos especies deixam o jardim parecer mais rico"
-[ERROS TECNICOS] "4 erros de composicao que denunciam jardim sem projeto paisagistico"
-[ATMOSFERA] "Como a luz rasante transforma um canteiro tropical ao entardecer"
-[MATERIAL] "Quando usar corten, travertino ou seixo rolado — o peso que cada um traz pro jardim"
-[BASTIDOR] "O truque que paisagistas usam pra esconder o ar-condicionado sem pergolado"
-[COMPARACAO] "O que separa um jardim contratado de um jardim assinado"
-[CURADORIA] "3 especies brasileiras que deveriam estar em todo projeto mas ninguem lembra"
-[PROJETUAL] "Como construir profundidade num jardim linear de 40 metros"
-[HISTORIA] "O jardim de Roberto Burle Marx no Ministerio da Educacao — e o que ele ensina hoje"`;
+Posts que deram certo (exemplos reais, ordenados por saves):
+1. "Quando a area externa faz sentido, voce para de viver so dentro de casa"
+   — 249 saves. Fala do USO do espaco, nao da tecnica. Emocional e direto.
 
-const MAUS_EXEMPLOS = `Exemplos de titulos RUINS (nunca emule):
-- "Dicas incriveis de plantas pro seu jardim!"  (clickbait vazio, emoji, tom baixo)
-- "5 plantas lindas pra apartamento pequeno"    (baixo ticket, tom casual)
-- "Saiba mais sobre jardim de inverno"          (passiva, sem gancho)
-- "10 plantas que voce precisa ter"             (generico, sem contexto)
-- "Jardim pequeno virou tropical #incrivel"     (hashtag no titulo, clickbait)
-- "7 palmeiras pra sua casa"                    (sem contexto, numero grande)`;
+2. "Sua casa merece um projeto que conecte cada ambiente com a natureza"
+   — 170 saves. Promessa clara. Conecta casa + natureza + vida.
+
+3. "A maioria dos jardins de alto padrao usa as mesmas 5 plantas. Nao e coincidencia."
+   — 58 saves. Abre curiosidade. Promessa de revelacao.
+
+4. "Um bom paisagismo nao e so sobre plantas. E sobre criar espacos que fazem sentido com a sua rotina, com o clima e com a arquitetura da sua casa."
+   — 94 saves. Repositiona a expectativa. Inclui "sua rotina".
+
+5. "Chegar em casa e sentir a natureza abraçando cada detalhe"
+   — 68 saves. Imagem sensorial. Zero tecnicismo.
+
+PADROES que viralizam:
+- Fala do RESULTADO no dia a dia do dono ("voce para de viver so dentro de casa", "chegar em casa e sentir")
+- Contradiz uma intuicao simples do leigo, nao um detalhe tecnico
+- Promessa curta, emocional, visualizavel
+- Linguagem de CASA, ROTINA, VIDA — nao de paisagismo/botanica
+- Pode usar "sua casa", "seu jardim" — fala direto com o leitor`;
+
+const CONTRA_EXEMPLOS = `ANTI-PADROES — tipo de ideia que NAO VIRALIZA no @digitalpaisagismo:
+
+[TECNIQUES DEMAIS] "Como construir estratificacao vertical em entrada com tres planos de dossel"
+  — So paisagista entende. Dono de casa nao salva.
+
+[AUTORIA PEDANTE] "O principio de espelho que Isabel Duprat usa pra dobrar profundidade em jardins lineares"
+  — Nome da referencia afasta quem nao conhece.
+
+[AUTORIDADE VAZIA] "Vocabulario de fitossociologia aplicado a decisao de projeto real"
+  — Palavra tecnica sem contexto vital.
+
+[CONTRASTE TECNICO] "Por que pergolado com trepadeira rasteira entrega mais sombra qualificada que cobertura rigida"
+  — "sombra qualificada" nao e linguagem de dono de casa.
+
+[HIPER-ESPECIFICO] "4 Bromeliaceae terrestres em muro verde fachada norte sem irrigacao forcada"
+  — nome de familia botanica + parametro tecnico = 0 saves.
+
+Regra: se voce precisa TRADUZIR o titulo pro leigo entender, e tecnico demais.`;
 
 // ---------------------------------------------------------------------------
-// System: gerar 16 ideias (superset) pra filtrar depois
+// Fórmulas que funcionam no perfil
 // ---------------------------------------------------------------------------
-const GENERATE_SYSTEM = `${PERSONA}
+const FORMULAS = `FORMULAS que ja viralizaram no perfil:
 
-${BONS_EXEMPLOS}
+1. "Quando [situacao da casa], voce [resultado na vida]"
+   Ex: "Quando o jardim conversa com a casa, voce nao quer mais viver so dentro dela"
 
-${MAUS_EXEMPLOS}
+2. "Sua casa merece [beneficio emocional]"
+   Ex: "Sua casa merece um jardim que sobrevive ao seu ritmo, nao o contrario"
 
-TAREFA AGORA: gerar 16 ideias de carrossel (sera filtrado pra 8 depois). Cada ideia em contexto DIFERENTE.
+3. "A maioria dos [contexto] usa [algo simples]. Nao e coincidencia."
+   Ex: "A maioria das casas de alto padrao tem 3 plantas iguais na entrada. Nao e coincidencia."
 
-FORMULAS QUE FUNCIONAM (rotacione entre elas, nao use mesma 2x):
-1. Lista tecnica "N X pra Y" (N=3/4/5 APENAS, jamais 6+)
-2. Principio autoral citando paisagista referencia
-3. Anti-conselho / contrario
-4. N erros tecnicos (N=3/4/5)
-5. Atmosfera / momento do dia / luz
-6. Material e quando usar
-7. Bastidor / truque profissional
-8. O que separa X de Y (comparacao)
-9. Curadoria de especies pouco usadas
-10. Projetual / construtivo / como fazer
-11. Historia de projeto icone
-12. Contexto especifico (borda piscina, muro verde, corredor, rooftop, pomar estetico, entrada, horta ornamental, deck, espelho dagua, vertical garden)
+4. "[Atividade cotidiana] muda quando [projeto paisagistico]"
+   Ex: "O cafe da manha muda quando voce pode tomar olhando um jardim projetado"
 
-CONTEXTOS — varie (cada ideia em 1 diferente):
-entrada de propriedade / borda de piscina / espelho dagua / rooftop urbano / casa de campo / casa de praia / muro verde / pergolado / corredor lateral / jardim noturno / pomar estetico / deck / jardim seco / parede viva / espelho dagua / monocromatico
+5. "N plantas que [beneficio pratico]" — numeros 3/4/5 so
+   Ex: "5 plantas que tornam qualquer varanda maior visualmente"
 
-BANIDOS DUROS:
-- "alto padrao" literal repetido — autoridade vem de termo tecnico/autor/material, nao da palavra
-- "jardim pequeno", "apartamento", "varanda", "sacada", "quintal pequeno", "DIY", "barato"
-- "incrivel", "top", "super", "confira", "saiba mais", "dicas", "imperdivel"
-- Numeros >= 6 (carrossel tem 4 slides internos so)
-- Emoji no titulo
-- Clickbait vazio ("voce nao vai acreditar")
+6. "Antes de contratar, [verdade sobre paisagismo]"
+   Ex: "Antes de contratar paisagismo, pergunte isso — e nao seja enganado"
 
-OBRIGATORIO em cada ideia:
-- 1+ termo tecnico OU 1 autor-referencia OU 1 material nobre
-- Titulo entre 8 e 16 palavras
-- Gancho claro (por que ALGUEM para o scroll nessa capa?)
+7. "O erro que [resultado caro]"
+   Ex: "O erro que faz qualquer jardim bom parecer descuidado em 6 meses"
 
-RETORNE JSON PURO (sem markdown):
+8. "[Referencia visual concreta]"
+   Ex: "Chegar em casa e ver o jardim iluminado te muda o dia"
+
+9. "N coisas que [beneficio]" (numeros 3/4/5)
+   Ex: "3 decisoes de projeto que valem mais que escolher as plantas"
+
+10. "Contrario do que voce pensa [verdade inesperada]"
+    Ex: "Contrario do que parece, quanto menos espacos separados, mais amplo o jardim fica"`;
+
+// ---------------------------------------------------------------------------
+// System: gerar 16 ideias
+// ---------------------------------------------------------------------------
+function buildGenerateSystem(voiceRefs: string): string {
+  return `${PERSONA}
+
+${CALIBRACAO}
+
+${CONTRA_EXEMPLOS}
+
+${FORMULAS}
+
+${voiceRefs ? `EXEMPLOS REAIS DO PERFIL (mais uma referencia):\n\n${voiceRefs}\n\n` : ""}
+
+TAREFA: gerar 16 ideias que SOEM NO MESMO TOM dos exemplos acima. Cada ideia em contexto diferente. Sera filtrado pra 8 depois.
+
+REGRAS DURAS:
+- Titulo fala pro DONO DE CASA, nao pro paisagista
+- Entre 7 e 14 palavras
+- Linguagem emocional + concreta (casa, rotina, vida, dia a dia, familia)
+- Pode citar: jardim, entrada, varanda, area externa, piscina, rooftop, casa de campo, casa de praia, pergolado, deck, quintal
+- Pode citar MUITO POUCO: termos tecnicos, nomes cientificos, paisagistas famosos, materiais obscuros
+- Numeros em lista: 3, 4 ou 5 apenas (carrossel tem 4 slides internos)
+- Proibido: "alto padrao" explicito repetido, "imperdivel", "incrivel", "confira", "top", "dicas", emoji, hashtag
+
+RETORNE JSON PURO:
 {
   "candidatas": [
     {
       "titulo": string,
-      "formula": "lista|autoria|anti-conselho|erros|atmosfera|material|bastidor|comparacao|curadoria|projetual|historia|contexto",
-      "contexto": string,
-      "ancoragem_tecnica": string,   // termo tecnico, autor ou material mencionado
-      "gancho": string               // por que vai viralizar (1 frase)
+      "formula": "situacao-resultado|sua-casa|maioria|atividade|lista-n|antes-contratar|erro|visual|contrario|outro",
+      "contexto": string (ex: "varanda", "entrada", "rooftop", "casa-campo"),
+      "gancho_emocional": string (por que o dono da casa salvaria essa ideia)
     }
   ]
 }
-Exatamente 16 itens. Contextos e formulas variadas.`;
+Exatamente 16. Tons variados, contextos variados.`;
+}
 
 // ---------------------------------------------------------------------------
-// System: filtrar 16 -> top 8 (curadoria senior)
+// System: curadoria 16 -> 8
 // ---------------------------------------------------------------------------
-const CURATE_SYSTEM = `${PERSONA}
+const CURATE_SYSTEM = `Voce e editor do @digitalpaisagismo. Recebeu 16 candidatas de ideia.
 
-TAREFA AGORA: recebeu 16 candidatas de ideia. Selecione as 8 MAIS FORTES pra apresentar ao cliente.
+Selecione 8 pensando no DONO DE CASA que salva (nao no paisagista que debate).
 
-Criterios de corte (aplique em ordem):
-1. Elimine qualquer uma sem ancoragem_tecnica clara (se o termo e generico, fora).
-2. Elimine formulas repetidas (max 2 ideias da mesma formula — prefere variedade).
-3. Elimine contextos repetidos (nao pode haver 2 ideias em "borda de piscina").
-4. Prefira ideias com gancho EMOCIONAL (ego, descoberta, contra-senso) vs educativa pura.
-5. Prefira ideias que geram COMENTARIO (quem ve sente vontade de replicar/discordar).
-6. Mantenha pelo menos 1 "anti-conselho" e 1 "autoria" no set final se possivel.
+Elimine em ordem:
+1. Qualquer uma com linguagem tecnica que um cliente leigo nao entende (fitossociologia, dossel, estratificacao, "sombra qualificada", nomes cientificos, nomes de paisagistas famosos ja conhecidos)
+2. Contextos repetidos (max 1 em "varanda", max 1 em "piscina")
+3. Formulas repetidas (max 2 da mesma)
+4. Ideias SEM gancho emocional claro
+5. Prefira as que soam como algo que ALGUEM REAL diria em conversa sobre casa
 
-RETORNE JSON PURO:
+Retorne JSON puro:
 {
   "ideias": [
-    { "titulo": string, "hook": string }  // hook = por que viraliza, 1 frase punchy
+    { "titulo": string, "hook": string }
   ]
 }
-Exatamente 8 itens. Ordene da mais forte pra mais fraca.`;
+Exatamente 8. Ordene da mais forte pra mais fraca (em termos de potencial de save pelo dono de casa).`;
 
 export async function POST(req: NextRequest) {
   try {
     const { nicho } = await req.json().catch(() => ({}));
 
-    // ETAPA 1: gerar 16 candidatas
+    // Busca referencias reais do perfil (top-20 posts)
+    const voiceRefs = await getBrandVoiceReferences().catch(() => "");
+
+    // ETAPA 1
     const gen = await getAi().chat.completions.create({
       model: MODEL,
-      max_tokens: 2200,
+      max_tokens: 2400,
       messages: [
-        { role: "system", content: GENERATE_SYSTEM },
+        { role: "system", content: buildGenerateSystem(voiceRefs) },
         {
           role: "user",
           content: nicho
-            ? `Interesse inicial do usuario: "${nicho}". Use isso como UMA das 16 candidatas no max — as outras 15 devem explorar contextos COMPLETAMENTE diferentes. JSON puro.`
-            : "Gerar 16 candidatas com maxima diversidade. JSON puro.",
+            ? `Interesse: "${nicho}". So 1 das 16 pode tocar nisso; 15 exploram outros contextos com tom DIRETO AO DONO DE CASA. JSON puro.`
+            : "16 candidatas, tons variados, sempre falando ao DONO DE CASA com linguagem emocional e concreta. JSON puro.",
         },
       ],
     });
@@ -147,13 +188,13 @@ export async function POST(req: NextRequest) {
       const parsed: any = extractJson(genRaw);
       candidatas = Array.isArray(parsed) ? parsed : parsed.candidatas || [];
     } catch {
-      return NextResponse.json({ error: "IA devolveu JSON invalido na geracao", raw: genRaw.slice(0, 300) }, { status: 500 });
+      return NextResponse.json({ error: "IA JSON invalido (etapa 1)", raw: genRaw.slice(0, 300) }, { status: 500 });
     }
-    if (candidatas.length < 8) {
-      return NextResponse.json({ error: `Apenas ${candidatas.length} candidatas geradas (esperado 16)`, candidatas }, { status: 500 });
+    if (candidatas.length < 6) {
+      return NextResponse.json({ error: `Apenas ${candidatas.length} candidatas`, candidatas }, { status: 500 });
     }
 
-    // ETAPA 2: curadoria — filtrar 16 pra top 8
+    // ETAPA 2: curadoria
     const cur = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 1400,
@@ -171,13 +212,11 @@ export async function POST(req: NextRequest) {
       const parsed: any = extractJson(curRaw);
       ideias = Array.isArray(parsed) ? { ideias: parsed } : parsed;
     } catch {
-      // fallback: devolve as 8 primeiras candidatas
       return NextResponse.json({
-        ideias: candidatas.slice(0, 8).map((c) => ({ titulo: c.titulo, hook: c.gancho || "" })),
-        _fallback: "curadoria falhou — devolvendo top 8 das candidatas",
+        ideias: candidatas.slice(0, 8).map((c) => ({ titulo: c.titulo, hook: c.gancho_emocional || "" })),
+        _fallback: "curadoria falhou",
       });
     }
-
     return NextResponse.json(ideias);
   } catch (e: any) {
     console.error(e);
