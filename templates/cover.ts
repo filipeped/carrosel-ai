@@ -1,4 +1,4 @@
-import { baseStyle, BRAND_HANDLE, FONTS_LINK } from "./base";
+import { baseStyle, BRAND_HANDLE } from "./base";
 import { escapeHtml } from "../lib/utils";
 
 export type CoverData = {
@@ -25,92 +25,74 @@ function highlightItalic(title: string, italicWords: string[] = []): string {
 
 export function renderCover(d: CoverData, fontsBaseUrl = ""): string {
   const topLabel = d.topLabel || "GUIA BOTANICO";
-  const edition = d.edition || "";
-  const handleUpper = (BRAND_HANDLE || "").replace(/^@/, "");
+  const edition = d.edition || "ED. 01";
+  const handleUpper = (BRAND_HANDLE || "").replace(/^@/, "").toUpperCase();
+  const safeNumeral =
+    d.numeral && /^\d{1,2}$/.test(String(d.numeral).trim()) ? String(d.numeral).trim() : "";
 
-  // Numeral so vale se for 1-2 caracteres NUMERICOS — nada de "420m2", "3x", etc.
-  // Caso contrario descarta (evita quebrar layout da capa).
-  const safeNumeral = d.numeral && /^\d{1,2}$/.test(String(d.numeral).trim())
-    ? String(d.numeral).trim()
-    : "";
-  return `<!doctype html><html><head><meta charset="utf-8"/>${FONTS_LINK}<style>
+  return `<!doctype html><html><head><meta charset="utf-8"/><style>
 ${baseStyle(fontsBaseUrl)}
-.cover .chrome { padding: 75px 68px 110px; justify-content: flex-end; }
-.number-grid {
-  display:grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 32px;
-  align-items: end;
+.num-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 36px;
   width: 100%;
 }
-.number-grid.no-num {
-  grid-template-columns: 1fr;
-}
-.number-grid.no-num .cover-sm { grid-column: 1; grid-row: 1; }
-.number-grid.no-num .cover-head { grid-column: 1; grid-row: 2; }
 .cover-number {
-  grid-column: 1; grid-row: 1 / span 2;
-  align-self: end;
-  font-family: var(--serif); font-weight: 300; font-style: italic;
-  font-size: 240px; line-height: .78;
-  color: #fff;
-  letter-spacing: -.04em;
-  text-shadow: 0 4px 28px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.55);
-  transform: translateY(10px);
+  display: flex;
+  font-family: 'Fraunces', serif; font-weight: 300; font-style: italic;
+  font-size: 240px; line-height: 0.85;
+  color: #fff; letter-spacing: -6px;
+}
+.text-col {
+  display: flex; flex-direction: column; justify-content: flex-end;
+  flex: 1;
 }
 .cover-sm {
-  grid-column:2; grid-row:1;
-  font-family: var(--mono);
-  font-size: 15px; letter-spacing: .22em; text-transform: uppercase;
-  color: rgba(255,255,255,.88);
-  text-shadow: 0 1px 6px rgba(0,0,0,.6);
-  margin-bottom: 14px;
+  display: flex;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px; letter-spacing: 4px; text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 16px;
 }
 .cover-head {
-  grid-column:2; grid-row:2;
-  font-family: var(--serif); font-weight: 400;
-  font-size: 68px; line-height: 1.02;
-  letter-spacing: -.015em;
+  display: flex;
+  font-family: 'Fraunces', serif; font-weight: 400;
+  font-size: 68px; line-height: 1.02; letter-spacing: -1px;
   color: #fff;
-  text-shadow: 0 2px 16px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.55);
 }
-.cover-head em {
-  font-style: italic; color: var(--accent); font-weight: 300;
-}
+.cover-head em { font-style: italic; font-weight: 300; color: #d6e7c4; }
 .swipe {
-  margin-top: 28px;
-  display:inline-flex; align-items:center; gap: 12px;
-  font-family: var(--mono);
-  font-size: 13px; letter-spacing: .24em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; letter-spacing: 4px; text-transform: uppercase;
   color: #fff;
-  text-shadow: 0 1px 6px rgba(0,0,0,.5);
 }
-.swipe .arrow {
-  width: 42px; height: 1px; background:#fff; position:relative;
+.swipe .arrow-line {
+  display: flex; width: 44px; height: 1px; background: #fff;
 }
-.swipe .arrow::after {
-  content:""; position:absolute; right:0; top:-4px;
-  width:8px; height:8px;
-  border-right:1px solid #fff; border-top:1px solid #fff;
-  transform: rotate(45deg);
-}
-</style></head><body><div class="slide cover">
-  <div class="bg"><img src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/></div>
-  <div class="color-grade"></div>
+</style></head><body><div class="slide">
+  <div class="bg"><img src="${escapeHtml(d.imageUrl)}"/></div>
   <div class="veil veil-cover"></div>
   <div class="chrome">
     <div class="meta-top">
-      <span class="idx">${escapeHtml(edition || "ED. 01")}</span>
+      <span>${escapeHtml(edition)}</span>
       <span class="rule"></span>
-      <span>${escapeHtml(handleUpper.toUpperCase())}</span>
+      <span>${escapeHtml(handleUpper)}</span>
     </div>
     <div class="content">
-      <div class="number-grid${safeNumeral ? "" : " no-num"}">
+      <div class="num-row">
         ${safeNumeral ? `<div class="cover-number">${escapeHtml(safeNumeral)}</div>` : ""}
-        <div class="cover-sm">${escapeHtml(topLabel)}</div>
-        <div class="cover-head">${highlightItalic(d.title, d.italicWords)}</div>
+        <div class="text-col">
+          <div class="cover-sm">${escapeHtml(topLabel)}</div>
+          <div class="cover-head">${highlightItalic(d.title, d.italicWords)}</div>
+        </div>
       </div>
-      <div class="swipe">Arraste<span class="arrow"></span></div>
+      <div class="swipe">
+        <span>Arraste</span>
+        <span class="arrow-line"></span>
+      </div>
     </div>
   </div>
 </div></body></html>`;

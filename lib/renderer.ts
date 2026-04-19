@@ -1,123 +1,84 @@
-import type { Browser } from "puppeteer-core";
+// Renderer 100% serverless — Satori (HTML+CSS -> SVG) + Resvg (SVG -> PNG).
+// Sem Chromium, sem binarios nativos, zero ETXTBSY / libnss3.
+import satori from "satori";
+import { html as htmlToReact } from "satori-html";
+import { Resvg } from "@resvg/resvg-js";
 
-let _browser: Browser | null = null;
-let _initPromise: Promise<Browser> | null = null;
-let _execPath: string | null = null;
+type FontWeight = 300 | 400 | 500 | 600 | 700;
+type SatoriFont = {
+  name: string;
+  data: ArrayBuffer;
+  weight?: FontWeight;
+  style?: "normal" | "italic";
+};
 
-async function getChromiumExecPath(): Promise<string> {
-  if (_execPath) return _execPath;
-  const chromium = (await import("@sparticuz/chromium")).default;
-  // pre-set modes antes de pedir path (extrai o binario)
-  try {
-    // @ts-ignore — api depende da versao
-    if (chromium.setGraphicsMode !== undefined) chromium.setGraphicsMode = false;
-  } catch {}
-  _execPath = await chromium.executablePath();
-  return _execPath;
+let _fontsPromise: Promise<SatoriFont[]> | null = null;
+
+async function fetchFont(url: string): Promise<ArrayBuffer> {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`font fetch failed ${r.status} ${url}`);
+  return await r.arrayBuffer();
 }
 
-async function launchBrowser(): Promise<Browser> {
-  const isDev = process.env.NODE_ENV !== "production" || process.env.PUPPETEER_LOCAL === "1";
-
-  if (isDev) {
-    const puppeteer = await import("puppeteer");
-    return (await puppeteer.default.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    })) as unknown as Browser;
-  }
-
-  const chromium = (await import("@sparticuz/chromium")).default;
-  const puppeteer = await import("puppeteer-core");
-  const execPath = await getChromiumExecPath();
-  return await puppeteer.default.launch({
-    args: [...chromium.args, "--font-render-hinting=none"],
-    defaultViewport: { width: 1080, height: 1350, deviceScaleFactor: 1 },
-    executablePath: execPath,
-    headless: true,
-  });
-}
-
-async function getBrowser(): Promise<Browser> {
-  if (_browser && _browser.connected) return _browser;
-  // se ja ha init em curso, espera a mesma promise — evita ETXTBSY
-  // por duas invocacoes do mesmo processo tentando iniciar chromium em paralelo.
-  if (_initPromise) return _initPromise;
-
-  _initPromise = launchBrowser()
-    .then((b) => {
-      _browser = b;
-      return b;
-    })
-    .catch((err) => {
-      _initPromise = null;
-      throw err;
-    });
-
-  try {
-    return await _initPromise;
-  } finally {
-    // libera o slot de init, mas _browser permanece cacheado
-    _initPromise = null;
-  }
+async function loadFonts(): Promise<SatoriFont[]> {
+  if (_fontsPromise) return _fontsPromise;
+  _fontsPromise = (async () => {
+    // Fontes em .ttf (o formato que Satori aceita). Usa CDN jsdelivr fontsource.
+    const base = "https://cdn.jsdelivr.net/fontsource/fonts";
+    const [
+      frauncesReg,
+      frauncesIta,
+      frauncesLight,
+      frauncesLightIta,
+      archivoReg,
+      archivoMed,
+      jbmReg,
+    ] = await Promise.all([
+      fetchFont(`${base}/fraunces@latest/latin-400-normal.ttf`),
+      fetchFont(`${base}/fraunces@latest/latin-400-italic.ttf`),
+      fetchFont(`${base}/fraunces@latest/latin-300-normal.ttf`),
+      fetchFont(`${base}/fraunces@latest/latin-300-italic.ttf`),
+      fetchFont(`${base}/archivo@latest/latin-400-normal.ttf`),
+      fetchFont(`${base}/archivo@latest/latin-500-normal.ttf`),
+      fetchFont(`${base}/jetbrains-mono@latest/latin-400-normal.ttf`),
+    ]);
+    return [
+      { name: "Fraunces", data: frauncesReg, weight: 400, style: "normal" },
+      { name: "Fraunces", data: frauncesIta, weight: 400, style: "italic" },
+      { name: "Fraunces", data: frauncesLight, weight: 300, style: "normal" },
+      { name: "Fraunces", data: frauncesLightIta, weight: 300, style: "italic" },
+      { name: "Archivo", data: archivoReg, weight: 400, style: "normal" },
+      { name: "Archivo", data: archivoMed, weight: 500, style: "normal" },
+      { name: "JetBrains Mono", data: jbmReg, weight: 400, style: "normal" },
+    ];
+  })();
+  return _fontsPromise;
 }
 
 export async function renderHtmlToPng(html: string): Promise<Buffer> {
-  let attempt = 0;
-  let lastErr: unknown;
-  while (attempt < 2) {
-    attempt++;
-    try {
-      const browser = await getBrowser();
-      const page = await browser.newPage();
-      try {
-        await page.setViewport({ width: 1080, height: 1350, deviceScaleFactor: 1 });
-        await page.setContent(html, { waitUntil: "networkidle0", timeout: 25000 });
-        const buf = (await page.screenshot({
-          type: "png",
-          fullPage: false,
-          clip: { x: 0, y: 0, width: 1080, height: 1350 },
-        })) as Buffer;
-        return buf;
-      } finally {
-        try {
-          await page.close();
-        } catch {}
-      }
-    } catch (err: any) {
-      lastErr = err;
-      const msg = String(err?.message || err);
-      // ETXTBSY ou binario ocupado — descarta browser e tenta de novo
-      if (msg.includes("ETXTBSY") || msg.includes("spawn") || msg.includes("Browser disconnected")) {
-        try {
-          await _browser?.close();
-        } catch {}
-        _browser = null;
-        _initPromise = null;
-        // pequeno delay pra binario liberar
-        await new Promise((r) => setTimeout(r, 300));
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw lastErr;
+  const fonts = await loadFonts();
+  // satori-html converte string HTML em VNode React-like
+  const markup = htmlToReact(html);
+  const svg = await satori(markup as any, {
+    width: 1080,
+    height: 1350,
+    fonts: fonts as any,
+    embedFont: true,
+  });
+  // Resvg converte SVG em PNG
+  const resvg = new Resvg(svg, {
+    fitTo: { mode: "width", value: 1080 },
+    font: { loadSystemFonts: false },
+  });
+  const pngData = resvg.render();
+  return Buffer.from(pngData.asPng());
 }
 
 export async function renderMany(htmls: string[]): Promise<Buffer[]> {
-  // Sequencial evita pressao no chromium em serverless (ETXTBSY).
-  const out: Buffer[] = [];
-  for (const h of htmls) {
-    out.push(await renderHtmlToPng(h));
-  }
-  return out;
+  // Pode ser paralelo — Satori e puro JS, sem pressao de recursos.
+  return Promise.all(htmls.map((h) => renderHtmlToPng(h)));
 }
 
 export async function closeBrowser() {
-  if (_browser) {
-    try {
-      await _browser.close();
-    } catch {}
-    _browser = null;
-  }
+  // no-op — nao ha browser mais.
 }

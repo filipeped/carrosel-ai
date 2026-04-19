@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { runFullCarousel, searchImages, generateCaption, generateCopy } from "@/lib/pipeline";
+import { runSmartCarousel, searchAndSelect } from "@/lib/smart-pipeline";
 import { renderHtmlToPng } from "@/lib/renderer";
 import { renderCover } from "@/templates/cover";
 import { renderPlantDetail } from "@/templates/plantDetail";
@@ -131,6 +132,33 @@ const TOOLS: Tool[] = [
       required: ["slide", "imageUrl"],
     },
   },
+  {
+    name: "carousel_smart_create",
+    description:
+      "Versao SUPERIOR do carousel_create: busca semantica (24 candidatas) -> Claude Vision analisa cada foto (qualidade, composicao, luz, cover_potential, descricao visual) -> IA curadora escolhe 6 com roles (cover/4 inner/cta) priorizando beleza e narrativa -> copy feita com detalhes visuais reais das fotos. Resposta inclui 'alternatives' (ate 18 candidatas alternativas rankeadas). Usa cache em Supabase pra acelerar.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string" },
+        withCaption: { type: "boolean" },
+        withPng: { type: "boolean" },
+        candidateCount: { type: "number" },
+      },
+      required: ["prompt"],
+    },
+  },
+  {
+    name: "images_search_smart",
+    description: "Busca semantica + analise visual + curadoria IA. Retorna selecao de 6 imagens (cover/inner/cta) + alternativas rankeadas + analise visual completa de cada uma.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string" },
+        candidateCount: { type: "number" },
+      },
+      required: ["prompt"],
+    },
+  },
 ];
 
 async function generateIdeas(nicho?: string) {
@@ -243,6 +271,23 @@ export async function POST(req: NextRequest) {
           const r = await renderSlide(args.slide, args.imageUrl);
           return rpcOk(id, {
             content: [{ type: "text", text: `PNG gerado: ${r.bytes} bytes` }],
+            structuredContent: r,
+          });
+        }
+        if (name === "carousel_smart_create") {
+          const r = await runSmartCarousel(args.prompt, {
+            withCaption: args.withCaption ?? true,
+            candidateCount: args.candidateCount,
+          });
+          return rpcOk(id, {
+            content: [{ type: "text", text: JSON.stringify(r, null, 2) }],
+            structuredContent: r,
+          });
+        }
+        if (name === "images_search_smart") {
+          const r = await searchAndSelect(args.prompt, { candidateCount: args.candidateCount });
+          return rpcOk(id, {
+            content: [{ type: "text", text: JSON.stringify(r, null, 2) }],
             structuredContent: r,
           });
         }
