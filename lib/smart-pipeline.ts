@@ -5,6 +5,7 @@ import { analyzeAndCache, AnaliseVisual } from "./image-analysis";
 import { extractJson } from "./utils";
 import { getSupabase, ImageBankRow } from "./supabase";
 import type { SlideSpec } from "./pipeline";
+import { getRecentlyUsedImageIds, saveCarrossel } from "./history";
 
 /**
  * Enriquece linhas da busca semantica (que retornam campos limitados)
@@ -120,21 +121,29 @@ export async function rankAndSelect(
     throw new Error(`Apenas ${analyzed.length} imagens disponiveis — minimo 6`);
   }
 
-  // Score composto agora inclui aderencia ao tema (30%)
+  // Penalidade pra imagens usadas nos ultimos 20 carrosseis (anti-repeticao)
+  const recentIds = await getRecentlyUsedImageIds(20);
+
+  // Score composto: cover_potential + composicao + qualidade + semantic + aderencia - penalidade_repeticao
   const withAder = analyzed.map((im) => ({
     img: im,
     ader: aderenciaTema(prompt, im),
     score: 0,
+    repeated: recentIds.has(im.id),
   }));
-  withAder.forEach((x) => (x.score = composite(x.img, 1, x.ader)));
+  withAder.forEach((x) => {
+    let s = composite(x.img, 1, x.ader);
+    if (x.repeated) s -= 2.5; // penalidade (score base tipicamente 3-7, 2.5 e significativo)
+    x.score = s;
+  });
   withAder.sort((a, b) => b.score - a.score);
   const ranked = withAder.map((x) => x.img);
   const top12 = withAder.slice(0, 12);
 
   const summary = top12
     .map(
-      ({ img, ader }) =>
-        `id=${img.id} | cover=${img.analise_visual.cover_potential.toFixed(1)} comp=${img.analise_visual.composicao.toFixed(1)} ader=${(ader * 100).toFixed(0)}% | ${img.analise_visual.descricao_visual} | hero: ${img.analise_visual.hero_element}`,
+      ({ img, ader, repeated }) =>
+        `id=${img.id}${repeated ? " [usada-recente]" : ""} | cover=${img.analise_visual.cover_potential.toFixed(1)} comp=${img.analise_visual.composicao.toFixed(1)} ader=${(ader * 100).toFixed(0)}% | ${img.analise_visual.descricao_visual} | hero: ${img.analise_visual.hero_element}`,
     )
     .join("\n");
 
@@ -365,14 +374,26 @@ export async function searchAndSelect(
 
 export async function runSmartCarousel(
   prompt: string,
-  opts: { withCaption?: boolean; candidateCount?: number } = {},
+  opts: { withCaption?: boolean; candidateCount?: number; persist?: boolean } = {},
 ) {
   const { selection, allAnalyzed } = await searchAndSelect(prompt, opts);
   const { slides: rawSlides } = await generateCopyFromAnalysis(prompt, selection);
   const ordered = [selection.cover, ...selection.inner, selection.cta];
-  // valida: plantDetail so sobrevive se planta realmente aparece na imagem
   const slides = validateSlidesAgainstImages(rawSlides, ordered);
+
+  // Persiste no historico (anti-repeticao + learning loop)
+  let carrosselId: string | undefined;
+  if (opts.persist !== false) {
+    const saved = await saveCarrossel({
+      prompt,
+      slides,
+      imagens_ids: ordered.map((o) => o.id),
+    });
+    carrosselId = saved?.id;
+  }
+
   return {
+    id: carrosselId,
     prompt,
     selection,
     allAnalyzed,

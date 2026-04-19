@@ -486,6 +486,10 @@ function Step3({
   }
 
   const [busyAll, setBusyAll] = useState(false);
+  const [busyPost, setBusyPost] = useState(false);
+  const [postResult, setPostResult] = useState<{ ok: boolean; permalink?: string; error?: string } | null>(null);
+  const [selectedCaption, setSelectedCaption] = useState<string>("");
+
   async function downloadAll() {
     setBusyAll(true);
     try {
@@ -495,6 +499,38 @@ function Step3({
       }
     } finally {
       setBusyAll(false);
+    }
+  }
+
+  async function postarNoInstagram() {
+    if (!selectedCaption.trim()) {
+      alert("Escolha uma legenda antes de postar (clica em 'Copiar legenda + hashtags' no card que quiser usar).");
+      return;
+    }
+    if (!confirm("Postar esse carrossel agora no Instagram?")) return;
+    setBusyPost(true);
+    setPostResult(null);
+    try {
+      const pngs: string[] = [];
+      for (let i = 0; i < slides.length; i++) {
+        const blob = await captureSlideAsBlob(i);
+        if (!blob) throw new Error(`falha ao capturar slide ${i + 1}`);
+        const buf = await blob.arrayBuffer();
+        const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+        pngs.push(b64);
+      }
+      const r = await fetch("/api/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pngs, caption: selectedCaption }),
+      });
+      const d = await r.json();
+      if (!r.ok || d.error) throw new Error(d.error || "falha");
+      setPostResult({ ok: true, permalink: d.permalink });
+    } catch (e: any) {
+      setPostResult({ ok: false, error: e.message || String(e) });
+    } finally {
+      setBusyPost(false);
     }
   }
 
@@ -511,14 +547,43 @@ function Step3({
           <button
             disabled={busyAll}
             onClick={downloadAll}
-            className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
+            className="border border-white/20 px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5"
           >
             {busyAll ? "Gerando..." : "Baixar todos os PNG"}
+          </button>
+          <button
+            disabled={busyPost || !selectedCaption}
+            onClick={postarNoInstagram}
+            className="bg-[#d6e7c4] text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
+            title={!selectedCaption ? "Copie uma legenda antes de postar" : "Postar no Instagram"}
+          >
+            {busyPost ? "Postando..." : "Postar no Instagram"}
           </button>
         </div>
       </div>
 
-      <CaptionPanel slides={slides} prompt={prompt} orderedImages={orderedImages} />
+      {postResult?.ok && (
+        <div className="mb-4 border border-[#d6e7c4]/40 bg-[#d6e7c4]/10 rounded px-4 py-3 text-sm">
+          Post publicado!{" "}
+          {postResult.permalink && (
+            <a href={postResult.permalink} target="_blank" rel="noreferrer" className="underline">
+              ver no Instagram
+            </a>
+          )}
+        </div>
+      )}
+      {postResult?.error && (
+        <div className="mb-4 border border-red-400/40 bg-red-400/10 rounded px-4 py-3 text-sm text-red-200">
+          Erro ao postar: {postResult.error}
+        </div>
+      )}
+
+      <CaptionPanel
+        slides={slides}
+        prompt={prompt}
+        orderedImages={orderedImages}
+        onCaptionPicked={setSelectedCaption}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {slides.map((s, i) => (
@@ -533,6 +598,26 @@ function Step3({
       </div>
     </div>
   );
+}
+
+async function captureSlideAsBlob(index: number): Promise<Blob | null> {
+  const wrap = document.getElementById(`slide-preview-${index}`);
+  if (!wrap) return null;
+  const iframe = wrap.querySelector("iframe") as HTMLIFrameElement | null;
+  if (!iframe || !iframe.contentDocument) return null;
+  const inner = iframe.contentDocument.body;
+  try {
+    const dataUrl = await toPng(inner, {
+      width: 1080,
+      height: 1350,
+      pixelRatio: 1,
+      cacheBust: true,
+    });
+    const res = await fetch(dataUrl);
+    return await res.blob();
+  } catch {
+    return null;
+  }
 }
 
 async function downloadSlideFromDom(index: number) {
@@ -779,10 +864,12 @@ function CaptionPanel({
   slides,
   prompt,
   orderedImages,
+  onCaptionPicked,
 }: {
   slides: SlideData[];
   prompt: string;
   orderedImages: ImageRow[];
+  onCaptionPicked?: (fullText: string) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<CaptionOption[] | null>(null);
@@ -817,6 +904,7 @@ function CaptionPanel({
     const full = `${opt.legenda}\n\n${(opt.hashtags || []).join(" ")}`;
     await navigator.clipboard.writeText(full);
     setCopiedIdx(i);
+    if (onCaptionPicked) onCaptionPicked(full);
     setTimeout(() => setCopiedIdx(null), 1500);
   }
 
