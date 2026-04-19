@@ -55,7 +55,12 @@ export async function searchImages(prompt: string, count = 24): Promise<{ filter
 const COPY_SCHEMA = `Retorne OBJETO JSON { "slides": [ ...6 items... ] } sem markdown.
 [0] cover: { type:"cover", imageIdx:0, topLabel, numeral|null, title, italicWords:[] }
 [1..4] plantDetail OU inspiration
-[5] cta: { type:"cta", imageIdx:5, pergunta, italicWords:[] }`;
+[5] cta: { type:"cta", imageIdx:5, pergunta, italicWords:[] }
+
+REGRA DURA pro "numeral" da capa:
+- Deve ser APENAS 1 ou 2 digitos numericos puros (ex.: "5", "4", "12") — ou null.
+- PROIBIDO: "420m2", "120%", "3x", letras, unidades, porcentagem, superscript.
+- Se o tema nao pede contagem de itens, use null.`;
 
 export async function generateCopy(prompt: string, images: ImageBankRow[]): Promise<{ slides: SlideSpec[] }> {
   const imgDescs = images

@@ -10,6 +10,7 @@ const config: NextConfig = {
   outputFileTracingIncludes: {
     "/api/render-slide": ["./node_modules/@sparticuz/chromium/bin/**"],
     "/api/v1/carousel": ["./node_modules/@sparticuz/chromium/bin/**"],
+    "/api/v1/render": ["./node_modules/@sparticuz/chromium/bin/**"],
   },
 };
 

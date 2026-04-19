@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { runFullCarousel, searchImages, generateCaption } from "@/lib/pipeline";
+import { runFullCarousel, searchImages, generateCaption, generateCopy } from "@/lib/pipeline";
+import { renderHtmlToPng } from "@/lib/renderer";
+import { renderCover } from "@/templates/cover";
+import { renderPlantDetail } from "@/templates/plantDetail";
+import { renderInspiration } from "@/templates/inspiration";
+import { renderCta } from "@/templates/cta";
+import { getAi, MODEL } from "@/lib/claude";
+import { extractJson } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -71,7 +78,90 @@ const TOOLS: Tool[] = [
       required: ["slides"],
     },
   },
+  {
+    name: "ideas_generate",
+    description:
+      "Gera 8 ideias de tema pra carrosseis virais de paisagismo alto padrao. Usa formulas comprovadas (N plantas pra X, erros, antes/depois, bastidores, etc) com contextos diversificados. Retorna titulo + hook (por que viraliza).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        nicho: {
+          type: "string",
+          description:
+            "Opcional. Interesse inicial do usuario — so 1 das 8 ideias vai tocar nele, 7 exploram outros contextos.",
+        },
+      },
+    },
+  },
+  {
+    name: "copy_generate",
+    description:
+      "Gera o copy dos 6 slides (capa + 4 plantDetail/inspiration + CTA) dado tema + array de imagens escolhidas do image_bank. Use quando quiser controlar a selecao de imagens antes de gerar a copy (fluxo granular).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "Tema do carrossel" },
+        images: {
+          type: "array",
+          description: "Array de imagens (formato igual ao retornado por images_search.imagens)",
+          items: { type: "object" },
+        },
+      },
+      required: ["images"],
+    },
+  },
+  {
+    name: "slide_render",
+    description:
+      "Renderiza 1 slide em PNG 1080x1350. Retorna PNG em base64. Use pra gerar as imagens finais do carrossel apos editar a copy.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slide: {
+          type: "object",
+          description: "SlideSpec: { type, topLabel?, numeral?, title?, subtitle?, italicWords?, nomePopular?, nomeCientifico?, pergunta? }",
+        },
+        imageUrl: { type: "string", description: "URL da imagem de fundo (tipicamente do Supabase image-bank)" },
+      },
+      required: ["slide", "imageUrl"],
+    },
+  },
 ];
+
+async function generateIdeas(nicho?: string) {
+  const SYS = `Voce e estrategista de Instagram pra @digitalpaisagismo. Gere 8 ideias em 8 contextos DIFERENTES, com numeros 3/4/5 apenas (carrossel tem 4 slides internos). Autoridade sutil via termos tecnicos. BANIDO: "alto padrao", "mansao", "condominio fechado", emojis, numeros > 5. JSON puro: { ideias: [{ titulo, contexto, hook }] }`;
+  const user = nicho
+    ? `Interesse: "${nicho}". 8 ideias em 8 contextos diferentes — so 1 toca nisso.`
+    : "8 ideias em 8 contextos diferentes.";
+  const r = await getAi().chat.completions.create({
+    model: MODEL,
+    max_tokens: 1400,
+    messages: [
+      { role: "system", content: SYS },
+      { role: "user", content: user },
+    ],
+  });
+  const raw = r.choices[0]?.message?.content || "";
+  let p: any = extractJson(raw);
+  if (Array.isArray(p)) p = { ideias: p };
+  return p;
+}
+
+async function renderSlide(slide: any, imageUrl: string) {
+  const origin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+  let html: string;
+  if (slide.type === "cover") {
+    html = renderCover({ imageUrl, topLabel: slide.topLabel, numeral: slide.numeral ?? undefined, title: slide.title || "", italicWords: slide.italicWords || [], edition: slide.edition }, origin);
+  } else if (slide.type === "plantDetail") {
+    html = renderPlantDetail({ imageUrl, nomePopular: slide.nomePopular || slide.title || "", nomeCientifico: slide.nomeCientifico || slide.subtitle || "" }, origin);
+  } else if (slide.type === "cta") {
+    html = renderCta({ imageUrl, pergunta: slide.pergunta || slide.title || "", italicWords: slide.italicWords || [] }, origin);
+  } else {
+    html = renderInspiration({ imageUrl, title: slide.title || "", subtitle: slide.subtitle || "", topLabel: slide.topLabel || "" }, origin);
+  }
+  const buf = await renderHtmlToPng(html);
+  return { png: buf.toString("base64"), bytes: buf.length };
+}
 
 function rpcOk(id: any, result: any) {
   return NextResponse.json({ jsonrpc: "2.0", id, result });
@@ -127,6 +217,27 @@ export async function POST(req: NextRequest) {
           const r = await generateCaption(args.prompt || "", args.slides);
           return rpcOk(id, {
             content: [{ type: "text", text: JSON.stringify(r, null, 2) }],
+            structuredContent: r,
+          });
+        }
+        if (name === "ideas_generate") {
+          const r = await generateIdeas(args.nicho);
+          return rpcOk(id, {
+            content: [{ type: "text", text: JSON.stringify(r, null, 2) }],
+            structuredContent: r,
+          });
+        }
+        if (name === "copy_generate") {
+          const r = await generateCopy(args.prompt || "", args.images);
+          return rpcOk(id, {
+            content: [{ type: "text", text: JSON.stringify(r, null, 2) }],
+            structuredContent: r,
+          });
+        }
+        if (name === "slide_render") {
+          const r = await renderSlide(args.slide, args.imageUrl);
+          return rpcOk(id, {
+            content: [{ type: "text", text: `PNG gerado: ${r.bytes} bytes` }],
             structuredContent: r,
           });
         }

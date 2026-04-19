@@ -27,6 +27,12 @@ export function renderCover(d: CoverData, fontsBaseUrl = ""): string {
   const topLabel = d.topLabel || "GUIA BOTANICO";
   const edition = d.edition || "";
   const handleUpper = (BRAND_HANDLE || "").replace(/^@/, "");
+
+  // Numeral so vale se for 1-2 caracteres NUMERICOS — nada de "420m2", "3x", etc.
+  // Caso contrario descarta (evita quebrar layout da capa).
+  const safeNumeral = d.numeral && /^\d{1,2}$/.test(String(d.numeral).trim())
+    ? String(d.numeral).trim()
+    : "";
   return `<!doctype html><html><head><meta charset="utf-8"/>${FONTS_LINK}<style>
 ${baseStyle(fontsBaseUrl)}
 .cover .chrome { padding: 75px 68px 110px; justify-content: flex-end; }
@@ -37,6 +43,11 @@ ${baseStyle(fontsBaseUrl)}
   align-items: end;
   width: 100%;
 }
+.number-grid.no-num {
+  grid-template-columns: 1fr;
+}
+.number-grid.no-num .cover-sm { grid-column: 1; grid-row: 1; }
+.number-grid.no-num .cover-head { grid-column: 1; grid-row: 2; }
 .cover-number {
   grid-column: 1; grid-row: 1 / span 2;
   align-self: end;
@@ -94,8 +105,8 @@ ${baseStyle(fontsBaseUrl)}
       <span>${escapeHtml(handleUpper.toUpperCase())}</span>
     </div>
     <div class="content">
-      <div class="number-grid">
-        ${d.numeral ? `<div class="cover-number">${escapeHtml(d.numeral)}</div>` : ""}
+      <div class="number-grid${safeNumeral ? "" : " no-num"}">
+        ${safeNumeral ? `<div class="cover-number">${escapeHtml(safeNumeral)}</div>` : ""}
         <div class="cover-sm">${escapeHtml(topLabel)}</div>
         <div class="cover-head">${highlightItalic(d.title, d.italicWords)}</div>
       </div>
