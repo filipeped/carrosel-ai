@@ -363,7 +363,7 @@ function Step1({
         </button>
         <button
           disabled={anyLoading || !prompt.trim()}
-          onClick={onSearch}
+          onClick={() => onSearch()}
           className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
         >
           {loading ? "Processando..." : "Gerar carrossel smart"}
