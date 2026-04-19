@@ -3,121 +3,184 @@ import { getAi, MODEL } from "@/lib/claude";
 import { extractJson } from "@/lib/utils";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 45;
 
-const SYSTEM = `Voce e estrategista de conteudo de Instagram pra @digitalpaisagismo (paisagismo de alto padrao brasileiro).
+// ---------------------------------------------------------------------------
+// Estrategista senior — persona consolidada
+// ---------------------------------------------------------------------------
+const PERSONA = `Voce e estrategista-chefe de conteudo pra @digitalpaisagismo (paisagismo brasileiro alto padrao, ticket medio de projeto R$ 200k–R$ 2M).
 
-PUBLICO: clientes AA/AAA, arquitetos, donos de mansao/casa de campo, donos de cobertura. Leem AD, Casa Vogue, Dezeen.
+Referencias do publico (AA/AAA): Matheus Ilt, Alex Hanazaki, Isabel Duprat, Gilberto Elkis, Benedito Abbud, Burle Marx. Leem Casa Vogue, Dezeen, AD, The World of Interiors. Compram projeto paisagistico assinado.
 
-TAREFA: gerar 8 IDEIAS DE TEMA pra carrosseis de 6 slides. MAXIMO DE DIVERSIDADE — sem repetir o mesmo contexto.
+Consumo: salvam posts pra mostrar ao arquiteto, compartilham com paisagista, comentam com referencia tecnica.
 
-FORMULAS VIRAIS (rotacione — cada ideia usa UMA formula diferente):
-1. "N plantas pra [contexto]"
-2. "Antes x Depois" — metragem real + transformacao
-3. "O que separa X de Y" — comparacao que ativa ego
-4. "Erros" — erros de iniciante/classe baixa que alto padrao nao comete
-5. "Segredos / bastidores" — truques de paisagistas de mansao
-6. "Lista de curadoria" — N espécies/elementos que todo jardim alto padrao tem
-7. "Guia definitivo" — referencia tecnica de autoridade
-8. "Contrario / anti-conselho" — quebra de crenca popular
+SEU OBJETIVO: gerar ideias de carrossel que:
+- Param o scroll (hook forte na capa)
+- Sao SALVAS pelo leitor (promessa tecnica cumprida)
+- Sao COMPARTILHADAS entre profissionais (autoridade tecnica)
+- Geram COMENTARIOS de projeto/execucao (provoca discussao)`;
 
-CONTEXTOS OBRIGATORIOS (rotacione — CADA ideia em um contexto DIFERENTE, nao repetir):
-- Borda de piscina / spa
-- Entrada / fachada de condominio fechado
-- Patio interno / open space integrado
-- Varanda gourmet de cobertura
-- Casa de campo / fazenda
-- Casa de praia / litoral
-- Rooftop urbano
-- Muro verde / parede viva / vertical garden
-- Jardim seco / xerofilo de alto padrao
-- Corredor lateral / passagem
-- Espelho d'agua / fonte
-- Borda de deck / madeiro termico
-- Jardim monocromatico (so verde / so branco)
-- Vegetacao nativa autoral (Burle Marx vibe)
-- Luz / iluminacao paisagistica noturna
-- Projeto com pedra / tropical moderno
+// ---------------------------------------------------------------------------
+// Exemplos positivos (calibracao em linguagem) — o que um bom titulo parece
+// ---------------------------------------------------------------------------
+const BONS_EXEMPLOS = `Exemplos de titulos BONS pra @digitalpaisagismo (calibre por esses):
 
-CADA IDEIA DEVE:
-- Usar um CONTEXTO diferente da lista acima (nao repetir jardim pequeno/sombreado na mesma rodada)
-- Ter pelo menos UM termo tecnico: especie nominada, material (corten, travertino, cobogo), estilo (brutalismo tropical, modernismo carioca), referencia (Burle Marx, Isabel Duprat, Alex Hanazaki)
-- Proibido: "dicas", "super", "incrivel", "confira", emoji, "varias", "algumas"
-- Entre 7 e 14 palavras
+[LISTA TECNICA] "5 folhagens de contraste alto que sustentam jardins de sombra filtrada"
+[AUTORIA] "O principio de escalonamento que Burle Marx usou em Copacabana — e poucos replicam"
+[ANTI-CONSELHO] "Por que menos especies deixam o jardim parecer mais rico"
+[ERROS TECNICOS] "4 erros de composicao que denunciam jardim sem projeto paisagistico"
+[ATMOSFERA] "Como a luz rasante transforma um canteiro tropical ao entardecer"
+[MATERIAL] "Quando usar corten, travertino ou seixo rolado — o peso que cada um traz pro jardim"
+[BASTIDOR] "O truque que paisagistas usam pra esconder o ar-condicionado sem pergolado"
+[COMPARACAO] "O que separa um jardim contratado de um jardim assinado"
+[CURADORIA] "3 especies brasileiras que deveriam estar em todo projeto mas ninguem lembra"
+[PROJETUAL] "Como construir profundidade num jardim linear de 40 metros"
+[HISTORIA] "O jardim de Roberto Burle Marx no Ministerio da Educacao — e o que ele ensina hoje"`;
 
-LIMITE DE NUMEROS NOS TITULOS (IMPORTANTE):
-- O carrossel tem EXATAMENTE 6 slides: 1 capa + 4 slides internos + 1 CTA.
-- Cada slide interno apresenta 1 planta/erro/principio/etc.
-- Entao temas com numero so podem ser 3, 4 ou 5 itens — JAMAIS 6, 7, 8, 10, 12 ou 15.
-- Exemplos CERTOS: "5 folhagens de contraste alto...", "4 erros de composicao...", "3 principios de Burle Marx..."
-- Exemplos ERRADOS: "7 palmeiras...", "10 plantas...", "12 principios..."
+const MAUS_EXEMPLOS = `Exemplos de titulos RUINS (nunca emule):
+- "Dicas incriveis de plantas pro seu jardim!"  (clickbait vazio, emoji, tom baixo)
+- "5 plantas lindas pra apartamento pequeno"    (baixo ticket, tom casual)
+- "Saiba mais sobre jardim de inverno"          (passiva, sem gancho)
+- "10 plantas que voce precisa ter"             (generico, sem contexto)
+- "Jardim pequeno virou tropical #incrivel"     (hashtag no titulo, clickbait)
+- "7 palmeiras pra sua casa"                    (sem contexto, numero grande)`;
 
-ABSOLUTAMENTE PROIBIDO repetir contexto entre ideias. Se ja citou "piscina" em uma, as outras 7 NAO podem citar piscina.
+// ---------------------------------------------------------------------------
+// System: gerar 16 ideias (superset) pra filtrar depois
+// ---------------------------------------------------------------------------
+const GENERATE_SYSTEM = `${PERSONA}
 
-POSICIONAMENTO — SUTIL, nao literal.
+${BONS_EXEMPLOS}
 
-A ideia precisa SOAR alto padrao pelo ASSUNTO (tecnica, autoria, referencia, material nobre) — nao precisa ENCHER com palavras tipo "alto padrao", "condominio fechado", "mansao", "de luxo". Isso soa cringe e deixa o texto pesado.
+${MAUS_EXEMPLOS}
 
-Prefira autoridade implícita atraves de:
-- Termos botanicos especificos (nome cientifico, familia)
-- Materiais e tecnicas (corten, travertino, cobogo, pedra sao tome, iluminacao cenica)
-- Referencias autorais (Burle Marx, Isabel Duprat, Alex Hanazaki, Gilberto Elkis, Benedito Abbud)
-- Conceitos projetuais (layered planting, tropical modernismo, minimalismo biofilico, jardim seco autoral)
-- Atmosfera (sombra filtrada, textura foliar, contraste cromatico)
+TAREFA AGORA: gerar 16 ideias de carrossel (sera filtrado pra 8 depois). Cada ideia em contexto DIFERENTE.
 
-BANIDO (gasto, cringe, repetitivo):
-- "alto padrao" dito explicitamente mais de UMA vez em 8 ideias
-- "condominio fechado" mais de UMA vez
-- "mansao", "de luxo", "de elite", "premium"
-- "jardim pequeno", "varanda", "sacada", "apartamento", "DIY", "barato"
-- Namedrop de condominios especificos (Alphaville, Dahma, Fazenda da Grama, etc)
+FORMULAS QUE FUNCIONAM (rotacione entre elas, nao use mesma 2x):
+1. Lista tecnica "N X pra Y" (N=3/4/5 APENAS, jamais 6+)
+2. Principio autoral citando paisagista referencia
+3. Anti-conselho / contrario
+4. N erros tecnicos (N=3/4/5)
+5. Atmosfera / momento do dia / luz
+6. Material e quando usar
+7. Bastidor / truque profissional
+8. O que separa X de Y (comparacao)
+9. Curadoria de especies pouco usadas
+10. Projetual / construtivo / como fazer
+11. Historia de projeto icone
+12. Contexto especifico (borda piscina, muro verde, corredor, rooftop, pomar estetico, entrada, horta ornamental, deck, espelho dagua, vertical garden)
 
-BOM — variedade de TONS (numeros: 3, 4 ou 5 apenas):
-- Tecnico-botanico: "5 folhagens de contraste alto que sustentam jardins de sombra filtrada"
-- Projetual-autoral: "O principio de escalonamento usado por Burle Marx que poucos replicam bem"
-- Atmosfera: "Como luz rasante transforma um canteiro tropical ao entardecer"
-- Erros tecnicos: "4 erros de composicao que denunciam falta de projeto paisagistico"
-- Material: "Quando usar corten e quando usar pedra lavada no jardim"
-- Espacial: "O canteiro na borda da piscina — 5 plantas que aceitam cloro sem queimar"
-- Anti-conselho: "Por que muita especie deixa qualquer jardim pobre"
-- Historia/curadoria: "3 jardins classicos brasileiros que voltaram a virar referencia"
+CONTEXTOS — varie (cada ideia em 1 diferente):
+entrada de propriedade / borda de piscina / espelho dagua / rooftop urbano / casa de campo / casa de praia / muro verde / pergolado / corredor lateral / jardim noturno / pomar estetico / deck / jardim seco / parede viva / espelho dagua / monocromatico
 
-Regra de ouro: a ideia precisa interessar ARQUITETO/PAISAGISTA/DONO-INFORMADO. Se um tema soa como clickbait de revista popular, corta.
+BANIDOS DUROS:
+- "alto padrao" literal repetido — autoridade vem de termo tecnico/autor/material, nao da palavra
+- "jardim pequeno", "apartamento", "varanda", "sacada", "quintal pequeno", "DIY", "barato"
+- "incrivel", "top", "super", "confira", "saiba mais", "dicas", "imperdivel"
+- Numeros >= 6 (carrossel tem 4 slides internos so)
+- Emoji no titulo
+- Clickbait vazio ("voce nao vai acreditar")
 
-RETORNO — JSON puro, sem markdown:
+OBRIGATORIO em cada ideia:
+- 1+ termo tecnico OU 1 autor-referencia OU 1 material nobre
+- Titulo entre 8 e 16 palavras
+- Gancho claro (por que ALGUEM para o scroll nessa capa?)
+
+RETORNE JSON PURO (sem markdown):
+{
+  "candidatas": [
+    {
+      "titulo": string,
+      "formula": "lista|autoria|anti-conselho|erros|atmosfera|material|bastidor|comparacao|curadoria|projetual|historia|contexto",
+      "contexto": string,
+      "ancoragem_tecnica": string,   // termo tecnico, autor ou material mencionado
+      "gancho": string               // por que vai viralizar (1 frase)
+    }
+  ]
+}
+Exatamente 16 itens. Contextos e formulas variadas.`;
+
+// ---------------------------------------------------------------------------
+// System: filtrar 16 -> top 8 (curadoria senior)
+// ---------------------------------------------------------------------------
+const CURATE_SYSTEM = `${PERSONA}
+
+TAREFA AGORA: recebeu 16 candidatas de ideia. Selecione as 8 MAIS FORTES pra apresentar ao cliente.
+
+Criterios de corte (aplique em ordem):
+1. Elimine qualquer uma sem ancoragem_tecnica clara (se o termo e generico, fora).
+2. Elimine formulas repetidas (max 2 ideias da mesma formula — prefere variedade).
+3. Elimine contextos repetidos (nao pode haver 2 ideias em "borda de piscina").
+4. Prefira ideias com gancho EMOCIONAL (ego, descoberta, contra-senso) vs educativa pura.
+5. Prefira ideias que geram COMENTARIO (quem ve sente vontade de replicar/discordar).
+6. Mantenha pelo menos 1 "anti-conselho" e 1 "autoria" no set final se possivel.
+
+RETORNE JSON PURO:
 {
   "ideias": [
-    { "titulo": "texto", "contexto": "categoria da lista acima", "hook": "por que viraliza (1 frase tecnica)" },
-    ...8 itens diferentes
+    { "titulo": string, "hook": string }  // hook = por que viraliza, 1 frase punchy
   ]
-}`;
+}
+Exatamente 8 itens. Ordene da mais forte pra mais fraca.`;
 
 export async function POST(req: NextRequest) {
   try {
     const { nicho } = await req.json().catch(() => ({}));
-    const user = nicho
-      ? `Usuario tem interesse inicial em: "${nicho}". MAS gere 8 ideias em 8 CONTEXTOS DIFERENTES da lista do system prompt — no maximo 1 das 8 ideias pode tocar nesse interesse. As outras 7 devem cobrir contextos COMPLETAMENTE diferentes (piscina, fachada, rooftop, casa de campo, muro verde, etc). Retorne JSON puro.`
-      : "Gerar 8 ideias em 8 contextos DIFERENTES da lista. Nao repetir contexto. JSON puro.";
 
-    const resp = await getAi().chat.completions.create({
+    // ETAPA 1: gerar 16 candidatas
+    const gen = await getAi().chat.completions.create({
+      model: MODEL,
+      max_tokens: 2200,
+      messages: [
+        { role: "system", content: GENERATE_SYSTEM },
+        {
+          role: "user",
+          content: nicho
+            ? `Interesse inicial do usuario: "${nicho}". Use isso como UMA das 16 candidatas no max — as outras 15 devem explorar contextos COMPLETAMENTE diferentes. JSON puro.`
+            : "Gerar 16 candidatas com maxima diversidade. JSON puro.",
+        },
+      ],
+    });
+    const genRaw = gen.choices[0]?.message?.content || "";
+    let candidatas: any[] = [];
+    try {
+      const parsed: any = extractJson(genRaw);
+      candidatas = Array.isArray(parsed) ? parsed : parsed.candidatas || [];
+    } catch {
+      return NextResponse.json({ error: "IA devolveu JSON invalido na geracao", raw: genRaw.slice(0, 300) }, { status: 500 });
+    }
+    if (candidatas.length < 8) {
+      return NextResponse.json({ error: `Apenas ${candidatas.length} candidatas geradas (esperado 16)`, candidatas }, { status: 500 });
+    }
+
+    // ETAPA 2: curadoria — filtrar 16 pra top 8
+    const cur = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 1400,
       messages: [
-        { role: "system", content: SYSTEM },
-        { role: "user", content: user },
+        { role: "system", content: CURATE_SYSTEM },
+        {
+          role: "user",
+          content: `16 candidatas:\n${JSON.stringify(candidatas, null, 2)}\n\nSelecione as 8 mais fortes. JSON puro.`,
+        },
       ],
     });
-    const raw = resp.choices[0]?.message?.content || "";
-    let parsed: any;
+    const curRaw = cur.choices[0]?.message?.content || "";
+    let ideias: any = {};
     try {
-      parsed = extractJson(raw);
+      const parsed: any = extractJson(curRaw);
+      ideias = Array.isArray(parsed) ? { ideias: parsed } : parsed;
     } catch {
-      return NextResponse.json({ error: "IA devolveu JSON invalido", raw: raw.slice(0, 300) }, { status: 500 });
+      // fallback: devolve as 8 primeiras candidatas
+      return NextResponse.json({
+        ideias: candidatas.slice(0, 8).map((c) => ({ titulo: c.titulo, hook: c.gancho || "" })),
+        _fallback: "curadoria falhou — devolvendo top 8 das candidatas",
+      });
     }
-    if (Array.isArray(parsed)) parsed = { ideias: parsed };
-    return NextResponse.json(parsed);
-  } catch (e) {
+
+    return NextResponse.json(ideias);
+  } catch (e: any) {
     console.error(e);
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return NextResponse.json({ error: e.message || String(e) }, { status: 500 });
   }
 }
