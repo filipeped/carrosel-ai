@@ -193,8 +193,31 @@ function Step1({
   status: string;
   onSearch: () => void;
 }) {
+  const [ideas, setIdeas] = useState<{ titulo: string; hook: string }[] | null>(null);
+  const [ideasLoading, setIdeasLoading] = useState(false);
+  const [ideasErr, setIdeasErr] = useState("");
+
+  async function generateIdeas() {
+    setIdeasLoading(true);
+    setIdeasErr("");
+    try {
+      const r = await fetch("/api/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nicho: prompt || undefined }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setIdeas(d.ideias || []);
+    } catch (e: any) {
+      setIdeasErr(e.message);
+    } finally {
+      setIdeasLoading(false);
+    }
+  }
+
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl">
       <label className="block mb-2 text-sm opacity-80">Tema do carrossel</label>
       <textarea
         value={prompt}
@@ -203,13 +226,51 @@ function Step1({
         className="w-full bg-black/30 border border-white/15 rounded p-3 text-sm"
         placeholder="Ex: 5 plantas pra area externa de sol pleno..."
       />
-      <button
-        disabled={loading}
-        onClick={onSearch}
-        className="mt-4 bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
-      >
-        {loading ? status || "Buscando..." : "Buscar fotos"}
-      </button>
+
+      <div className="mt-4 flex gap-2 flex-wrap">
+        <button
+          disabled={loading}
+          onClick={onSearch}
+          className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
+        >
+          {loading ? status || "Buscando..." : "Buscar fotos"}
+        </button>
+        <button
+          type="button"
+          disabled={ideasLoading}
+          onClick={generateIdeas}
+          className="border border-white/20 px-5 py-2.5 rounded tracking-wider uppercase text-xs hover:bg-white/5 disabled:opacity-40"
+        >
+          {ideasLoading ? "Pensando..." : ideas ? "Gerar mais ideias" : "Sugerir temas virais"}
+        </button>
+      </div>
+
+      {ideasErr && <div className="mt-4 text-red-300 text-sm">Erro: {ideasErr}</div>}
+
+      {ideas && ideas.length > 0 && (
+        <div className="mt-6">
+          <div className="text-xs tracking-widest uppercase opacity-60 mb-3">
+            Temas sugeridos — clica pra usar
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {ideas.map((idea, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setPrompt(idea.titulo)}
+                className={`text-left border rounded-lg p-4 transition-colors ${
+                  prompt === idea.titulo
+                    ? "border-white bg-white/10"
+                    : "border-white/10 bg-white/[0.02] hover:border-white/30"
+                }`}
+              >
+                <div className="font-medium text-sm leading-snug mb-2">{idea.titulo}</div>
+                <div className="text-xs opacity-60 leading-snug">{idea.hook}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
