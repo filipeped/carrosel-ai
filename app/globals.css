@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0f1210;
+  --color-moss: #2d3b2f;
+  --color-sand: #d6cfc1;
+  --color-cream: #f3efe7;
+}
+
+html, body {
+  background: var(--color-ink);
+  color: var(--color-cream);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+}
