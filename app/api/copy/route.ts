@@ -4,20 +4,26 @@ import { getAi, MODEL, BRAND_VOICE } from "@/lib/claude";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const SCHEMA = `Retorne JSON valido com EXATAMENTE 6 slides:
-{
-  "slides": [
-    { "type": "cover", "imageIdx": 0, "topLabel": string, "numeral": string|null, "title": string, "italicWords": string[] },
-    { "type": "inspiration"|"plantDetail", "imageIdx": number, "title": string, "subtitle": string, "topLabel": string, "nomePopular": string|null, "nomeCientifico": string|null },
-    ...mais 3 slides do mesmo tipo...
-    { "type": "cta", "imageIdx": 5, "pergunta": string, "italicWords": string[] }
-  ]
-}
+const SCHEMA = `Retorne JSON valido com EXATAMENTE 6 slides NESSA ORDEM:
 
-- imageIdx: indice da imagem selecionada (0 a N-1) — distribua bem, evite repetir
-- type "plantDetail" quando faz sentido destacar uma planta especifica (usa nomePopular+nomeCientifico)
-- type "inspiration" quando eh contexto/ambiente (usa title+subtitle+topLabel curto como "INSPIRACAO 01")
-- italicWords: 1-3 palavras do title/pergunta pra renderizar em italico decorativo`;
+[0] CAPA (obrigatorio type="cover"):
+    { "type": "cover", "imageIdx": 0, "topLabel": string, "numeral": string|null, "title": string, "italicWords": string[] }
+
+[1..4] MIOLO — 4 slides (obrigatorio type="plantDetail" ou "inspiration"):
+    { "type": "plantDetail", "imageIdx": number, "nomePopular": string, "nomeCientifico": string, "title": null, "subtitle": null, "topLabel": null }
+    OU
+    { "type": "inspiration", "imageIdx": number, "title": string, "subtitle": string, "topLabel": string, "nomePopular": null, "nomeCientifico": null }
+
+[5] CTA FINAL (obrigatorio type="cta"):
+    { "type": "cta", "imageIdx": 5, "pergunta": string, "italicWords": string[] }
+
+REGRAS DURAS:
+- slides[0].type DEVE ser "cover"
+- slides[5].type DEVE ser "cta" (pergunta aberta pro leitor, ex: "Qual delas entra na sua casa?")
+- slides[1..4] podem misturar "plantDetail" e "inspiration" conforme fizer sentido pra cada foto
+- imageIdx: use indices 0..N-1 das imagens; distribua bem, evite repetir
+- italicWords: 1-3 palavras do title/pergunta pra renderizar em italico decorativo
+- pra plantDetail, tire o nome cientifico da lista de plantas da imagem; nomePopular curto e poetico`;
 
 export async function POST(req: NextRequest) {
   try {

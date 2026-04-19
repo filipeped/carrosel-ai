@@ -295,23 +295,18 @@ function Step3({
     setSlides(next);
   }
 
+  const [busyAll, setBusyAll] = useState(false);
   async function downloadAll() {
-    for (let i = 0; i < slides.length; i++) {
-      const img = selectedImages[slides[i].imageIdx]?.url;
-      if (!img) continue;
-      const r = await fetch("/api/render-slide", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slide: slides[i], imageUrl: img }),
-      });
-      const d = await r.json();
-      if (d.png) {
-        const a = document.createElement("a");
-        a.href = `data:image/png;base64,${d.png}`;
-        a.download = `slide-${String(i + 1).padStart(2, "0")}.png`;
-        a.click();
-        await new Promise((res) => setTimeout(res, 250));
+    setBusyAll(true);
+    try {
+      for (let i = 0; i < slides.length; i++) {
+        const img = selectedImages[slides[i].imageIdx]?.url;
+        if (!img) continue;
+        await downloadOne(slides[i], img, i);
+        await new Promise((res) => setTimeout(res, 400));
       }
+    } finally {
+      setBusyAll(false);
     }
   }
 
@@ -324,10 +319,11 @@ function Step3({
             Voltar
           </button>
           <button
+            disabled={busyAll}
             onClick={downloadAll}
-            className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs"
+            className="bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40"
           >
-            Baixar todos os PNG
+            {busyAll ? "Gerando..." : "Baixar todos os PNG"}
           </button>
         </div>
       </div>
@@ -360,19 +356,14 @@ function SlideEditor({
 }) {
   const img = images[slide.imageIdx] || images[0];
   const imgUrl = img?.url || "";
+  const [busy, setBusy] = useState(false);
 
-  async function download() {
-    const r = await fetch("/api/render-slide", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slide, imageUrl: imgUrl }),
-    });
-    const d = await r.json();
-    if (d.png) {
-      const a = document.createElement("a");
-      a.href = `data:image/png;base64,${d.png}`;
-      a.download = `slide-${String(index + 1).padStart(2, "0")}.png`;
-      a.click();
+  async function handleDownload() {
+    setBusy(true);
+    try {
+      await downloadOne(slide, imgUrl, index);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -393,10 +384,11 @@ function SlideEditor({
           </select>
         </div>
         <button
-          onClick={download}
-          className="text-xs tracking-wider uppercase bg-white text-black px-3 py-1.5 rounded hover:bg-white/90"
+          disabled={busy}
+          onClick={handleDownload}
+          className="text-xs tracking-wider uppercase bg-white text-black px-3 py-1.5 rounded hover:bg-white/90 disabled:opacity-40"
         >
-          Baixar PNG
+          {busy ? "Gerando..." : "Baixar PNG"}
         </button>
       </div>
 
@@ -547,14 +539,52 @@ function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: string 
   }, [slide, imageUrl]);
 
   return (
-    <div className="relative w-full" style={{ aspectRatio: "1080/1350" }}>
+    <div
+      className="relative w-full overflow-hidden bg-black"
+      style={{ aspectRatio: "1080/1350", containerType: "inline-size" } as React.CSSProperties}
+    >
       <iframe
         srcDoc={html}
         title="preview"
-        className="absolute inset-0 w-full h-full bg-black"
         sandbox="allow-same-origin"
-        style={{ border: 0, pointerEvents: "none" }}
+        style={{
+          width: 1080,
+          height: 1350,
+          border: 0,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          transform: "scale(calc(100cqw / 1080))",
+          transformOrigin: "top left",
+          pointerEvents: "none",
+        }}
       />
     </div>
   );
+}
+
+async function downloadOne(slide: SlideData, imageUrl: string, index: number) {
+  try {
+    const r = await fetch("/api/render-slide", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slide, imageUrl }),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      alert(`Erro no slide ${index + 1}: ${err.error || r.status}`);
+      return;
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `slide-${String(index + 1).padStart(2, "0")}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (e: any) {
+    alert(`Falha ao baixar slide ${index + 1}: ${e.message || e}`);
+  }
 }

@@ -66,7 +66,14 @@ export async function POST(req: NextRequest) {
     }
 
     const png = await renderHtmlToPng(html);
-    return NextResponse.json({ png: png.toString("base64") });
+    return new NextResponse(new Uint8Array(png), {
+      status: 200,
+      headers: {
+        "Content-Type": "image/png",
+        "Content-Length": String(png.length),
+        "Cache-Control": "no-store",
+      },
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
