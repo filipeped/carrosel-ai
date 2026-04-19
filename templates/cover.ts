@@ -3,11 +3,11 @@ import { escapeHtml } from "../lib/utils";
 
 export type CoverData = {
   imageUrl: string;
-  topLabel?: string;      // ex.: "PLANTAS QUE TODO"
-  numeral?: string;       // ex.: "4"
-  title: string;          // ex.: "jardim de alto padrao tem"
-  italicWords?: string[]; // palavras do title pra renderizar em italico
-  edition?: string;       // ex.: "GUIA BOTANICO  ED. 02"
+  topLabel?: string;
+  numeral?: string;
+  title: string;
+  italicWords?: string[];
+  edition?: string;
 };
 
 function highlightItalic(title: string, italicWords: string[] = []): string {
@@ -17,74 +17,101 @@ function highlightItalic(title: string, italicWords: string[] = []): string {
     const safe = escapeHtml(w);
     out = out.replace(
       new RegExp(`\\b${safe.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\b`, "gi"),
-      `<i>${safe}</i>`,
+      `<em>${safe}</em>`,
     );
   });
   return out;
 }
 
 export function renderCover(d: CoverData, fontsBaseUrl = ""): string {
+  const topLabel = d.topLabel || "GUIA BOTANICO";
+  const edition = d.edition || "";
+  const handleUpper = (BRAND_HANDLE || "").replace(/^@/, "");
   return `<!doctype html><html><head><meta charset="utf-8"/><style>
 ${baseStyle(fontsBaseUrl)}
-.cover-wrap {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  padding: 120px 80px 120px 80px;
-  justify-content: center;
+.cover .chrome { padding: 75px 68px 110px; justify-content: flex-end; }
+.cover-mark {
+  position:absolute; right:68px; top:68px; z-index:4;
+  width:72px; height:72px; border-radius:50%;
+  border:1px solid rgba(255,255,255,.8);
+  display:flex; align-items:center; justify-content:center;
+  font-family: var(--serif); font-style:italic; font-weight:400;
+  font-size:30px; color:#fff;
+  background: rgba(0,0,0,.22);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  text-shadow: 0 1px 6px rgba(0,0,0,.5);
 }
-.micro {
-  font-family: 'Playfair', serif;
-  font-size: 18px;
-  letter-spacing: 4px;
-  text-transform: uppercase;
+.number-grid {
+  display:grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 32px;
+  align-items: end;
+  width: 100%;
+}
+.cover-number {
+  grid-column: 1; grid-row: 1 / span 2;
+  align-self: end;
+  font-family: var(--serif); font-weight: 300; font-style: italic;
+  font-size: 240px; line-height: .78;
   color: #fff;
-  opacity: 0.92;
-  margin-bottom: 12px;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  letter-spacing: -.04em;
+  text-shadow: 0 4px 28px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.55);
+  transform: translateY(10px);
 }
-.title-line {
-  display: flex;
-  align-items: flex-start;
-  gap: 28px;
+.cover-sm {
+  grid-column:2; grid-row:1;
+  font-family: var(--mono);
+  font-size: 15px; letter-spacing: .22em; text-transform: uppercase;
+  color: rgba(255,255,255,.88);
+  text-shadow: 0 1px 6px rgba(0,0,0,.6);
+  margin-bottom: 14px;
 }
-.numeral {
-  font-family: 'Playfair', serif;
-  font-weight: 400;
-  font-size: 260px;
-  line-height: 0.82;
+.cover-head {
+  grid-column:2; grid-row:2;
+  font-family: var(--serif); font-weight: 400;
+  font-size: 68px; line-height: 1.02;
+  letter-spacing: -.015em;
   color: #fff;
-  text-shadow: 0 3px 22px rgba(0,0,0,0.55), 0 2px 4px rgba(0,0,0,0.55);
+  text-shadow: 0 2px 16px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.55);
 }
-.headline {
-  font-family: 'Playfair', serif;
-  font-weight: 400;
-  font-size: 90px;
-  line-height: 0.95;
+.cover-head em {
+  font-style: italic; color: var(--accent); font-weight: 300;
+}
+.swipe {
+  margin-top: 28px;
+  display:inline-flex; align-items:center; gap: 12px;
+  font-family: var(--mono);
+  font-size: 13px; letter-spacing: .24em; text-transform: uppercase;
   color: #fff;
-  padding-top: 68px;
-  letter-spacing: -1px;
-  text-shadow: 0 2px 14px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.55);
+  text-shadow: 0 1px 6px rgba(0,0,0,.5);
 }
-.headline i { font-family: 'Cormorant', 'Playfair', serif; font-style: italic; font-weight: 400; }
-.edition {
-  position: absolute; bottom: 42px; left: 60px;
-  font-family: 'Playfair', serif;
-  font-size: 18px; letter-spacing: 4px;
-  text-transform: uppercase; color: #fff; opacity: 0.9;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+.swipe .arrow {
+  width: 42px; height: 1px; background:#fff; position:relative;
 }
-</style></head><body><div class="slide">
-<img class="bg" src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/>
-<div class="vignette"></div>
-<div class="side-shadow"></div>
-<div class="cover-wrap">
-  ${d.topLabel ? `<div class="micro">${escapeHtml(d.topLabel)}</div>` : ""}
-  <div class="title-line">
-    ${d.numeral ? `<div class="numeral">${escapeHtml(d.numeral)}</div>` : ""}
-    <div class="headline">${highlightItalic(d.title, d.italicWords)}</div>
+.swipe .arrow::after {
+  content:""; position:absolute; right:0; top:-4px;
+  width:8px; height:8px;
+  border-right:1px solid #fff; border-top:1px solid #fff;
+  transform: rotate(45deg);
+}
+</style></head><body><div class="slide cover">
+  <div class="bg"><img src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/></div>
+  <div class="veil veil-cover"></div>
+  ${d.numeral ? `<div class="cover-mark">${escapeHtml(d.numeral)}</div>` : ""}
+  <div class="chrome">
+    <div class="meta-top">
+      <span class="idx">${escapeHtml(edition || "ED. 01")}</span>
+      <span class="rule"></span>
+      <span>${escapeHtml(handleUpper.toUpperCase())}</span>
+    </div>
+    <div class="content">
+      <div class="number-grid">
+        ${d.numeral ? `<div class="cover-number">${escapeHtml(d.numeral)}</div>` : ""}
+        <div class="cover-sm">${escapeHtml(topLabel)}</div>
+        <div class="cover-head">${highlightItalic(d.title, d.italicWords)}</div>
+      </div>
+      <div class="swipe">Arraste<span class="arrow"></span></div>
+    </div>
   </div>
-</div>
-${d.edition ? `<div class="edition">${escapeHtml(d.edition)}</div>` : ""}
-<div class="handle">${escapeHtml(BRAND_HANDLE)}</div>
 </div></body></html>`;
 }
