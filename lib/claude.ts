@@ -2,13 +2,19 @@ import OpenAI from "openai";
 
 // Cliente OpenAI apontando pro gateway CLIProxyAPI (chat/vision rotea pra Claude).
 // Ver C:\Users\filip\.claude\memory\reference_clawdbot_gateway.md
-const GATEWAY_BASE = process.env.GATEWAY_BASE_URL || "http://76.13.225.142:8317/v1";
-const GATEWAY_KEY = process.env.GATEWAY_API_KEY!;
+// Lazy init — evita throw no build quando env vars ainda nao estao setadas.
+let _ai: OpenAI | null = null;
 
-export const ai = new OpenAI({
-  apiKey: GATEWAY_KEY,
-  baseURL: GATEWAY_BASE,
-});
+export function getAi(): OpenAI {
+  if (_ai) return _ai;
+  const apiKey = process.env.GATEWAY_API_KEY;
+  const baseURL = process.env.GATEWAY_BASE_URL || "http://76.13.225.142:8317/v1";
+  if (!apiKey) {
+    throw new Error("GATEWAY_API_KEY nao configurada (.env.local ou Vercel Settings)");
+  }
+  _ai = new OpenAI({ apiKey, baseURL });
+  return _ai;
+}
 
 export const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-4-6";
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ai, MODEL, BRAND_VOICE } from "@/lib/claude";
+import { getAi, MODEL, BRAND_VOICE } from "@/lib/claude";
 import { renderMany } from "@/lib/renderer";
 import { pngsToPdf } from "@/lib/pdf";
 import { renderCover } from "@/templates/cover";
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         ? copyPromptIdentifier(body.plant)
         : copyPromptThematic(body.prompt, body.images);
 
-    const resp = await ai.chat.completions.create({
+    const resp = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 1500,
       messages: [

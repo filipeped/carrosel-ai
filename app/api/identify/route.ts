@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ai, MODEL } from "@/lib/claude";
+import { getAi, MODEL } from "@/lib/claude";
 import { matchVegetacao } from "@/lib/plant-matcher";
 
 export const runtime = "nodejs";
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "imageBase64 required" }, { status: 400 });
     }
 
-    const resp = await ai.chat.completions.create({
+    const resp = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 600,
       messages: [

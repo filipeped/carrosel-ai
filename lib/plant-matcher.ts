@@ -1,10 +1,11 @@
-import { supabase, VegetacaoRow, ImageBankRow } from "./supabase";
+import { getSupabase, VegetacaoRow, ImageBankRow } from "./supabase";
 
 export async function matchVegetacao(
   nomeCientifico: string,
   nomePopular: string,
 ): Promise<VegetacaoRow | null> {
-  // tenta nome_cientifico primeiro (mais confiavel)
+  const supabase = getSupabase();
+
   const { data: byCientifico } = await supabase
     .from("vegetacoes")
     .select("*")
@@ -12,7 +13,6 @@ export async function matchVegetacao(
     .limit(1);
   if (byCientifico && byCientifico.length > 0) return byCientifico[0] as VegetacaoRow;
 
-  // fallback nome_popular
   const { data: byPopular } = await supabase
     .from("vegetacoes")
     .select("*")
@@ -20,7 +20,6 @@ export async function matchVegetacao(
     .limit(1);
   if (byPopular && byPopular.length > 0) return byPopular[0] as VegetacaoRow;
 
-  // fallback outros_nomes
   const { data: byOutros } = await supabase
     .from("vegetacoes")
     .select("*")
@@ -35,7 +34,8 @@ export async function imagesWithPlant(
   nomeCientifico: string,
   limit = 4,
 ): Promise<ImageBankRow[]> {
-  // busca imagens que contenham a planta no array plantas[]
+  const supabase = getSupabase();
+
   const { data } = await supabase
     .from("image_bank")
     .select("*")
@@ -44,7 +44,6 @@ export async function imagesWithPlant(
     .limit(limit);
   if (data && data.length > 0) return data as ImageBankRow[];
 
-  // fallback: busca por texto livre no array (nome_cientifico pode estar em qualquer string)
   const { data: data2 } = await supabase
     .from("image_bank")
     .select("*")
@@ -59,6 +58,7 @@ export async function searchImagesSemantic(
   filters: { estilo?: string; tipo_area?: string } = {},
   count = 5,
 ): Promise<ImageBankRow[]> {
+  const supabase = getSupabase();
   const { data, error } = await supabase.rpc("busca_semantica", {
     query_embedding: queryEmbedding as unknown as string,
     match_threshold: 0.3,

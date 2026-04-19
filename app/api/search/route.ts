@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ai, MODEL } from "@/lib/claude";
+import { getAi, MODEL } from "@/lib/claude";
 import { embed } from "@/lib/embeddings";
 import { searchImagesSemantic } from "@/lib/plant-matcher";
 
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. extrai filtros via gateway
-    const resp = await ai.chat.completions.create({
+    const resp = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 400,
       messages: [
