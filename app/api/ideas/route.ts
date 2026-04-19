@@ -48,30 +48,35 @@ CADA IDEIA DEVE:
 
 ABSOLUTAMENTE PROIBIDO repetir contexto entre ideias. Se ja citou "piscina" em uma, as outras 7 NAO podem citar piscina.
 
-POSICIONAMENTO — @digitalpaisagismo mira ticket R$ 200k+ por projeto. Temas precisam SINALIZAR alto valor.
+POSICIONAMENTO — SUTIL, nao literal.
 
-BANIDO (atrai baixo ticket, fura posicionamento):
-- "jardim pequeno", "varanda pequena", "sacada", "apartamento", "quintal pequeno"
-- "barato", "baixo custo", "economico", "faca voce mesmo", "diy"
-- "sem gastar muito", "com pouco dinheiro"
-- Metragens pequenas (5m2, 10m2, 15m2)
+A ideia precisa SOAR alto padrao pelo ASSUNTO (tecnica, autoria, referencia, material nobre) — nao precisa ENCHER com palavras tipo "alto padrao", "condominio fechado", "mansao", "de luxo". Isso soa cringe e deixa o texto pesado.
 
-OBRIGATORIO — contextos de ALTO TICKET:
-- Propriedade rural / fazenda / haras
-- Casa de campo grande (Itaipava, Serra da Mantiqueira, Campos do Jordao)
-- Casa de praia alto padrao (Trancoso, Buzios, Jurere Internacional, Riviera)
-- Mansao em condominio fechado (Fazenda da Grama, Alphaville, Terras de Sao Jose, Dahma)
-- Cobertura duplex / triplex
-- Entrada monumental / portaria de propriedade
-- Piscina de borda infinita / espelho dagua monumental
-- Spa externo / sauna / ofuro paisagistico
-- Pomar estetico / horta autoral de propriedade
-- Quadra de tenis ou campo de golfe com paisagismo integrado
-- Heliponto com paisagismo
-- Jardins de 500m2+ ou 1000m2+
-- Projeto autoral Burle Marx / Isabel Duprat / Alex Hanazaki / Gilberto Elkis / Benedito Abbud
+Prefira autoridade implícita atraves de:
+- Termos botanicos especificos (nome cientifico, familia)
+- Materiais e tecnicas (corten, travertino, cobogo, pedra sao tome, iluminacao cenica)
+- Referencias autorais (Burle Marx, Isabel Duprat, Alex Hanazaki, Gilberto Elkis, Benedito Abbud)
+- Conceitos projetuais (layered planting, tropical modernismo, minimalismo biofilico, jardim seco autoral)
+- Atmosfera (sombra filtrada, textura foliar, contraste cromatico)
 
-Regra de ouro: cada ideia tem que soar como algo que o dono de casa R$ 5M+ contrata paisagista pra executar — NAO algo que morador de apartamento faz sozinho.
+BANIDO (gasto, cringe, repetitivo):
+- "alto padrao" dito explicitamente mais de UMA vez em 8 ideias
+- "condominio fechado" mais de UMA vez
+- "mansao", "de luxo", "de elite", "premium"
+- "jardim pequeno", "varanda", "sacada", "apartamento", "DIY", "barato"
+- Namedrop de condominios especificos (Alphaville, Dahma, Fazenda da Grama, etc)
+
+BOM — variedade de TONS:
+- Tecnico-botanico: "7 folhagens de contraste alto que sustentam jardins de sombra filtrada"
+- Projetual-autoral: "O principio de escalonamento usado por Burle Marx que poucos replicam bem"
+- Atmosfera: "Como luz rasante transforma um canteiro tropical ao entardecer"
+- Erros tecnicos: "4 erros de composicao que denunciam falta de projeto paisagistico"
+- Material: "Quando usar corten e quando usar pedra lavada no jardim"
+- Espacial: "O canteiro na borda da piscina — 5 plantas que aceitam cloro sem queimar"
+- Anti-conselho: "Por que muita especie deixa qualquer jardim pobre"
+- Historia/curadoria: "3 jardins classicos brasileiros que voltaram a virar referencia"
+
+Regra de ouro: a ideia precisa interessar ARQUITETO/PAISAGISTA/DONO-INFORMADO. Se um tema soa como clickbait de revista popular, corta.
 
 RETORNO — JSON puro, sem markdown:
 {
