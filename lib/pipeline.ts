@@ -102,6 +102,14 @@ Gere 3 legendas em abordagens diferentes:
 - Autoridade tecnica botanica
 - Pergunta provocativa
 
+REGRAS DURAS:
+- TAMANHO: cada legenda entre 120 e 260 PALAVRAS. Nao exceda 260.
+- HASHTAGS: 12-16 por legenda, TODAS em minusculas, SEM caracteres especiais, SEM acentos, SEM camelCase. Ex: #paisagismoaltopadrao (certo), #paisagismoAltopAdrao (ERRADO), #paisagismodeautor (certo). Se tiver duvida, so minuscula plana.
+- EMOJI: ABSOLUTAMENTE PROIBIDO em qualquer legenda ou hook. Zero emoji. Nem arrow pra baixo, nem emoji ornamental, nada.
+- Nao uso arrow-chars (→, ↓, ↑). Se precisar de lista, use bullets com "—" no comeco da linha OU simplesmente quebra de linha.
+- Tom sofisticado, nunca casual ("ola pessoal", "confira", "top", "incrivel", "imperdivel" = proibidos).
+- Nomes cientificos entre *asteriscos* (italico).
+
 Retorne JSON puro (sem markdown):
 { "options": [{ "abordagem", "hook", "legenda", "hashtags": [] }] }`;
 
@@ -142,6 +150,31 @@ async function _runCaption(
   const raw = r.choices[0]?.message?.content || "";
   let parsed: any = extractJson(raw);
   if (Array.isArray(parsed)) parsed = { options: parsed };
+
+  // Saneamento pos-IA: garante minusculas nas hashtags, remove emoji e
+  // tira setas unicode que escapam mesmo com o prompt proibir.
+  if (parsed?.options && Array.isArray(parsed.options)) {
+    const EMOJI_RE = /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu;
+    const ARROWS = /[→↑↓←➤➡]/g;
+    parsed.options = parsed.options.map((o: any) => ({
+      ...o,
+      hook: String(o.hook || "").replace(EMOJI_RE, "").replace(ARROWS, "").trim(),
+      legenda: String(o.legenda || "").replace(EMOJI_RE, "").replace(ARROWS, "").trim(),
+      hashtags: Array.isArray(o.hashtags)
+        ? o.hashtags
+            .map((t: any) => String(t).trim())
+            .filter(Boolean)
+            .map((t: string) => {
+              let s = t.startsWith("#") ? t.slice(1) : t;
+              // normaliza acentos
+              s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+              s = s.toLowerCase().replace(/[^a-z0-9]/g, "");
+              return s ? "#" + s : "";
+            })
+            .filter(Boolean)
+        : [],
+    }));
+  }
   return parsed;
 }
 

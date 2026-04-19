@@ -45,6 +45,8 @@ PRINCIPIOS:
 - Foto ampla de area com piscina/deck/pergolado = cover_potential 6-8 se tiver composicao clara.
 - Foto so de plantas em close (sem contexto arquitetonico) = cover_potential 4-6 tipicamente.
 
+EVITE ANCORAGEM EM 6 (bug comum): se voce esta dando 6 pra tudo, FORCE-SE a subir as 2 melhores da serie pra 7-8 e abaixar a pior pra 4-5. Distribua ATIVAMENTE. Notas fracionadas sao OK (6.5, 7.5, 8.5).
+
 Sem markdown. Sem texto fora do JSON.`;
 
 export async function analyzeOne(imageUrl: string): Promise<AnaliseVisual> {
