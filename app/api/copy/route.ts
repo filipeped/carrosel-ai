@@ -7,6 +7,15 @@ export const maxDuration = 30;
 
 const SCHEMA = `Retorne JSON valido com EXATAMENTE 6 slides NESSA ORDEM:
 
+IMPORTANTE: retorne um OBJETO JSON com a chave "slides" contendo array de 6 items. NAO retorne array direto. SEM texto explicativo antes ou depois. SEM code-fence markdown.
+
+Formato:
+{
+  "slides": [ ...6 slides aqui... ]
+}
+
+Onde cada slide segue:
+
 [0] CAPA (obrigatorio type="cover"):
     { "type": "cover", "imageIdx": 0, "topLabel": string, "numeral": string|null, "title": string, "italicWords": string[] }
 
@@ -62,6 +71,9 @@ ${SCHEMA}`;
       console.error("JSON parse failed. Raw:", raw);
       return NextResponse.json({ error: "IA devolveu JSON invalido", raw: raw.slice(0, 300) }, { status: 500 });
     }
+    // normaliza: pode vir como array direto OU objeto com .slides
+    if (Array.isArray(parsed)) parsed = { slides: parsed };
+    else if (!parsed.slides && Array.isArray(parsed.carrossel)) parsed = { slides: parsed.carrossel };
     return NextResponse.json(parsed);
   } catch (e) {
     console.error(e);
