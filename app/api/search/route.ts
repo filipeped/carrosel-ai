@@ -17,10 +17,8 @@ Se nao tiver sinal claro pra um campo, use null.`;
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, count = 5 } = await req.json();
-    if (!prompt) {
-      return NextResponse.json({ error: "prompt required" }, { status: 400 });
-    }
+    const { prompt, count = 24 } = await req.json();
+    if (!prompt) return NextResponse.json({ error: "prompt required" }, { status: 400 });
 
     // 1. extrai filtros via gateway
     const resp = await getAi().chat.completions.create({
@@ -34,10 +32,10 @@ export async function POST(req: NextRequest) {
     const text = resp.choices[0]?.message?.content || "{}";
     const filters = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
 
-    // 2. embedding da query (OpenAI direto — gateway nao suporta embeddings)
+    // 2. embedding (OpenAI direto)
     const queryEmb = await embed(filters.query_expandida || prompt);
 
-    // 3. busca semantica com filtros
+    // 3. busca semantica
     const imagens = await searchImagesSemantic(
       queryEmb,
       { estilo: filters.estilo, tipo_area: filters.tipo_area },
