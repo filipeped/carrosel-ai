@@ -768,19 +768,53 @@ function SlideEditor({
 
       <div className="p-4 space-y-3">
         <div>
-          <label className="block text-xs opacity-60 mb-1">Imagem</label>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {images.map((im, idx) => (
-              <button
-                key={im.id}
-                onClick={() => onChange({ imageIdx: idx })}
-                className={`shrink-0 w-16 h-20 rounded overflow-hidden border-2 ${
-                  slide.imageIdx === idx ? "border-white" : "border-white/0 opacity-60 hover:opacity-100"
-                }`}
-              >
-                <img src={im.url} className="w-full h-full object-cover" alt="" />
-              </button>
-            ))}
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs opacity-60 tracking-wider uppercase">
+              Trocar imagem
+            </label>
+            <span className="text-[10px] opacity-50 tracking-wider">
+              {images.length} disponíveis
+            </span>
+          </div>
+          <div className="thumb-strip relative">
+            <div className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth scrollbar-thin">
+              {images.map((im, idx) => {
+                const active = slide.imageIdx === idx;
+                return (
+                  <button
+                    key={im.id}
+                    onClick={() => onChange({ imageIdx: idx })}
+                    className={`group relative shrink-0 snap-start w-20 h-24 rounded-md overflow-hidden transition-all duration-150 ${
+                      active
+                        ? "ring-2 ring-[#d6e7c4] shadow-[0_6px_20px_rgba(214,231,196,0.25)] scale-[0.98]"
+                        : "ring-1 ring-white/10 opacity-55 hover:opacity-100 hover:ring-white/30"
+                    }`}
+                    title={im.arquivo}
+                  >
+                    <img
+                      src={im.url}
+                      className="w-full h-full object-cover"
+                      alt=""
+                      loading="lazy"
+                    />
+                    {active && (
+                      <div className="absolute inset-0 bg-[#d6e7c4]/10 pointer-events-none" />
+                    )}
+                    {active && (
+                      <div className="absolute top-1 right-1 bg-[#d6e7c4] text-black text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                        ✓
+                      </div>
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1 py-0.5 text-[9px] text-white/80 text-center tracking-wide">
+                      #{idx + 1}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {/* fade edges pra sinalizar que rola */}
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-[#0a0d0b] to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-[#0a0d0b] to-transparent" />
           </div>
         </div>
 
