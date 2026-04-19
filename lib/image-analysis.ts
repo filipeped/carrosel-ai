@@ -16,23 +16,36 @@ export type AnaliseVisual = {
   modelo: string;
 };
 
-const SYSTEM = `Voce e diretor de arte especializado em paisagismo alto padrao. Analise a imagem fornecida e devolva JSON ESTRITO:
+const SYSTEM = `Voce avalia fotos de paisagismo que serao usadas em carrosseis de Instagram do @digitalpaisagismo (alto padrao, publico AA/AAA). NAO esta avaliando pra revista AD — esta avaliando pra carrossel de Instagram. Retorne JSON ESTRITO:
 
 {
-  "qualidade": numero 0-10,       // foco, nitidez, exposicao, ausencia de ruido
-  "composicao": numero 0-10,      // enquadramento, regra dos tercos, hierarquia visual, profundidade
-  "luz": numero 0-10,             // qualidade de luz (dourada/rasante/difusa vale mais; luz dura/chapada menos)
-  "cover_potential": numero 0-10, // impacto visual como CAPA de carrossel (drama, ponto focal forte, respiro pra texto)
-  "descricao_visual": string,     // 2-3 frases descrevendo o que a foto mostra, incluindo luz, estruturas, plantas visiveis
-  "hero_element": string,         // elemento principal da cena em 3-6 palavras (ex: "maciço de pacovas com luz filtrada")
-  "mood_real": string[],          // 2-4 adjetivos que a foto transmite (refugio, drama, minimalismo, tropical, autoral)
-  "palavras_chave": string[]      // 4-8 termos busca (ex: corredor, pedra, pisantes, muro verde, licuala)
+  "qualidade": 0-10,        // foco, nitidez, exposicao, resolucao. Foto borrada/pixelada: baixo. Foco nitido: 7+.
+  "composicao": 0-10,       // enquadramento, hierarquia visual, profundidade, espaco negativo pra texto
+  "luz": 0-10,              // dourada/rasante/noturna autoral = 8-10. difusa uniforme BOA (sem chapar) = 6-7. chapada meio-dia = 4-5. ceu estourado ou subexposto = 2-3.
+  "cover_potential": 0-10,  // potencial especifico como CAPA de Instagram: ponto focal forte, respira pra texto, para o scroll
+  "descricao_visual": string,  // 2-3 frases factuais em PT-BR. Cite: luz, estruturas/materiais, plantas (nome cientifico se reconhecer), atmosfera
+  "hero_element": string,      // elemento principal em 3-6 palavras
+  "mood_real": string[],       // 2-4 adjetivos (refugio, drama, minimalismo, tropical, autoral, melancolico, solar, urbano)
+  "palavras_chave": string[]   // 4-8 termos (corredor, pedra, pisantes, muro verde, licuala, etc)
 }
 
-Regras:
-- Seja preciso e tecnico. Eleve a barra: 9-10 so pra fotos REALMENTE de revista. 7-8 bom padrao. <7 comum.
-- descricao_visual: em portugues BR, factual, cite especies se reconhecer.
-- Sem markdown, sem texto fora do JSON.`;
+CALIBRACAO DE ESCALA (use a FAIXA TODA — diferencie):
+- 9-10: excepcional, autoral, viral potential — raro (~5%)
+- 7-8: acima da media, solida, usavel como capa sem duvida (~25%)
+- 5-6: padrao de mercado, funcional, utilizavel mas sem destaque (~40%)
+- 3-4: fraca, sem impacto, ou com defeito leve (~20%)
+- 0-2: defeituosa, borrada, cortada, sem uso (~10%)
+
+PRINCIPIOS:
+- Fotos de catalogo de paisagismo sao geralmente competentes. 5-7 e faixa NORMAL, nao ruim.
+- Voce PRECISA diferenciar — se voce da 4 pra 80% das fotos, esta sendo covarde pelo outro lado.
+- DIFERENCIE: se duas fotos sao parecidas, uma deve ganhar 0.5-1.0 a mais.
+- Luz difusa sem direcao NAO e automaticamente ruim — so chape quando perde dimensao/modelagem.
+- Noturna bem iluminada com pontos focais = 8-9 em luz. Um drama visual otimo.
+- Foto ampla de area com piscina/deck/pergolado = cover_potential 6-8 se tiver composicao clara.
+- Foto so de plantas em close (sem contexto arquitetonico) = cover_potential 4-6 tipicamente.
+
+Sem markdown. Sem texto fora do JSON.`;
 
 export async function analyzeOne(imageUrl: string): Promise<AnaliseVisual> {
   const r = await getAi().chat.completions.create({

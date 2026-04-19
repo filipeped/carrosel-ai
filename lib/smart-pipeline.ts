@@ -3,8 +3,30 @@ import { getAi, MODEL, BRAND_VOICE } from "./claude";
 import { searchImages as _searchImages } from "./pipeline";
 import { analyzeAndCache, AnaliseVisual } from "./image-analysis";
 import { extractJson } from "./utils";
-import type { ImageBankRow } from "./supabase";
+import { getSupabase, ImageBankRow } from "./supabase";
 import type { SlideSpec } from "./pipeline";
+
+/**
+ * Enriquece linhas da busca semantica (que retornam campos limitados)
+ * com o row completo da tabela image_bank (arquivo, plantas, mood, cores,
+ * porte, elementos_form, etc).
+ */
+async function enrichFromImageBank(rows: ImageBankRow[]): Promise<ImageBankRow[]> {
+  if (!rows.length) return rows;
+  const supabase = getSupabase();
+  const ids = rows.map((r) => r.id);
+  const { data } = await supabase
+    .from("image_bank")
+    .select("*")
+    .in("id", ids);
+  if (!data) return rows;
+  const byId = new Map(data.map((d: any) => [d.id, d]));
+  return rows.map((r) => {
+    const full = byId.get(r.id) || {};
+    // preserva similarity da busca semantica
+    return { ...full, ...r, analise_visual: full.analise_visual ?? (r as any).analise_visual };
+  });
+}
 
 export type AnalyzedImage = ImageBankRow & { analise_visual: AnaliseVisual };
 
@@ -24,14 +46,16 @@ function composite(img: AnalyzedImage, semanticScore = 1): number {
 const SELECT_SYSTEM = `Voce e curador de carrossel de Instagram pra @digitalpaisagismo. Dado um TEMA e uma lista de imagens analisadas (cada uma com descricao_visual, hero_element, scores), escolha as 6 melhores em roles especificos.
 
 Roles:
-- COVER (1): maior impacto visual, aderente ao tema, com respiro pro texto da capa
-- INNER (4): narrativa progressiva, diversidade de enquadramento (nao repetir cena similar)
-- CTA (1): foto que convide contemplacao/fechamento
+- COVER (1): maior impacto visual, aderente ao tema, com respiro pro texto da capa. Prefira fotos com cover_potential >= 7.
+- INNER (4): narrativa progressiva, diversidade de enquadramento (jamais 2 fotos com cena similar).
+- CTA (1): foto que convide contemplacao/fechamento — diferente das anteriores.
 
-Regras:
-- NAO escolha imagens com cover_potential < 6 pra cover
-- Varie contexto entre inner (nao 4 fotos do mesmo tipo de cena)
-- Priorize imagens com descricao_visual alinhada ao tema
+REGRAS DURAS (NAO quebre):
+1. Os 6 IDs DEVEM ser TODOS DIFERENTES. NUNCA repita o mesmo id em 2 posicoes.
+2. cover_id + 4 inner_ids + cta_id = 6 IDs unicos obrigatorios.
+3. Se 2 fotos tem descricao_visual muito similar (mesmo contexto/enquadramento), escolha uma so.
+4. NAO escolha cover com cover_potential < 6 — prefira >= 7.
+5. Varie HERO_ELEMENT entre os inner: nao 4 pataques de piscina, nao 4 corredores, nao 4 muros verdes. Contexto/angulo/escala variados.
 
 Retorne JSON puro:
 {
@@ -77,25 +101,59 @@ export async function rankAndSelect(
   const byId = new Map(analyzed.map((a) => [a.id, a]));
   const cover = byId.get(picked.cover_id);
   const cta = byId.get(picked.cta_id);
-  const inner = (picked.inner_ids || [])
+  const innerRaw = (picked.inner_ids || [])
     .map((id) => byId.get(id))
-    .filter((x): x is AnalyzedImage => !!x)
-    .slice(0, 4);
+    .filter((x): x is AnalyzedImage => !!x);
 
-  if (!cover || !cta || inner.length < 4) {
-    // Fallback: top ranked
-    return {
-      cover: ranked[0],
-      inner: ranked.slice(1, 5),
-      cta: ranked[5],
-      alternatives: ranked.slice(6),
-      rationale: "fallback (IA retornou selecao invalida)",
-    };
+  // dedupe rigoroso: cover + inner + cta devem ser 6 ids diferentes
+  const usedNow = new Set<number>();
+  if (cover) usedNow.add(cover.id);
+  if (cta) usedNow.add(cta.id);
+  const innerUnique: AnalyzedImage[] = [];
+  for (const im of innerRaw) {
+    if (usedNow.has(im.id)) continue;
+    usedNow.add(im.id);
+    innerUnique.push(im);
+    if (innerUnique.length >= 4) break;
   }
 
-  const usedIds = new Set<number>([cover.id, cta.id, ...inner.map((i) => i.id)]);
-  const alternatives = ranked.filter((a) => !usedIds.has(a.id));
-  return { cover, inner, cta, alternatives, rationale: picked.rationale };
+  // se faltar alguem, completar com ranked que nao esta em uso
+  const ensureUnique = (current: AnalyzedImage[] | undefined, needed: number): AnalyzedImage[] => {
+    const out = [...(current || [])];
+    for (const r of ranked) {
+      if (out.length >= needed) break;
+      if (!usedNow.has(r.id)) {
+        out.push(r);
+        usedNow.add(r.id);
+      }
+    }
+    return out.slice(0, needed);
+  };
+
+  let finalCover = cover && !(cta && cover.id === cta.id) ? cover : undefined;
+  if (!finalCover) {
+    finalCover = ranked.find((r) => !usedNow.has(r.id)) || ranked[0];
+    usedNow.add(finalCover.id);
+  }
+
+  let finalCta = cta && cta.id !== finalCover.id ? cta : undefined;
+  if (!finalCta) {
+    finalCta = ranked.find((r) => !usedNow.has(r.id)) || ranked[ranked.length - 1];
+    usedNow.add(finalCta.id);
+  }
+
+  const finalInner = ensureUnique(innerUnique, 4);
+
+  const allIds = new Set<number>([finalCover.id, finalCta.id, ...finalInner.map((i) => i.id)]);
+  const alternatives = ranked.filter((a) => !allIds.has(a.id));
+
+  return {
+    cover: finalCover,
+    inner: finalInner,
+    cta: finalCta,
+    alternatives,
+    rationale: picked.rationale || "fallback determinstico",
+  };
 }
 
 const COPY_FROM_ANALYSIS_SCHEMA = `Retorne JSON: { "slides": [6 items] } sem markdown.
@@ -158,7 +216,9 @@ export async function searchAndSelect(
   const { imagens } = await _searchImages(prompt, count);
   if (!imagens.length) throw new Error("Nenhuma imagem encontrada no banco pra esse tema");
 
-  const analyzed = await analyzeAndCache(imagens);
+  // enriquece (busca_semantica so retorna fonte/id/descricao/url/tipo_area/estilo/similarity/analise_visual)
+  const enriched = await enrichFromImageBank(imagens);
+  const analyzed = await analyzeAndCache(enriched);
   const selection = await rankAndSelect(prompt, analyzed);
   return { selection, allAnalyzed: analyzed };
 }
