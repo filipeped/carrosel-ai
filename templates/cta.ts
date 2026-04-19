@@ -51,10 +51,11 @@ ${baseStyle(fontsBaseUrl)}
   background: #fff; color: #111; border-color: #fff;
 }
 .cta-handle {
-  font-family: var(--serif); font-style: italic; font-weight: 400;
-  font-size: 34px; color: var(--accent);
-  margin-top: 26px;
-  text-shadow: 0 1px 14px rgba(0,0,0,.55);
+  font-family: var(--mono);
+  font-size: 13px; letter-spacing: .22em; text-transform: uppercase;
+  color: rgba(255,255,255,.92);
+  margin-top: 22px;
+  text-shadow: 0 1px 6px rgba(0,0,0,.5);
 }
 </style></head><body><div class="slide cta">
   <div class="bg"><img src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/></div>
