@@ -30,17 +30,6 @@ export function renderCover(d: CoverData, fontsBaseUrl = ""): string {
   return `<!doctype html><html><head><meta charset="utf-8"/>${FONTS_LINK}<style>
 ${baseStyle(fontsBaseUrl)}
 .cover .chrome { padding: 75px 68px 110px; justify-content: flex-end; }
-.cover-mark {
-  position:absolute; right:68px; top:68px; z-index:4;
-  width:72px; height:72px; border-radius:50%;
-  border:1px solid rgba(255,255,255,.8);
-  display:flex; align-items:center; justify-content:center;
-  font-family: var(--serif); font-style:italic; font-weight:400;
-  font-size:30px; color:#fff;
-  background: rgba(0,0,0,.22);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  text-shadow: 0 1px 6px rgba(0,0,0,.5);
-}
 .number-grid {
   display:grid;
   grid-template-columns: auto 1fr;
@@ -98,7 +87,6 @@ ${baseStyle(fontsBaseUrl)}
   <div class="bg"><img src="${escapeHtml(d.imageUrl)}" crossorigin="anonymous"/></div>
   <div class="color-grade"></div>
   <div class="veil veil-cover"></div>
-  ${d.numeral ? `<div class="cover-mark">${escapeHtml(d.numeral)}</div>` : ""}
   <div class="chrome">
     <div class="meta-top">
       <span class="idx">${escapeHtml(edition || "ED. 01")}</span>
