@@ -23,7 +23,6 @@ async function fetchFont(url: string): Promise<ArrayBuffer> {
 async function loadFonts(): Promise<SatoriFont[]> {
   if (_fontsPromise) return _fontsPromise;
   _fontsPromise = (async () => {
-    // Fontes em .ttf (o formato que Satori aceita). Usa CDN jsdelivr fontsource.
     const base = "https://cdn.jsdelivr.net/fontsource/fonts";
     const [
       frauncesReg,
@@ -55,10 +54,48 @@ async function loadFonts(): Promise<SatoriFont[]> {
   return _fontsPromise;
 }
 
+/**
+ * Pre-baixa imagens remotas e converte pra data URI base64.
+ * Satori nao faz fetch de imagens remotas sozinho.
+ */
+async function inlineRemoteImages(html: string): Promise<string> {
+  const imgRegex = /src="(https?:\/\/[^"]+)"/g;
+  const matches = [...html.matchAll(imgRegex)];
+  if (!matches.length) return html;
+
+  // Deduplica URLs
+  const uniqueUrls = [...new Set(matches.map((m) => m[1]))];
+
+  // Baixa todas em paralelo
+  const urlToDataUri = new Map<string, string>();
+  await Promise.all(
+    uniqueUrls.map(async (url) => {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) return;
+        const contentType = r.headers.get("content-type") || "image/jpeg";
+        const buf = Buffer.from(await r.arrayBuffer());
+        urlToDataUri.set(url, `data:${contentType};base64,${buf.toString("base64")}`);
+      } catch {
+        // Se falhar, deixa a URL original (Satori vai ignorar)
+      }
+    })
+  );
+
+  // Substitui no HTML
+  let result = html;
+  for (const [url, dataUri] of urlToDataUri) {
+    result = result.replaceAll(`src="${url}"`, `src="${dataUri}"`);
+  }
+  return result;
+}
+
 export async function renderHtmlToPng(html: string): Promise<Buffer> {
   const fonts = await loadFonts();
+  // Pre-baixa imagens remotas e converte pra data URI
+  const htmlWithInlinedImages = await inlineRemoteImages(html);
   // satori-html converte string HTML em VNode React-like
-  const markup = htmlToReact(html);
+  const markup = htmlToReact(htmlWithInlinedImages);
   const svg = await satori(markup as any, {
     width: 1080,
     height: 1350,
