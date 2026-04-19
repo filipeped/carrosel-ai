@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAi, MODEL, BRAND_VOICE } from "@/lib/claude";
+import { extractJson } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -53,9 +54,14 @@ ${SCHEMA}`;
       ],
     });
 
-    const raw = resp.choices[0]?.message?.content || "{}";
-    const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
-
+    const raw = resp.choices[0]?.message?.content || "";
+    let parsed: any;
+    try {
+      parsed = extractJson(raw);
+    } catch (e) {
+      console.error("JSON parse failed. Raw:", raw);
+      return NextResponse.json({ error: "IA devolveu JSON invalido", raw: raw.slice(0, 300) }, { status: 500 });
+    }
     return NextResponse.json(parsed);
   } catch (e) {
     console.error(e);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAi, MODEL } from "@/lib/claude";
 import { embed } from "@/lib/embeddings";
 import { searchImagesSemantic } from "@/lib/plant-matcher";
+import { extractJson } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -29,8 +30,13 @@ export async function POST(req: NextRequest) {
         { role: "user", content: prompt },
       ],
     });
-    const text = resp.choices[0]?.message?.content || "{}";
-    const filters = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
+    const text = resp.choices[0]?.message?.content || "";
+    let filters: any = {};
+    try {
+      filters = extractJson(text);
+    } catch {
+      filters = {};
+    }
 
     // 2. embedding (OpenAI direto)
     const queryEmb = await embed(filters.query_expandida || prompt);
