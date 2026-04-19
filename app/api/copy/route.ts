@@ -74,6 +74,18 @@ ${SCHEMA}`;
     // normaliza: pode vir como array direto OU objeto com .slides
     if (Array.isArray(parsed)) parsed = { slides: parsed };
     else if (!parsed.slides && Array.isArray(parsed.carrossel)) parsed = { slides: parsed.carrossel };
+
+    // Validacao anti-alucinacao: plantDetail so passa se a planta realmente
+    // aparece na imagem correspondente; caso contrario vira inspiration.
+    try {
+      const { validateSlidesAgainstImages } = await import("@/lib/smart-pipeline");
+      if (parsed.slides && Array.isArray(images)) {
+        parsed.slides = validateSlidesAgainstImages(parsed.slides, images as any);
+      }
+    } catch (e) {
+      console.warn("validation skipped", e);
+    }
+
     return NextResponse.json(parsed);
   } catch (e) {
     console.error(e);

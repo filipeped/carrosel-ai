@@ -279,6 +279,53 @@ Verifique: cada elemento que voce citar no copy TEM que estar na descricao/plant
   return parsed;
 }
 
+/**
+ * Normaliza string pra comparacao (minuscula + sem acento).
+ */
+function norm(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+/**
+ * Valida cada plantDetail: a planta citada DEVE estar em plantas[] da imagem
+ * ou na descricao_visual. Caso contrario, converte em inspiration (evita
+ * alucinacao de especie que nao aparece).
+ */
+export function validateSlidesAgainstImages(
+  slides: SlideSpec[],
+  imagesOrdered: AnalyzedImage[],
+): SlideSpec[] {
+  return slides.map((s, i) => {
+    if (s.type !== "plantDetail") return s;
+    const img = imagesOrdered[s.imageIdx] || imagesOrdered[i];
+    if (!img) return s;
+    const plantasLista = (img.plantas || []).map(norm);
+    const desc = norm(img.analise_visual?.descricao_visual || "");
+    const hero = norm(img.analise_visual?.hero_element || "");
+    const pool = [...plantasLista, desc, hero].join(" | ");
+    const nomeSci = norm(s.nomeCientifico || "");
+    const nomePop = norm(s.nomePopular || "");
+    // checa se alguma palavra significativa do nome esta no pool
+    const tokens = [...nomeSci.split(/\s+/), ...nomePop.split(/[-\s]+/)].filter((t) => t.length >= 4);
+    const hit = tokens.some((t) => pool.includes(t));
+    if (hit) return s;
+    // Converte pra inspiration preservando a imagem
+    return {
+      type: "inspiration",
+      imageIdx: s.imageIdx,
+      title: s.nomePopular || img.analise_visual?.hero_element || "Composicao",
+      subtitle: img.analise_visual?.hero_element || "",
+      topLabel: "COMPOSICAO",
+      nomePopular: null,
+      nomeCientifico: null,
+    } as SlideSpec;
+  });
+}
+
 export async function searchAndSelect(
   prompt: string,
   opts: { candidateCount?: number } = {},
@@ -302,13 +349,15 @@ export async function runSmartCarousel(
   opts: { withCaption?: boolean; candidateCount?: number } = {},
 ) {
   const { selection, allAnalyzed } = await searchAndSelect(prompt, opts);
-  const { slides } = await generateCopyFromAnalysis(prompt, selection);
+  const { slides: rawSlides } = await generateCopyFromAnalysis(prompt, selection);
   const ordered = [selection.cover, ...selection.inner, selection.cta];
+  // valida: plantDetail so sobrevive se planta realmente aparece na imagem
+  const slides = validateSlidesAgainstImages(rawSlides, ordered);
   return {
     prompt,
     selection,
     allAnalyzed,
     slides,
-    imagens: ordered, // indices 0..5 alinhados aos slides
+    imagens: ordered,
   };
 }
