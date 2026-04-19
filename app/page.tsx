@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 
 type AnaliseVisual = {
@@ -1018,16 +1018,35 @@ function CaptionPanel({
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [readImages, setReadImages] = useState(true);
   const [pickedIdx, setPickedIdx] = useState<number | null>(null);
+  const [stale, setStale] = useState(false);
   const captionProgress = useProgressSim(loading, [
     { name: "Claude lendo as 6 fotos do carrossel", seconds: 12 },
     { name: "Escrevendo 3 legendas no seu tom real", seconds: 20 },
     { name: "Limpando hashtags e emojis", seconds: 3 },
   ]);
 
+  // Detecta troca de imagens — se mudou depois de gerar legendas, marca como desatualizada
+  const imagesKey = useMemo(
+    () => orderedImages.map((im) => im.id).join(","),
+    [orderedImages],
+  );
+  const lastKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (options && lastKeyRef.current && lastKeyRef.current !== imagesKey) {
+      setStale(true);
+      if (onCaptionPicked) onCaptionPicked("");
+      setPickedIdx(null);
+    }
+    lastKeyRef.current = imagesKey;
+  }, [imagesKey, options]);
+
   async function generate() {
     setLoading(true);
     setError("");
     setOptions(null);
+    setStale(false);
+    setPickedIdx(null);
+    if (onCaptionPicked) onCaptionPicked("");
     try {
       const imageUrls = readImages
         ? Array.from(new Set(orderedImages.map((im) => im.url).filter(Boolean))).slice(0, 6)
@@ -1040,6 +1059,7 @@ function CaptionPanel({
       const d = await r.json();
       if (d.error) throw new Error(d.error);
       setOptions(d.options || []);
+      lastKeyRef.current = imagesKey;
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -1110,6 +1130,20 @@ function CaptionPanel({
       {error && (
         <div className="text-red-300 text-sm mb-3 bg-red-400/10 border border-red-400/30 rounded px-3 py-2">
           {error}
+        </div>
+      )}
+      {stale && !loading && (
+        <div className="text-amber-200 text-sm mb-3 bg-amber-400/10 border border-amber-400/30 rounded-lg px-4 py-3 flex items-center justify-between gap-3">
+          <div>
+            <b>Imagens trocadas.</b> As legendas atuais foram geradas com as fotos anteriores — podem
+            não fazer mais sentido.
+          </div>
+          <button
+            onClick={generate}
+            className="shrink-0 bg-amber-400/30 hover:bg-amber-400/50 text-amber-100 px-3 py-1.5 rounded text-xs tracking-wider uppercase"
+          >
+            Regenerar
+          </button>
         </div>
       )}
       <ProgressBar progress={captionProgress} />

@@ -1,5 +1,7 @@
-// Renderer 100% serverless — Satori (HTML+CSS -> SVG) + Resvg (SVG -> PNG).
-// Sem Chromium, sem binarios nativos, zero ETXTBSY / libnss3.
+// Renderer com fallback inteligente:
+//   - Em dev local (ou USE_PUPPETEER=1): usa puppeteer full — rápido, fidelidade total.
+//   - Em prod Vercel: usa Satori + Resvg (puro JS, sem chromium).
+
 import satori from "satori";
 import { html as htmlToReact } from "satori-html";
 import { Resvg } from "@resvg/resvg-js";
@@ -12,6 +14,46 @@ type SatoriFont = {
   style?: "normal" | "italic";
 };
 
+// ============================================================
+// Modo 1: Puppeteer (dev local)
+// ============================================================
+let _browser: any = null;
+let _launching: Promise<any> | null = null;
+
+async function getBrowser() {
+  if (_browser) return _browser;
+  if (_launching) return _launching;
+  _launching = (async () => {
+    const puppeteer = await import("puppeteer");
+    _browser = await puppeteer.default.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    _launching = null;
+    return _browser;
+  })();
+  return _launching;
+}
+
+async function renderViaPuppeteer(html: string): Promise<Buffer> {
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width: 1080, height: 1350, deviceScaleFactor: 1 });
+    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30000 });
+    const buf = (await page.screenshot({
+      type: "png",
+      clip: { x: 0, y: 0, width: 1080, height: 1350 },
+    })) as Buffer;
+    return buf;
+  } finally {
+    try { await page.close(); } catch {}
+  }
+}
+
+// ============================================================
+// Modo 2: Satori (prod)
+// ============================================================
 let _fontsPromise: Promise<SatoriFont[]> | null = null;
 
 async function fetchFont(url: string): Promise<ArrayBuffer> {
@@ -24,15 +66,7 @@ async function loadFonts(): Promise<SatoriFont[]> {
   if (_fontsPromise) return _fontsPromise;
   _fontsPromise = (async () => {
     const base = "https://cdn.jsdelivr.net/fontsource/fonts";
-    const [
-      frauncesReg,
-      frauncesIta,
-      frauncesLight,
-      frauncesLightIta,
-      archivoReg,
-      archivoMed,
-      jbmReg,
-    ] = await Promise.all([
+    const [frauncesReg, frauncesIta, frauncesLight, frauncesLightIta, archivoReg, archivoMed, jbmReg] = await Promise.all([
       fetchFont(`${base}/fraunces@latest/latin-400-normal.ttf`),
       fetchFont(`${base}/fraunces@latest/latin-400-italic.ttf`),
       fetchFont(`${base}/fraunces@latest/latin-300-normal.ttf`),
@@ -54,19 +88,11 @@ async function loadFonts(): Promise<SatoriFont[]> {
   return _fontsPromise;
 }
 
-/**
- * Pre-baixa imagens remotas e converte pra data URI base64.
- * Satori nao faz fetch de imagens remotas sozinho.
- */
 async function inlineRemoteImages(html: string): Promise<string> {
   const imgRegex = /src="(https?:\/\/[^"]+)"/g;
   const matches = [...html.matchAll(imgRegex)];
   if (!matches.length) return html;
-
-  // Deduplica URLs
   const uniqueUrls = [...new Set(matches.map((m) => m[1]))];
-
-  // Baixa todas em paralelo
   const urlToDataUri = new Map<string, string>();
   await Promise.all(
     uniqueUrls.map(async (url) => {
@@ -76,13 +102,9 @@ async function inlineRemoteImages(html: string): Promise<string> {
         const contentType = r.headers.get("content-type") || "image/jpeg";
         const buf = Buffer.from(await r.arrayBuffer());
         urlToDataUri.set(url, `data:${contentType};base64,${buf.toString("base64")}`);
-      } catch {
-        // Se falhar, deixa a URL original (Satori vai ignorar)
-      }
-    })
+      } catch {}
+    }),
   );
-
-  // Substitui no HTML
   let result = html;
   for (const [url, dataUri] of urlToDataUri) {
     result = result.replaceAll(`src="${url}"`, `src="${dataUri}"`);
@@ -90,19 +112,17 @@ async function inlineRemoteImages(html: string): Promise<string> {
   return result;
 }
 
-export async function renderHtmlToPng(html: string): Promise<Buffer> {
+async function renderViaSatori(html: string): Promise<Buffer> {
   const fonts = await loadFonts();
-  // Pre-baixa imagens remotas e converte pra data URI
   const htmlWithInlinedImages = await inlineRemoteImages(html);
-  // satori-html converte string HTML em VNode React-like
   const markup = htmlToReact(htmlWithInlinedImages);
+  if (!markup) throw new Error("satori-html retornou markup vazio");
   const svg = await satori(markup as any, {
     width: 1080,
     height: 1350,
     fonts: fonts as any,
     embedFont: true,
   });
-  // Resvg converte SVG em PNG
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: 1080 },
     font: { loadSystemFonts: false },
@@ -111,11 +131,39 @@ export async function renderHtmlToPng(html: string): Promise<Buffer> {
   return Buffer.from(pngData.asPng());
 }
 
+// ============================================================
+// API publica: decide qual usar
+// ============================================================
+function shouldUsePuppeteer(): boolean {
+  // Se explicitamente setado, obedece
+  if (process.env.USE_PUPPETEER === "1") return true;
+  if (process.env.USE_SATORI === "1") return false;
+  // Default: puppeteer em dev (NODE_ENV !== production), satori em prod
+  return process.env.NODE_ENV !== "production";
+}
+
+export async function renderHtmlToPng(html: string): Promise<Buffer> {
+  const usePuppet = shouldUsePuppeteer();
+  try {
+    return usePuppet ? await renderViaPuppeteer(html) : await renderViaSatori(html);
+  } catch (e: any) {
+    console.warn(`[renderer] ${usePuppet ? "puppeteer" : "satori"} falhou:`, e.message);
+    // Fallback pro outro engine se o primario falhar
+    if (usePuppet) {
+      console.warn("[renderer] tentando satori como fallback");
+      return renderViaSatori(html);
+    }
+    throw e;
+  }
+}
+
 export async function renderMany(htmls: string[]): Promise<Buffer[]> {
-  // Pode ser paralelo — Satori e puro JS, sem pressao de recursos.
   return Promise.all(htmls.map((h) => renderHtmlToPng(h)));
 }
 
 export async function closeBrowser() {
-  // no-op — nao ha browser mais.
+  if (_browser) {
+    try { await _browser.close(); } catch {}
+    _browser = null;
+  }
 }
