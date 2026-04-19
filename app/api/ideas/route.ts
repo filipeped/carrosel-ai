@@ -42,9 +42,15 @@ CONTEXTOS OBRIGATORIOS (rotacione — CADA ideia em um contexto DIFERENTE, nao r
 CADA IDEIA DEVE:
 - Usar um CONTEXTO diferente da lista acima (nao repetir jardim pequeno/sombreado na mesma rodada)
 - Ter pelo menos UM termo tecnico: especie nominada, material (corten, travertino, cobogo), estilo (brutalismo tropical, modernismo carioca), referencia (Burle Marx, Isabel Duprat, Alex Hanazaki)
-- Numeros especificos quando aplicavel (5, 7, 12)
 - Proibido: "dicas", "super", "incrivel", "confira", emoji, "varias", "algumas"
 - Entre 7 e 14 palavras
+
+LIMITE DE NUMEROS NOS TITULOS (IMPORTANTE):
+- O carrossel tem EXATAMENTE 6 slides: 1 capa + 4 slides internos + 1 CTA.
+- Cada slide interno apresenta 1 planta/erro/principio/etc.
+- Entao temas com numero so podem ser 3, 4 ou 5 itens — JAMAIS 6, 7, 8, 10, 12 ou 15.
+- Exemplos CERTOS: "5 folhagens de contraste alto...", "4 erros de composicao...", "3 principios de Burle Marx..."
+- Exemplos ERRADOS: "7 palmeiras...", "10 plantas...", "12 principios..."
 
 ABSOLUTAMENTE PROIBIDO repetir contexto entre ideias. Se ja citou "piscina" em uma, as outras 7 NAO podem citar piscina.
 
@@ -66,8 +72,8 @@ BANIDO (gasto, cringe, repetitivo):
 - "jardim pequeno", "varanda", "sacada", "apartamento", "DIY", "barato"
 - Namedrop de condominios especificos (Alphaville, Dahma, Fazenda da Grama, etc)
 
-BOM — variedade de TONS:
-- Tecnico-botanico: "7 folhagens de contraste alto que sustentam jardins de sombra filtrada"
+BOM — variedade de TONS (numeros: 3, 4 ou 5 apenas):
+- Tecnico-botanico: "5 folhagens de contraste alto que sustentam jardins de sombra filtrada"
 - Projetual-autoral: "O principio de escalonamento usado por Burle Marx que poucos replicam bem"
 - Atmosfera: "Como luz rasante transforma um canteiro tropical ao entardecer"
 - Erros tecnicos: "4 erros de composicao que denunciam falta de projeto paisagistico"
