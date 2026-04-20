@@ -34,6 +34,7 @@ export function SlideEditor({
   onChange,
   prompt,
   allSlides,
+  userBrief,
 }: {
   index: number;
   slide: SlideData;
@@ -41,6 +42,7 @@ export function SlideEditor({
   onChange: (patch: Partial<SlideData>) => void;
   prompt?: string;
   allSlides?: SlideData[];
+  userBrief?: string;
 }) {
   const img = images[slide.imageIdx] || images[0];
   const imgUrl = img?.url || "";
@@ -69,6 +71,7 @@ export function SlideEditor({
           slideType: slide.type,
           image: img,
           allSlides,
+          userBrief,
         }),
       });
       const d = await r.json();

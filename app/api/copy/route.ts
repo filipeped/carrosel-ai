@@ -37,7 +37,7 @@ REGRAS DURAS:
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, images } = await req.json();
+    const { prompt, images, userBrief } = await req.json();
     if (!images?.length) return NextResponse.json({ error: "images required" }, { status: 400 });
 
     // Prioriza descricao_visual do Vision (analise_visual.descricao_visual) — e o que
@@ -54,7 +54,12 @@ export async function POST(req: NextRequest) {
       })
       .join("\n");
 
+    const briefBlock = userBrief?.trim()
+      ? `\n\nBRIEFING EXTRA DO USUARIO (PRIORIDADE ALTA — segue literalmente):\n"""\n${String(userBrief).slice(0, 1200).trim()}\n"""`
+      : "";
+
     const userPrompt = `Tema do usuario: "${prompt || "(sem tema — inspire-se nas imagens)"}"
+${briefBlock}
 
 Imagens selecionadas (${images.length} no total). VISIVEL = o que a IA ja viu na foto (use isso pra nao inventar):
 ${imgDescs}

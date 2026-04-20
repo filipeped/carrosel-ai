@@ -46,6 +46,8 @@ export function Step3({
   const [draftSaved, setDraftSaved] = useState(false);
   const [regenCopy, setRegenCopy] = useState(false);
   const [fetchingMore, setFetchingMore] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
+  const [customBrief, setCustomBrief] = useState("");
 
   async function fetchMoreImages() {
     if (!setAllImages) return;
@@ -121,7 +123,7 @@ export function Step3({
       const r = await fetch("/api/copy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, images: ordered }),
+        body: JSON.stringify({ prompt, images: ordered, userBrief: customBrief }),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -286,14 +288,27 @@ export function Step3({
           >
             {fetchingMore ? "Buscando..." : `+ Mais imagens (${allImages.length})`}
           </button>
-          <button
-            disabled={regenCopy}
-            onClick={regenerateCopy}
-            className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
-            title="Regenera todos os slides. Pra regenerar so 1, clica no ↻ de cada card"
-          >
-            {regenCopy ? "Gerando..." : "↻ Gerar copy"}
-          </button>
+          <div className="flex-1 sm:flex-none flex gap-1">
+            <button
+              disabled={regenCopy}
+              onClick={regenerateCopy}
+              className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
+              title="Regenera todos os slides. Pra regenerar so 1, clica no ↻ de cada card"
+            >
+              {regenCopy ? "Gerando..." : "↻ Gerar copy"}
+            </button>
+            <button
+              onClick={() => setBriefOpen((v) => !v)}
+              className={`min-h-[44px] px-3 border rounded tracking-wider uppercase text-xs transition-colors ${
+                briefOpen || customBrief
+                  ? "border-[#d6e7c4] text-[#d6e7c4] bg-[#d6e7c4]/10"
+                  : "border-white/15 hover:bg-white/5"
+              }`}
+              title="Briefing extra pra copy (opcional)"
+            >
+              {customBrief ? "✎" : "+"}
+            </button>
+          </div>
           <button
             disabled={savingDraft || !carrosselId}
             onClick={saveDraft}
@@ -311,6 +326,34 @@ export function Step3({
           </button>
         </div>
       </div>
+
+      {briefOpen && (
+        <div className="mb-4 border border-[#d6e7c4]/30 bg-[#d6e7c4]/5 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] tracking-widest uppercase opacity-80">
+              Briefing extra (opcional)
+            </div>
+            {customBrief && (
+              <button
+                onClick={() => setCustomBrief("")}
+                className="text-[10px] uppercase opacity-60 hover:opacity-100"
+              >
+                limpar
+              </button>
+            )}
+          </div>
+          <textarea
+            value={customBrief}
+            onChange={(e) => setCustomBrief(e.target.value)}
+            rows={3}
+            placeholder="Ex: foque mais na Strelitzia, quero tom menos técnico, adicione senso de urgência, não fale de 'alto padrão'..."
+            className="w-full bg-black/30 border border-white/10 rounded p-3 text-sm"
+          />
+          <div className="text-[10px] opacity-50 mt-2">
+            Clica "↻ Gerar copy" pra usar esse briefing.
+          </div>
+        </div>
+      )}
 
       {regenCopy && (
         <div className="mb-4 border border-[#d6e7c4]/30 bg-[#d6e7c4]/5 rounded-lg px-4 py-3">
@@ -380,6 +423,7 @@ export function Step3({
             onChange={(patch) => update(i, patch)}
             prompt={prompt}
             allSlides={slides}
+            userBrief={customBrief}
           />
         ))}
       </div>

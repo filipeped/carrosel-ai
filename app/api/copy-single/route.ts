@@ -25,7 +25,7 @@ function schemaFor(type: SlideKind): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, slideIndex, slideType, image, allSlides } = await req.json();
+    const { prompt, slideIndex, slideType, image, allSlides, userBrief } = await req.json();
     if (!image) return NextResponse.json({ error: "image required" }, { status: 400 });
 
     const av = image.analise_visual || {};
@@ -48,7 +48,11 @@ export async function POST(req: NextRequest) {
           .join("\n")
       : "";
 
-    const userPrompt = `Tema do carrossel: "${prompt || "sem tema"}"
+    const briefBlock = userBrief?.trim()
+      ? `\n\nBRIEFING EXTRA DO USUARIO (segue literalmente):\n"""\n${String(userBrief).slice(0, 800).trim()}\n"""`
+      : "";
+
+    const userPrompt = `Tema do carrossel: "${prompt || "sem tema"}"${briefBlock}
 
 Carrossel completo (nao altere os outros, so o [${slideIndex}]):
 ${contextoCarrossel}
