@@ -120,8 +120,17 @@ export function SlideEditor({
         </div>
       </div>
 
-      <div id={`slide-preview-${index}`}>
+      <div id={`slide-preview-${index}`} className="relative">
         <SlidePreview slide={slide} imageUrl={imgUrl} />
+        {regenBusy && (
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-center px-4">
+            <div className="w-8 h-8 border-2 border-white/30 border-t-[#d6e7c4] rounded-full animate-spin"></div>
+            <div className="text-xs tracking-widest uppercase opacity-90">
+              Regenerando slide {index + 1}
+            </div>
+            <div className="text-[10px] opacity-60">~8 segundos</div>
+          </div>
+        )}
       </div>
 
       <div className="p-4 space-y-3">

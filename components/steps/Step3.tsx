@@ -6,6 +6,7 @@ import { captureSlideAsBlob, downloadSlideFromDom } from "@/lib/capture";
 import { CaptionPanel } from "../CaptionPanel";
 import { SlideEditor } from "../SlideEditor";
 import { InstagramPreviewModal } from "../InstagramPreviewModal";
+import { ProgressBar } from "../ProgressBar";
 
 export function Step3({
   slides,
@@ -92,6 +93,12 @@ export function Step3({
     { name: "Instagram: criando containers de mídia", seconds: 12 },
     { name: "Instagram: aguardando processamento", seconds: 15 },
     { name: "Publicando carrossel", seconds: 8 },
+  ]);
+
+  const regenCopyProgress = useProgressSim(regenCopy, [
+    { name: "Lendo descrição visual de cada foto", seconds: 3 },
+    { name: "Escrevendo copy dos 6 slides", seconds: 10 },
+    { name: "Regenerando legendas em background", seconds: 15 },
   ]);
 
   async function downloadAll() {
@@ -281,13 +288,11 @@ export function Step3({
           </button>
           <button
             disabled={regenCopy}
-            onClick={() => {
-              if (confirm("Regenerar a copy de TODOS os 6 slides? (pra mudar só um, clica no botão ↻ de cada slide)")) regenerateCopy();
-            }}
+            onClick={regenerateCopy}
             className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
-            title="Regenera todos os slides — pra regenerar 1 so, use o botão ↻ dentro do card"
+            title="Regenera todos os slides. Pra regenerar so 1, clica no ↻ de cada card"
           >
-            {regenCopy ? "Gerando..." : "↻ Copy todos"}
+            {regenCopy ? "Gerando..." : "↻ Gerar copy"}
           </button>
           <button
             disabled={savingDraft || !carrosselId}
@@ -306,6 +311,15 @@ export function Step3({
           </button>
         </div>
       </div>
+
+      {regenCopy && (
+        <div className="mb-4 border border-[#d6e7c4]/30 bg-[#d6e7c4]/5 rounded-lg px-4 py-3">
+          <div className="text-[10px] tracking-widest uppercase opacity-70 mb-1">
+            Regenerando copy de todos os slides…
+          </div>
+          <ProgressBar progress={regenCopyProgress} />
+        </div>
+      )}
 
       {postResult?.ok && (
         <div className="mb-6 border border-[#d6e7c4]/50 bg-[#d6e7c4]/10 rounded-lg px-5 py-4 text-sm flex items-center gap-3">
