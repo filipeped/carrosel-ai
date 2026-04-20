@@ -79,6 +79,43 @@ export function deterministicClean(caption: string): {
   return { cleaned: c, changes };
 }
 
+/**
+ * Aplica regras 2026 deterministicas em hashtags:
+ * - Maximo 5
+ * - Minusculas, sem acento, sem espacos dentro
+ * - Remove typos conhecidos
+ */
+export function cleanHashtags(tags: string[]): { final: string[]; changes: string[] } {
+  const changes: string[] = [];
+  if (!Array.isArray(tags)) return { final: [], changes };
+
+  let cleaned = tags
+    .map((t) => {
+      let v = String(t).trim();
+      if (!v.startsWith("#")) v = "#" + v;
+      // lowercase + sem acento + sem espaço + sem char especial
+      v = v
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9#]/g, "");
+      return v;
+    })
+    .filter((t) => t.length > 1 && t.length < 40);
+
+  // Remove duplicatas preservando ordem
+  cleaned = Array.from(new Set(cleaned));
+
+  // Max 5 (regra 2026)
+  if (cleaned.length > 5) {
+    const cut = cleaned.slice(5);
+    cleaned = cleaned.slice(0, 5);
+    changes.push(`removeu ${cut.length} hashtags (regra 2026: max 5)`);
+  }
+
+  return { final: cleaned, changes };
+}
+
 const SYSTEM = `${brandBlockCompact()}
 
 Voce eh o Otimizador de Legenda Instagram. Recebe uma legenda ja gerada + contexto da marca.
@@ -105,6 +142,8 @@ Retorne JSON puro:
 export async function optimizeCaption(input: CaptionInput): Promise<OptimizedCaption> {
   // Passo 1 — limpeza deterministica (rapida)
   const { cleaned, changes: detChanges } = deterministicClean(input.legenda);
+  const { final: cleanTags, changes: tagChanges } = cleanHashtags(input.hashtags || []);
+  for (const ch of tagChanges) detChanges.push({ from: "hashtags", to: "(limpas)", reason: ch });
 
   // Passo 2 — Claude ajusta semanticamente
   const user = `LEGENDA ORIGINAL (já pré-limpa):
@@ -133,9 +172,13 @@ Retorne JSON puro.`;
     const raw = resp.choices[0]?.message?.content || "";
     const parsed = extractJson(raw) as Partial<OptimizedCaption>;
     const finalCaption = parsed.legenda || cleaned;
+    // Re-aplica hashtag cleanup em cima do retorno do Claude (garante max 5)
+    const { final: finalTags } = cleanHashtags(
+      Array.isArray(parsed.hashtags) && parsed.hashtags.length ? parsed.hashtags : cleanTags,
+    );
     return {
       legenda: finalCaption,
-      hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : input.hashtags || [],
+      hashtags: finalTags,
       changes: [...detChanges, ...(Array.isArray(parsed.changes) ? parsed.changes : [])],
       big_domino_adicionado: Boolean(parsed.big_domino_adicionado),
       word_count: finalCaption.trim().split(/\s+/).length,
@@ -143,7 +186,7 @@ Retorne JSON puro.`;
   } catch {
     return {
       legenda: cleaned,
-      hashtags: input.hashtags || [],
+      hashtags: cleanTags,
       changes: detChanges,
       big_domino_adicionado: false,
       word_count: cleaned.trim().split(/\s+/).length,
