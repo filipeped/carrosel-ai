@@ -27,7 +27,7 @@ const BASE_OPTS = {
 
 // 4MB = limite pratico (Vercel 4.5MB). Server tem sharp pra otimizar -20~40%,
 // mas aqui no cliente preferimos tentar ratio maior se couber.
-const MAX_CLIENT_BYTES = 3.5 * 1024 * 1024;
+const MAX_CLIENT_BYTES = 4 * 1024 * 1024;
 
 /** Estima bytes do PNG sem criar blob (rapido: len do base64 * 0.75). */
 function estimateBytes(dataUrl: string): number {
@@ -55,14 +55,21 @@ async function waitForFonts(iframe: HTMLIFrameElement): Promise<void> {
 
 /**
  * Captura em pixelRatio adaptativo: tenta 2.5 primeiro (2700x3375, maxima nitidez),
- * se estourar 3.5MB cai pra 2 (2160x2700). Zero fallback pra 1x — nunca.
+ * se estourar 4MB cai pra 2 → 1.5 → 1. Ultima tentativa sempre aceita o resultado
+ * mesmo que passe do limite (melhor entregar algo degradado que falhar).
  */
 async function captureDataUrl(inner: HTMLElement, attempt = 1): Promise<string | null> {
-  const ratios = [2.5, 2];   // ordem de preferencia
+  const ratios = [2.5, 2, 1.5, 1];   // ordem de preferencia (sempre cai ate 1)
+  let lastDataUrl: string | null = null;
+  let lastBytes = 0;
+  let lastRatio = 0;
   for (const ratio of ratios) {
     try {
       const dataUrl = await toPng(inner, { ...BASE_OPTS, pixelRatio: ratio });
       const bytes = estimateBytes(dataUrl);
+      lastDataUrl = dataUrl;
+      lastBytes = bytes;
+      lastRatio = ratio;
       if (bytes <= MAX_CLIENT_BYTES) {
         if (ratio !== 2.5) {
           console.log(`[capture] ratio ${ratio}x OK (${(bytes / 1024).toFixed(0)}KB)`);
@@ -80,6 +87,15 @@ async function captureDataUrl(inner: HTMLElement, attempt = 1): Promise<string |
       console.warn(`[capture] toPng ratio ${ratio} falhou:`, (err as Error).message);
       // cai pro proximo ratio
     }
+  }
+  // Se mesmo em 1x passou de 4MB: entrega assim mesmo (melhor postar degradado
+  // que falhar). Server tem sharp pra otimizar — provavelmente cabe no 4.5MB Vercel.
+  if (lastDataUrl) {
+    console.warn(
+      `[capture] mesmo em ${lastRatio}x passou do limit (${(lastBytes / 1024 / 1024).toFixed(2)}MB) — ` +
+        `entregando assim mesmo, sharp no server deve otimizar.`,
+    );
+    return lastDataUrl;
   }
   console.error("[capture] falha em todos os ratios");
   return null;
