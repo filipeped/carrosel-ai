@@ -103,6 +103,8 @@ function ProgressBar({ progress }: { progress: ProgressState }) {
   );
 }
 
+const STORAGE_KEY = "carrosel:state:v1";
+
 export default function Home() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [prompt, setPrompt] = useState("");
@@ -113,6 +115,43 @@ export default function Home() {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [slides, setSlides] = useState<SlideData[]>([]);
   const [allImages, setAllImages] = useState<ImageRow[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Restaura estado salvo no mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.prompt) setPrompt(s.prompt);
+        if (s.selection) setSelection(s.selection);
+        if (Array.isArray(s.slides)) setSlides(s.slides);
+        if (Array.isArray(s.allImages)) setAllImages(s.allImages);
+        if (s.step === 2 || s.step === 3) setStep(s.step);
+      }
+    } catch {}
+    setHydrated(true);
+  }, []);
+
+  // Persiste estado a cada mudanca
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ step, prompt, selection, slides, allImages }),
+      );
+    } catch {}
+  }, [hydrated, step, prompt, selection, slides, allImages]);
+
+  function resetToStart() {
+    setStep(1);
+    setSelection(null);
+    setSlides([]);
+    setAllImages([]);
+    setError("");
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  }
 
   const searchProgress = useProgressSim(currentFlow === "search", [
     { name: "Interpretando o tema", seconds: 6 },
@@ -215,7 +254,18 @@ export default function Home() {
             IA escolhe a melhor foto pra capa e casa a copy com o que aparece em cada imagem.
           </div>
         </div>
-        <Steps current={step} />
+        <div className="flex items-center gap-3">
+          <Steps current={step} />
+          {step !== 1 && (
+            <button
+              onClick={resetToStart}
+              className="text-[10px] sm:text-xs tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity border border-white/20 hover:border-white/40 rounded px-3 py-1.5"
+              title="Volta pra etapa 1 e descarta o carrossel atual"
+            >
+              ↺ Recomeçar
+            </button>
+          )}
+        </div>
       </header>
 
       {error && (
@@ -1027,19 +1077,28 @@ function CaptionPanel({
     { name: "Limpando hashtags e emojis", seconds: 3 },
   ]);
 
-  // Detecta troca de imagens — se mudou depois de gerar legendas, marca como desatualizada
+  // Detecta troca de imagens — marca stale + auto-regenera depois de 2s de calma
   const imagesKey = useMemo(
     () => orderedImages.map((im) => im.id).join(","),
     [orderedImages],
   );
   const lastKeyRef = useRef<string | null>(null);
+  const regenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (options && lastKeyRef.current && lastKeyRef.current !== imagesKey) {
       setStale(true);
       if (onCaptionPicked) onCaptionPicked("");
       setPickedIdx(null);
+      if (regenTimerRef.current) clearTimeout(regenTimerRef.current);
+      regenTimerRef.current = setTimeout(() => {
+        generate();
+      }, 2000);
     }
     lastKeyRef.current = imagesKey;
+    return () => {
+      if (regenTimerRef.current) clearTimeout(regenTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imagesKey, options]);
 
   async function generate() {
@@ -1137,14 +1196,16 @@ function CaptionPanel({
       {stale && !loading && (
         <div className="text-amber-200 text-sm mb-3 bg-amber-400/10 border border-amber-400/30 rounded-lg px-4 py-3 flex items-center justify-between gap-3">
           <div>
-            <b>Imagens trocadas.</b> As legendas atuais foram geradas com as fotos anteriores — podem
-            não fazer mais sentido.
+            <b>Imagens trocadas.</b> Regenerando legendas automaticamente com as novas fotos…
           </div>
           <button
-            onClick={generate}
+            onClick={() => {
+              if (regenTimerRef.current) clearTimeout(regenTimerRef.current);
+              generate();
+            }}
             className="shrink-0 bg-amber-400/30 hover:bg-amber-400/50 text-amber-100 px-3 py-1.5 rounded text-xs tracking-wider uppercase"
           >
-            Regenerar
+            Agora
           </button>
         </div>
       )}
