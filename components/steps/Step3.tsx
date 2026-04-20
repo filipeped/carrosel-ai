@@ -237,10 +237,20 @@ export function Step3({
         const { url } = await up.json();
         imageUrls.push(url);
       }
+      // Envia slides + imagens_ids atuais pra persistir a versao FINAL editada
+      // (senao a linha fica com o estado antigo de quando foi criada).
+      const orderedNow = [selection.cover, ...selection.inner, selection.cta];
+      const imagens_ids = orderedNow.map((im) => im?.id).filter(Boolean);
       const r = await fetch("/api/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrls, caption: selectedCaption, carrosselId }),
+        body: JSON.stringify({
+          imageUrls,
+          caption: selectedCaption,
+          carrosselId,
+          slides,
+          imagens_ids,
+        }),
       });
       const d = await r.json();
       if (!r.ok || d.error) throw new Error(d.error || "falha");

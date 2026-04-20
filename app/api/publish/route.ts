@@ -16,7 +16,7 @@ export const maxDuration = 120;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { imageUrls, caption, carrosselId } = body;
+    const { imageUrls, caption, carrosselId, slides, imagens_ids } = body;
 
     if (!imageUrls?.length || imageUrls.length < 2) {
       return NextResponse.json({ error: "imageUrls (>=2) required" }, { status: 400 });
@@ -51,10 +51,26 @@ export async function POST(req: NextRequest) {
     }
 
     if (carrosselId && res.post_id) {
+      // Titulo pra listagem: usa primeira linha da legenda (cortada) ou
+      // title do slide 0 se tiver
+      const firstSlideTitle =
+        Array.isArray(slides) && slides[0]?.title ? String(slides[0].title).slice(0, 80) : null;
+      const firstCaptionLine = caption.split("\n")[0].slice(0, 80);
+      const display_title = firstSlideTitle || firstCaptionLine;
+
       await updateInstagramPost(carrosselId, {
         instagram_post_id: res.post_id,
         instagram_permalink: res.permalink,
         thumb_url: imageUrls[0],
+        slides: Array.isArray(slides) ? slides : undefined,
+        caption_options: [{ legenda: caption }],
+        imagens_ids: Array.isArray(imagens_ids) ? imagens_ids : undefined,
+        display_title,
+      });
+    } else if (!carrosselId) {
+      // Log pra investigar: postou mas nao tinha carrosselId
+      console.warn("[publish] sucesso sem carrosselId — nao vai aparecer em /posts", {
+        post_id: res.post_id,
       });
     }
 

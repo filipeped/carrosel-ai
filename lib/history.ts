@@ -88,17 +88,27 @@ export async function updateInstagramPost(
     instagram_permalink?: string;
     instagram_posted_at?: string;
     thumb_url?: string;
+    slides?: SlideSpec[];              // versao final editada
+    caption_options?: unknown;          // legenda escolhida (como array de 1 item)
+    imagens_ids?: number[];             // ordem final das imagens
+    display_title?: string;             // titulo pra UI da lista
   },
 ) {
   try {
     const sb = getSupabase();
-    const update: Record<string, string> = {
+    const update: Record<string, unknown> = {
       instagram_post_id: postData.instagram_post_id,
       instagram_posted_at: postData.instagram_posted_at || new Date().toISOString(),
+      is_draft: false,  // sai de rascunho
     };
     if (postData.instagram_permalink) update.instagram_permalink = postData.instagram_permalink;
     if (postData.thumb_url) update.thumb_url = postData.thumb_url;
-    await sb.from("carrosseis_gerados").update(update).eq("id", id);
+    if (postData.slides) update.slides = postData.slides;
+    if (postData.caption_options) update.caption_options = postData.caption_options;
+    if (postData.imagens_ids) update.imagens_ids = postData.imagens_ids;
+    if (postData.display_title) update.display_title = postData.display_title;
+    const { error } = await sb.from("carrosseis_gerados").update(update).eq("id", id);
+    if (error) console.warn("[history] updateInstagramPost error:", error.message);
   } catch (e) {
     console.warn("[history] updateInstagramPost:", e);
   }
