@@ -2,164 +2,225 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAi, MODEL } from "@/lib/claude";
 import { extractJson } from "@/lib/utils";
 import { getBrandVoiceReferences } from "@/lib/brand-voice";
+import { brandBlockCompact } from "@/lib/brand-context";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
 
 // ---------------------------------------------------------------------------
-// Persona + contexto real do perfil
+// Persona — alinhada com brand-context (70% em obra / 30% casa pronta)
 // ---------------------------------------------------------------------------
-const PERSONA = `Voce e estrategista de conteudo do @digitalpaisagismo. Perfil brasileiro de paisagismo que fecha projetos R$ 200k+.
+const PERSONA = `Voce eh estrategista de conteudo do @digitalpaisagismo.
 
-PUBLICO REAL que ENGAJA com o perfil:
-- DONOS DE CASA (80%) — querendo contratar projeto paisagistico, pesquisando referencias antes de falar com paisagista
-- ARQUITETOS (15%) — buscando repertorio pra mostrar ao cliente
-- PAISAGISTAS (5%) — comparando tecnica, pouco salvam
+PUBLICO REAL (nao generico — MEMORIZA):
+- 70% EM OBRA (casal construindo/reformando casa R$500k+). Dor: medo de errar timing, retrabalho, obra atrasar, paisagismo virar "vou ver depois" e nao ter fiacao/irrigacao prevista.
+- 30% CASA PRONTA. Dor: "faz X anos que olho essa area externa e nunca resolvo". Custo da inacao.
 
-OBJETIVO: ideias que o DONO DE CASA salva pra mostrar ao marido/esposa/arquiteto, nao o paisagista pra debater tecnica.`;
+QUEM SALVA:
+- DONA DA CASA (70% feminino) 35-55, renda 30k+. Decide junto com marido.
+- Arquiteto do projeto (parceiro, nao concorrente).
+- Dono/engenheiro de obra tambem consome.
 
-// ---------------------------------------------------------------------------
-// Calibracao pelos posts REAIS que viraram
-// ---------------------------------------------------------------------------
-const CALIBRACAO = `CALIBRACAO DE VIRALIDADE — tom que REALMENTE performa no perfil:
+QUEM NAO EH PUBLICO: paisagista querendo debater tecnica. Curador de botanica. Dono de apartamento pequeno.
 
-Posts que deram certo (exemplos reais, ordenados por saves):
-1. "Quando a area externa faz sentido, voce para de viver so dentro de casa"
-   — 249 saves. Fala do USO do espaco, nao da tecnica. Emocional e direto.
-
-2. "Sua casa merece um projeto que conecte cada ambiente com a natureza"
-   — 170 saves. Promessa clara. Conecta casa + natureza + vida.
-
-3. "A maioria dos jardins de alto padrao usa as mesmas 5 plantas. Nao e coincidencia."
-   — 58 saves. Abre curiosidade. Promessa de revelacao.
-
-4. "Um bom paisagismo nao e so sobre plantas. E sobre criar espacos que fazem sentido com a sua rotina, com o clima e com a arquitetura da sua casa."
-   — 94 saves. Repositiona a expectativa. Inclui "sua rotina".
-
-5. "Chegar em casa e sentir a natureza abraçando cada detalhe"
-   — 68 saves. Imagem sensorial. Zero tecnicismo.
-
-PADROES que viralizam:
-- Fala do RESULTADO no dia a dia do dono ("voce para de viver so dentro de casa", "chegar em casa e sentir")
-- Contradiz uma intuicao simples do leigo, nao um detalhe tecnico
-- Promessa curta, emocional, visualizavel
-- Linguagem de CASA, ROTINA, VIDA — nao de paisagismo/botanica
-- Pode usar "sua casa", "seu jardim" — fala direto com o leitor`;
-
-const CONTRA_EXEMPLOS = `ANTI-PADROES — tipo de ideia que NAO VIRALIZA no @digitalpaisagismo:
-
-[TECNIQUES DEMAIS] "Como construir estratificacao vertical em entrada com tres planos de dossel"
-  — So paisagista entende. Dono de casa nao salva.
-
-[AUTORIA PEDANTE] "O principio de espelho que Isabel Duprat usa pra dobrar profundidade em jardins lineares"
-  — Nome da referencia afasta quem nao conhece.
-
-[AUTORIDADE VAZIA] "Vocabulario de fitossociologia aplicado a decisao de projeto real"
-  — Palavra tecnica sem contexto vital.
-
-[CONTRASTE TECNICO] "Por que pergolado com trepadeira rasteira entrega mais sombra qualificada que cobertura rigida"
-  — "sombra qualificada" nao e linguagem de dono de casa.
-
-[HIPER-ESPECIFICO] "4 Bromeliaceae terrestres em muro verde fachada norte sem irrigacao forcada"
-  — nome de familia botanica + parametro tecnico = 0 saves.
-
-Regra: se voce precisa TRADUZIR o titulo pro leigo entender, e tecnico demais.`;
+OBJETIVO: ideias que a DONA DA CASA salva pra mostrar ao marido OU manda pro arquiteto.`;
 
 // ---------------------------------------------------------------------------
-// Fórmulas que funcionam no perfil
+// Gatilhos VIRAIS 2026 (o que MOVE a pessoa a salvar/compartilhar)
 // ---------------------------------------------------------------------------
-const FORMULAS = `FORMULAS que ja viralizaram no perfil:
+const GATILHOS_VIRAIS = `GATILHOS QUE GERAM ENGAJAMENTO REAL (nao so like vazio):
 
-1. "Quando [situacao da casa], voce [resultado na vida]"
-   Ex: "Quando o jardim conversa com a casa, voce nao quer mais viver so dentro dela"
+1. INFORMATION GAP (curiosidade forte)
+   Abre um loop que so fecha depois que a pessoa ve. Exige payoff real nos slides.
+   ✅ "O erro de R$30 mil que aparece 6 meses depois da obra"
+   ✅ "A pergunta que paisagista evita — e muda tudo no seu projeto"
+   ❌ "Descubra como ter um jardim lindo" (vazio, generico)
 
-2. "Sua casa merece [beneficio emocional]"
-   Ex: "Sua casa merece um jardim que sobrevive ao seu ritmo, nao o contrario"
+2. LOSS AVERSION (medo de perder — 2x mais forte que ganho)
+   Foco no que a pessoa PERDE se nao agir agora.
+   ✅ "Cada mes que voce adia o paisagismo, a obra fica mais cara depois"
+   ✅ "Quebrar piso pra passar irrigacao custa 3x fazer no planejamento"
+   ❌ "Seu jardim pode ser lindo" (promessa vaga de ganho)
 
-3. "A maioria dos [contexto] usa [algo simples]. Nao e coincidencia."
-   Ex: "A maioria das casas de alto padrao tem 3 plantas iguais na entrada. Nao e coincidencia."
+3. CONTRARIAN / QUEBRA DE CONSENSO (vai contra senso comum)
+   Discorda de algo que o publico assume como verdade. Gera debate nos comments.
+   ✅ "Contratar o paisagista cedo demais eh dinheiro jogado fora"
+   ✅ "Piscina nao eh destaque. Eh o que ta em volta dela."
+   ❌ "Natureza faz bem pra casa" (todo mundo concorda, zero engajamento)
 
-4. "[Atividade cotidiana] muda quando [projeto paisagistico]"
-   Ex: "O cafe da manha muda quando voce pode tomar olhando um jardim projetado"
+4. NUMERO CONCRETO + DOR ESPECIFICA (nao frase poetica)
+   Numero da credibilidade e especifica o custo.
+   ✅ "3 decisoes que valem mais que escolher as plantas"
+   ✅ "40% do orcamento vai pra dar errado se voce decidir nessa ordem"
+   ❌ "Muitas coisas podem dar errado" (vago)
 
-5. "N plantas que [beneficio pratico]" — numeros 3/4/5 so
-   Ex: "5 plantas que tornam qualquer varanda maior visualmente"
+5. QUESTAO DE STATUS / PRIZE FRAME
+   A pessoa salva porque quer se sentir no clube certo.
+   ✅ "Projetos alto padrao sao seletivos — nem todo mundo vira cliente"
+   ✅ "O detalhe que quem entende de paisagismo olha primeiro"
+   ❌ "Venha conhecer nossos projetos" (vendedor)
 
-6. "Antes de contratar, [verdade sobre paisagismo]"
-   Ex: "Antes de contratar paisagismo, pergunte isso — e nao seja enganado"
+6. TIMING ESPECIFICO (urgencia real, nao fake)
+   Amarra no momento do publico (obra andando, fim do ano, casa de campo).
+   ✅ "Se a obra esta na fase da alvenaria, esse eh o momento da irrigacao"
+   ✅ "Antes do gesso fechar, o projeto paisagistico ja precisa existir"
+   ❌ "Hora de plantar" (sem contexto)`;
 
-7. "O erro que [resultado caro]"
-   Ex: "O erro que faz qualquer jardim bom parecer descuidado em 6 meses"
+// ---------------------------------------------------------------------------
+// Anti-padrão: o que NAO fazer (a reclamacao do user foi exatamente isso)
+// ---------------------------------------------------------------------------
+const ANTI_INSPIRACIONAL = `DIAGNOSTICO ATUAL — muito conteudo inspiracional, pouco viral.
 
-8. "[Referencia visual concreta]"
-   Ex: "Chegar em casa e ver o jardim iluminado te muda o dia"
+REPROVA automatico:
 
-9. "N coisas que [beneficio]" (numeros 3/4/5)
-   Ex: "3 decisoes de projeto que valem mais que escolher as plantas"
+[FRASE BONITINHA SEM CARNE]
+  "Chegar em casa e sentir o jardim abraçando voce" — bonito, mas quem salva isso? 0 acao.
+  "Seu jardim eh o reflexo da sua alma" — pura frase de efeito.
 
-10. "Contrario do que voce pensa [verdade inesperada]"
-    Ex: "Contrario do que parece, quanto menos espacos separados, mais amplo o jardim fica"`;
+[PROMESSA VAGA DE BELEZA]
+  "Um jardim que muda tudo" — vazio.
+  "Transforme sua area externa" — todo anuncio diz isso.
+
+[POESIA EMOCIONAL GENERICA]
+  "A natureza cura" / "Um refugio pra sua familia" — lindo mas nao gera salve nem share.
+
+[AUTORIDADE VAZIA]
+  "Vocabulario tecnico de fitossociologia" — so paisagista entende.
+  "Isabel Duprat usa essa tecnica" — nome afasta leigo.
+
+[TECNIQUES QUE SO PAISAGISTA ENTENDE]
+  "Estratificacao vertical em entrada" — cliente nao salva.
+  "Dossel de nivel 2 com especies de porte" — tecnico demais.
+
+REGRA DURA: se a pessoa nao consegue explicar a ideia pro conjuge em 5 segundos, a ideia nao eh boa.
+REGRA DURA 2: se a ideia funciona igual pra qualquer marca de paisagismo, nao serve. Tem que ter a cara Digital Paisagismo (projeto 3D, alto padrao, em obra).`;
+
+// ---------------------------------------------------------------------------
+// Formulas viralizaveis — misturando emocional + gatilho forte
+// ---------------------------------------------------------------------------
+const FORMULAS = `10 FORMULAS VIRAIS — use variado, nao repete a mesma:
+
+1. ERRO ESPECIFICO + CUSTO
+   "O erro de [R$X mil / Y meses] que aparece [quando]"
+   Ex: "O erro de R$20 mil que aparece 1 ano depois da obra"
+
+2. CONTRARIAN FORTE
+   "[A maioria faz X]. [Consequencia ruim]."
+   Ex: "Contratar paisagista depois da obra eh retrabalho com nome bonito."
+
+3. PERGUNTA QUE O PUBLICO NAO FAZ
+   "A pergunta que voce devia fazer antes de [acao]"
+   Ex: "A pergunta que voce devia fazer ao arquiteto antes de fechar o projeto."
+
+4. NUMERO + DECISAO ALTA ALAVANCA
+   "N decisoes que [impacto alto em reais/tempo]"
+   Ex: "3 decisoes que valem mais que escolher plantas — e duram 20 anos"
+
+5. TIMING DA OBRA (em obra especifico)
+   "Se a obra esta em [fase], [acao imediata relevante]"
+   Ex: "Se a obra esta na alvenaria, a irrigacao ja precisa estar projetada."
+
+6. CONSEQUENCIA ESCONDIDA
+   "O que [coisa bonita] esconde em [tempo]"
+   Ex: "O que um jardim mal planejado esconde no 2o verao."
+
+7. QUEBRA DE EXPECTATIVA
+   "[X] nao eh o que voce pensa. Eh [Y]."
+   Ex: "Piscina nao eh destaque. Eh o que ta em volta."
+
+8. CUSTO DA INACAO (casa pronta)
+   "[Tempo longo] olhando [area sem uso]. [Consequencia]."
+   Ex: "5 anos olhando aquela area externa sem usar — o custo nao eh dinheiro, eh familia."
+
+9. ETAPA ESCONDIDA DE PROCESSO
+   "O passo que [quem decide] pula — e paga caro"
+   Ex: "O passo que o casal pula antes da obra — e custa o dobro pra corrigir."
+
+10. PRIZE FRAME + CURADORIA
+    "Nem todo projeto vira cliente. [Criterio]."
+    Ex: "Projeto 3D nao eh pra todo mundo. Eh pra quem ja decidiu investir alto padrao."
+
+OBS: formula 5, 9 e 1 funcionam MELHOR pra em obra (70% do publico). Use pelo menos 5 das 16 ideias com angle em obra.`;
 
 // ---------------------------------------------------------------------------
 // System: gerar 16 ideias
 // ---------------------------------------------------------------------------
 function buildGenerateSystem(voiceRefs: string): string {
-  return `${PERSONA}
+  return `${brandBlockCompact()}
 
-${CALIBRACAO}
+${PERSONA}
 
-${CONTRA_EXEMPLOS}
+${GATILHOS_VIRAIS}
+
+${ANTI_INSPIRACIONAL}
 
 ${FORMULAS}
 
-${voiceRefs ? `EXEMPLOS REAIS DO PERFIL (mais uma referencia):\n\n${voiceRefs}\n\n` : ""}
+${voiceRefs ? `EXEMPLOS REAIS DO PERFIL (tom de voz):\n\n${voiceRefs}\n\n` : ""}
 
-TAREFA: gerar 16 ideias que SOEM NO MESMO TOM dos exemplos acima. Cada ideia em contexto diferente. Sera filtrado pra 8 depois.
+TAREFA: gerar 16 ideias VIRAIS — nao inspiracionais. Cada uma em contexto diferente.
 
 REGRAS DURAS:
-- Titulo fala pro DONO DE CASA, nao pro paisagista
-- Entre 7 e 14 palavras
-- Linguagem emocional + concreta (casa, rotina, vida, dia a dia, familia)
-- Pode citar: jardim, entrada, varanda, area externa, piscina, rooftop, casa de campo, casa de praia, pergolado, deck, quintal
-- Pode citar MUITO POUCO: termos tecnicos, nomes cientificos, paisagistas famosos, materiais obscuros
-- Numeros em lista: 3, 4 ou 5 apenas (carrossel tem 4 slides internos)
-- Proibido: "alto padrao" explicito repetido, "imperdivel", "incrivel", "confira", "top", "dicas", emoji, hashtag
+- PELO MENOS 6 das 16 com angle EM OBRA (timing/retrabalho/integracao — nao da pra ignorar 70% do publico).
+- PELO MENOS 3 com Loss Aversion / custo concreto / numero (nao so emocional).
+- PELO MENOS 2 Contrarian (quebra consenso — gera debate).
+- Maximo 3 inspiracionais puras (nao eh zero — ainda tem lugar pra emocional).
+- Titulo fala pra DONA DA CASA ou PARA O CASAL (nao pro paisagista).
+- Entre 8 e 14 palavras.
+- Linguagem concreta, nao poesia: casa, obra, projeto, decisao, custo, timing, rotina, familia.
+- Pode citar contextos: entrada, fachada, area externa (nao "quintal"), varanda, piscina, area gourmet, rooftop, casa de campo, casa de praia, pergolado, deck, corredor lateral, jardim de inverno.
+- Proibido: frases de efeito vazias ("acolhe", "abraca", "floresce", "reflete a alma"), "alto padrao" explicito mais de 1x, "incrivel", "impressionante", "top", "dicas", "confira", emoji, hashtag.
+- Numero em lista so 3, 4 ou 5.
 
 RETORNE JSON PURO:
 {
   "candidatas": [
     {
       "titulo": string,
-      "formula": "situacao-resultado|sua-casa|maioria|atividade|lista-n|antes-contratar|erro|visual|contrario|outro",
-      "contexto": string (ex: "varanda", "entrada", "rooftop", "casa-campo"),
-      "gancho_emocional": string (por que o dono da casa salvaria essa ideia)
+      "formula": "erro-custo|contrarian|pergunta|numero-decisao|timing-obra|consequencia-escondida|quebra-expectativa|custo-inacao|etapa-escondida|prize-frame|inspiracional",
+      "contexto": string,
+      "persona": "em-obra|casa-pronta|ambos",
+      "gatilho_principal": "information-gap|loss-aversion|contrarian|numero-concreto|status|timing|custo-inacao",
+      "gancho": string (por que essa pessoa especifica salva — nao generico)
     }
   ]
 }
-Exatamente 16. Tons variados, contextos variados.`;
+Exatamente 16. Distribuicao: 6+ em-obra, 3+ casa-pronta, resto ambos. Gatilhos variados.`;
 }
 
 // ---------------------------------------------------------------------------
 // System: curadoria 16 -> 8
 // ---------------------------------------------------------------------------
-const CURATE_SYSTEM = `Voce e editor do @digitalpaisagismo. Recebeu 16 candidatas de ideia.
+const CURATE_SYSTEM = `Voce eh editor-chefe do @digitalpaisagismo. Recebeu 16 candidatas.
 
-Selecione 8 pensando no DONO DE CASA que salva (nao no paisagista que debate).
+Selecione 8 priorizando VIRALIDADE (nao inspiracional).
 
-Elimine em ordem:
-1. Qualquer uma com linguagem tecnica que um cliente leigo nao entende (fitossociologia, dossel, estratificacao, "sombra qualificada", nomes cientificos, nomes de paisagistas famosos ja conhecidos)
-2. Contextos repetidos (max 1 em "varanda", max 1 em "piscina")
-3. Formulas repetidas (max 2 da mesma)
-4. Ideias SEM gancho emocional claro
-5. Prefira as que soam como algo que ALGUEM REAL diria em conversa sobre casa
+ELIMINE primeiro:
+1. Qualquer ideia que parece "frase de efeito" sem carne (promessa vaga de beleza, poesia emocional vazia).
+2. Qualquer uma que funcionaria igual pra outra marca de paisagismo (nao tem cara Digital Paisagismo).
+3. Linguagem tecnica pesada (fitossociologia, estratificacao, nomes cientificos, nomes de paisagistas famosos).
+4. Contextos repetidos (max 1 em cada: piscina, varanda, entrada, rooftop).
+5. Formulas repetidas (max 2 da mesma formula).
+
+PRIORIZE:
+- Information gap forte (gancho de curiosidade real)
+- Loss aversion com numero/custo concreto
+- Contrarian (gera comments/debate)
+- Angle de "em obra" (70% do publico)
+
+DISTRIBUICAO FINAL (nas 8):
+- 4-5 com persona "em-obra" ou "ambos" com timing de obra
+- 2-3 casa pronta / ambos
+- Pelo menos 2 contrarian ou information-gap forte
+- Maximo 1 inspiracional pura
 
 Retorne JSON puro:
 {
   "ideias": [
-    { "titulo": string, "hook": string }
+    { "titulo": string, "hook": string, "persona": string, "gatilho": string }
   ]
 }
-Exatamente 8. Ordene da mais forte pra mais fraca (em termos de potencial de save pelo dono de casa).`;
+Exatamente 8, ordenado da mais viral pra menos viral.`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -175,7 +236,7 @@ export async function POST(req: NextRequest) {
     // ETAPA 1
     const gen = await getAi().chat.completions.create({
       model: MODEL,
-      max_tokens: 2400,
+      max_tokens: 2800,
       messages: [
         { role: "system", content: buildGenerateSystem(voiceRefs) },
         {
@@ -183,7 +244,7 @@ export async function POST(req: NextRequest) {
           content:
             (nicho
               ? `Interesse: "${nicho}". So 1 das 16 pode tocar nisso; 15 exploram outros contextos com tom DIRETO AO DONO DE CASA. JSON puro.`
-              : "16 candidatas, tons variados, sempre falando ao DONO DE CASA com linguagem emocional e concreta. JSON puro.") +
+              : "16 candidatas VIRAIS, distribuicao 6+ em-obra / 3+ casa-pronta / resto ambos. JSON puro.") +
             excludeBlock +
             (seed ? `\n\n[rng=${seed}]` : ""),
         },
@@ -209,7 +270,7 @@ export async function POST(req: NextRequest) {
         { role: "system", content: CURATE_SYSTEM },
         {
           role: "user",
-          content: `16 candidatas:\n${JSON.stringify(candidatas, null, 2)}\n\nSelecione as 8 mais fortes. JSON puro.`,
+          content: `16 candidatas:\n${JSON.stringify(candidatas, null, 2)}\n\nSelecione as 8 mais VIRAIS. JSON puro.`,
         },
       ],
     });
@@ -220,7 +281,7 @@ export async function POST(req: NextRequest) {
       ideias = Array.isArray(parsed) ? { ideias: parsed } : parsed;
     } catch {
       return NextResponse.json({
-        ideias: candidatas.slice(0, 8).map((c) => ({ titulo: c.titulo, hook: c.gancho_emocional || "" })),
+        ideias: candidatas.slice(0, 8).map((c) => ({ titulo: c.titulo, hook: c.gancho || "" })),
         _fallback: "curadoria falhou",
       });
     }
