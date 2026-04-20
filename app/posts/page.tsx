@@ -312,9 +312,8 @@ export default function PostsPage() {
                 <button
                   onClick={() => republish(selected.id)}
                   className="w-full min-h-[44px] border border-amber-400/40 text-amber-200 rounded px-4 py-2 text-xs tracking-wider uppercase hover:bg-amber-400/10"
-                  title="Se apagou o post no IG e quer repostar"
                 >
-                  ↻ Repostar (usar se apagou no IG)
+                  ↻ Repostar
                 </button>
               </div>
             </div>
