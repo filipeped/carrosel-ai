@@ -8,10 +8,12 @@ export type CarrosselRow = {
   tema: string;
   slides: SlideSpec[];
   imagens_ids: number[];
-  caption_options?: any;
+  caption_options?: unknown;
   instagram_post_id?: string | null;
+  instagram_permalink?: string | null;
   instagram_posted_at?: string | null;
-  performance?: any;
+  thumb_url?: string | null;
+  performance?: unknown;
   created_at: string;
 };
 
@@ -80,18 +82,23 @@ export async function listRecent(limit = 30): Promise<CarrosselRow[]> {
 }
 
 export async function updateInstagramPost(
-  id: string,
-  postData: { instagram_post_id: string; instagram_posted_at?: string },
+  id: string | number,
+  postData: {
+    instagram_post_id: string;
+    instagram_permalink?: string;
+    instagram_posted_at?: string;
+    thumb_url?: string;
+  },
 ) {
   try {
     const sb = getSupabase();
-    await sb
-      .from("carrosseis_gerados")
-      .update({
-        instagram_post_id: postData.instagram_post_id,
-        instagram_posted_at: postData.instagram_posted_at || new Date().toISOString(),
-      })
-      .eq("id", id);
+    const update: Record<string, string> = {
+      instagram_post_id: postData.instagram_post_id,
+      instagram_posted_at: postData.instagram_posted_at || new Date().toISOString(),
+    };
+    if (postData.instagram_permalink) update.instagram_permalink = postData.instagram_permalink;
+    if (postData.thumb_url) update.thumb_url = postData.thumb_url;
+    await sb.from("carrosseis_gerados").update(update).eq("id", id);
   } catch (e) {
     console.warn("[history] updateInstagramPost:", e);
   }

@@ -8,48 +8,41 @@ export const maxDuration = 120;
 
 /**
  * POST /api/publish
- * Body: { imageUrls: string[] (2-10), caption: string, carrosselId?: string }
- * Publica carrossel no Instagram via Graph API. Se carrosselId for passado,
- * atualiza historico com instagram_post_id.
- *
- * Opcao alternativa — uploadPngs: pngs base64 viram URLs publicas via upload
- * temporario no bucket 'carrosseis-publicados' do Supabase antes de enviar
- * ao Instagram (que so aceita URL, nao base64).
+ * Body: { imageUrls: string[] (2-10), caption: string, carrosselId?: number | string }
+ * Publica carrossel no Instagram via Graph API. Se carrosselId for passado:
+ *   - Se ja tem instagram_post_id, retorna { already_posted: true }
+ *   - Apos publicar, grava post_id, permalink e thumb_url no historico
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    let { imageUrls, caption, carrosselId, pngs } = body;
-
-    // Se vieram PNGs em base64, faz upload pro Supabase Storage e gera URLs publicas
-    if (pngs && Array.isArray(pngs) && pngs.length && !imageUrls?.length) {
-      const sb = getSupabase();
-      const bucket = "carrosseis-publicados";
-      // tenta criar bucket (ignora erro se ja existir)
-      try {
-        await sb.storage.createBucket(bucket, { public: true });
-      } catch {}
-      const timestamp = Date.now();
-      imageUrls = [];
-      for (let i = 0; i < pngs.length; i++) {
-        const b64 = pngs[i];
-        const buf = Buffer.from(b64, "base64");
-        const path = `${timestamp}/slide-${String(i + 1).padStart(2, "0")}.png`;
-        const { error } = await sb.storage.from(bucket).upload(path, buf, {
-          contentType: "image/png",
-          upsert: true,
-        });
-        if (error) throw new Error(`upload slide ${i + 1}: ${error.message}`);
-        const { data } = sb.storage.from(bucket).getPublicUrl(path);
-        imageUrls.push(data.publicUrl);
-      }
-    }
+    const { imageUrls, caption, carrosselId } = body;
 
     if (!imageUrls?.length || imageUrls.length < 2) {
-      return NextResponse.json({ error: "imageUrls (>=2) ou pngs required" }, { status: 400 });
+      return NextResponse.json({ error: "imageUrls (>=2) required" }, { status: 400 });
     }
     if (!caption) {
       return NextResponse.json({ error: "caption required" }, { status: 400 });
+    }
+
+    // Dedup: se esse carrossel ja foi postado, retorna o link existente
+    if (carrosselId) {
+      try {
+        const sb = getSupabase();
+        const { data } = await sb
+          .from("carrosseis_gerados")
+          .select("instagram_post_id, instagram_permalink")
+          .eq("id", carrosselId)
+          .single();
+        if (data?.instagram_post_id) {
+          return NextResponse.json({
+            ok: true,
+            already_posted: true,
+            post_id: data.instagram_post_id,
+            permalink: data.instagram_permalink,
+          });
+        }
+      } catch {}
     }
 
     const res = await publishCarousel({ imageUrls, caption });
@@ -60,6 +53,8 @@ export async function POST(req: NextRequest) {
     if (carrosselId && res.post_id) {
       await updateInstagramPost(carrosselId, {
         instagram_post_id: res.post_id,
+        instagram_permalink: res.permalink,
+        thumb_url: imageUrls[0],
       });
     }
 
@@ -68,7 +63,7 @@ export async function POST(req: NextRequest) {
       post_id: res.post_id,
       permalink: res.permalink,
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || String(e) }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }

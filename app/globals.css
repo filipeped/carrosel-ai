@@ -35,17 +35,29 @@ a,
   -webkit-tap-highlight-color: transparent;
 }
 
-/* touch targets mobile: min 44px altura */
+/* touch targets mobile: min 44px altura (Apple HIG) */
 @media (max-width: 640px) {
   button {
-    min-height: 40px;
+    min-height: 44px;
   }
   input[type="text"],
   input:not([type]),
   textarea,
   select {
     font-size: 16px !important; /* evita auto-zoom no iOS */
+    min-height: 44px;
   }
+}
+
+/* Focus visible pra acessibilidade keyboard */
+:focus-visible {
+  outline: 2px solid rgba(214, 231, 196, 0.6);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+button:focus-visible,
+a:focus-visible {
+  outline-offset: 3px;
 }
 
 /* Scrollbar refinado pros strips horizontais de miniaturas */
