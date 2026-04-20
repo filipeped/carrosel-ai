@@ -1,8 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
+import sharp from "sharp";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
+
+/**
+ * Otimiza PNG LOSSLESS via sharp. Zero perda de qualidade.
+ * - compressionLevel 9 (max): 20-40% menor, mesma qualidade visual
+ * - adaptiveFiltering: escolhe o melhor filtro por scanline
+ * - palette: false (mantem 24/32-bit, nao converte pra paleta)
+ */
+async function optimizePng(buf: Buffer): Promise<Buffer> {
+  try {
+    return await sharp(buf)
+      .png({
+        compressionLevel: 9,
+        adaptiveFiltering: true,
+        palette: false,
+        effort: 10,
+      })
+      .toBuffer();
+  } catch (err) {
+    console.warn("[upload-slide] sharp optimize falhou, enviando original:", (err as Error).message);
+    return buf;
+  }
+}
 
 /**
  * POST /api/upload-slide
@@ -36,23 +59,30 @@ export async function POST(req: NextRequest) {
     if (!png || !batchId || typeof index !== "number") {
       return NextResponse.json({ error: "png, batchId, index required" }, { status: 400 });
     }
-    const buf = Buffer.from(png, "base64");
+    const rawBuf = Buffer.from(png, "base64");
 
-    // FIX B.1 — validacao de tamanho
-    if (buf.byteLength > MAX_BYTES) {
-      const mb = (buf.byteLength / 1024 / 1024).toFixed(2);
+    // FIX B.1 — validacao de tamanho (no raw, antes de otimizar)
+    if (rawBuf.byteLength > MAX_BYTES) {
+      const mb = (rawBuf.byteLength / 1024 / 1024).toFixed(2);
       console.warn(`[upload-slide] slide-${index + 1}: ${mb}MB estoura limite ${MAX_BYTES / 1024 / 1024}MB`);
       return NextResponse.json(
-        { error: `Slide muito grande: ${mb}MB (max 4MB)`, bytes: buf.byteLength },
+        { error: `Slide muito grande: ${mb}MB (max 4MB)`, bytes: rawBuf.byteLength },
         { status: 413 },
       );
     }
 
     // FIX B.2 — log de qualidade: bytes + dimensao real
-    const dims = readPngDimensions(buf);
-    const kb = (buf.byteLength / 1024).toFixed(0);
+    const dims = readPngDimensions(rawBuf);
     const dimStr = dims ? `${dims.width}x${dims.height}` : "?";
-    console.log(`[upload-slide] slide-${index + 1}: ${kb}KB ${dimStr}`);
+
+    // Otimiza PNG LOSSLESS (sharp — sem perda, 20-40% menor)
+    const buf = await optimizePng(rawBuf);
+    const savedKb = ((rawBuf.byteLength - buf.byteLength) / 1024).toFixed(0);
+    const finalKb = (buf.byteLength / 1024).toFixed(0);
+    const origKb = (rawBuf.byteLength / 1024).toFixed(0);
+    console.log(
+      `[upload-slide] slide-${index + 1}: ${dimStr} ${origKb}KB -> ${finalKb}KB (economia ${savedKb}KB)`,
+    );
 
     // FIX B.3 — warn se dimensao < esperado (captura quebrada em 1x?)
     if (dims && dims.width < MIN_WIDTH_WARN) {
