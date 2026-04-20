@@ -619,6 +619,9 @@ function Step3({
   const [busyPost, setBusyPost] = useState(false);
   const [postResult, setPostResult] = useState<{ ok: boolean; permalink?: string; error?: string } | null>(null);
   const [selectedCaption, setSelectedCaption] = useState<string>("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImages, setPreviewImages] = useState<string[] | null>(null);
+  const [capturingPreview, setCapturingPreview] = useState(false);
 
   // Persiste legenda selecionada entre refreshes
   useEffect(() => {
@@ -654,28 +657,47 @@ function Step3({
     }
   }
 
-  async function postarNoInstagram() {
+  // Abre o modal de preview — captura todos os slides como dataURL
+  async function openPreview() {
     if (!selectedCaption.trim()) {
       alert("Escolha uma legenda antes de postar (clica em 'Copiar legenda + hashtags' no card que quiser usar).");
       return;
     }
-    if (!confirm("Postar esse carrossel agora no Instagram?")) return;
-    setBusyPost(true);
+    setCapturingPreview(true);
     setPostResult(null);
     try {
-      // render client-side via html-to-image (mesmo flow do botao "Baixar PNG")
-      // — e uploada um slide por vez pro Supabase Storage (evita estourar
-      // body limit do Vercel de 4.5MB). Server recebe so as URLs.
-      const batchId = String(Date.now());
-      const imageUrls: string[] = [];
+      const dataUrls: string[] = [];
       for (let i = 0; i < slides.length; i++) {
         const blob = await captureSlideAsBlob(i);
         if (!blob) throw new Error(`falha ao capturar slide ${i + 1}`);
-        const buf = await blob.arrayBuffer();
-        const bytes = new Uint8Array(buf);
-        let binary = "";
-        for (let j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
-        const png = btoa(binary);
+        const u = await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result as string);
+          fr.onerror = () => reject(fr.error);
+          fr.readAsDataURL(blob);
+        });
+        dataUrls.push(u);
+      }
+      setPreviewImages(dataUrls);
+      setPreviewOpen(true);
+    } catch (e: any) {
+      setPostResult({ ok: false, error: e.message || String(e) });
+    } finally {
+      setCapturingPreview(false);
+    }
+  }
+
+  async function postarNoInstagram() {
+    if (!previewImages) return;
+    setPreviewOpen(false);
+    setBusyPost(true);
+    setPostResult(null);
+    try {
+      const batchId = String(Date.now());
+      const imageUrls: string[] = [];
+      for (let i = 0; i < previewImages.length; i++) {
+        // dataURL -> base64
+        const png = previewImages[i].replace(/^data:image\/\w+;base64,/, "");
         const up = await fetch("/api/upload-slide", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -758,14 +780,23 @@ function Step3({
         </div>
       )}
 
+      {previewOpen && previewImages && (
+        <InstagramPreviewModal
+          images={previewImages}
+          caption={selectedCaption}
+          onCancel={() => setPreviewOpen(false)}
+          onConfirm={postarNoInstagram}
+        />
+      )}
+
       <CaptionPanel
         slides={slides}
         prompt={prompt}
         orderedImages={orderedImages}
         onCaptionPicked={setSelectedCaption}
         selectedCaption={selectedCaption}
-        onPublish={postarNoInstagram}
-        publishing={busyPost}
+        onPublish={openPreview}
+        publishing={busyPost || capturingPreview}
         publishProgress={publishProgress}
       />
 
@@ -1356,6 +1387,117 @@ function CaptionPanel({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// Modal de preview estilo Instagram — mostra PNGs ja convertidos
+// ─────────────────────────────────────────────────────────
+function InstagramPreviewModal({
+  images,
+  caption,
+  onCancel,
+  onConfirm,
+}: {
+  images: string[];
+  caption: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const [idx, setIdx] = useState(0);
+  const handle = "digitalpaisagismo";
+  const prev = () => setIdx((i) => Math.max(0, i - 1));
+  const next = () => setIdx((i) => Math.min(images.length - 1, i + 1));
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-white text-black rounded-xl w-full max-w-[470px] overflow-hidden shadow-2xl my-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header estilo IG */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
+            <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-[10px] font-bold">
+              DP
+            </div>
+          </div>
+          <div className="flex-1 text-sm font-semibold">{handle}</div>
+          <div className="text-gray-500 text-xl leading-none">⋯</div>
+        </div>
+
+        {/* Slide atual */}
+        <div className="relative bg-black aspect-[4/5]">
+          <img
+            src={images[idx]}
+            alt={`slide ${idx + 1}`}
+            className="w-full h-full object-contain"
+          />
+          {idx > 0 && (
+            <button
+              onClick={prev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 text-black flex items-center justify-center hover:bg-white"
+              aria-label="anterior"
+            >
+              ‹
+            </button>
+          )}
+          {idx < images.length - 1 && (
+            <button
+              onClick={next}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 text-black flex items-center justify-center hover:bg-white"
+              aria-label="proximo"
+            >
+              ›
+            </button>
+          )}
+          {/* Dots */}
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+            {images.map((_, i) => (
+              <span
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full ${
+                  i === idx ? "bg-white" : "bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Actions + caption */}
+        <div className="px-4 pt-3 pb-4">
+          <div className="flex items-center gap-4 text-2xl mb-2">
+            <span>♡</span>
+            <span>💬</span>
+            <span>↗</span>
+            <span className="ml-auto">🔖</span>
+          </div>
+          <div className="text-sm whitespace-pre-wrap break-words">
+            <span className="font-semibold mr-2">{handle}</span>
+            <span className="opacity-90">{caption}</span>
+          </div>
+        </div>
+
+        {/* Footer com botoes */}
+        <div className="flex gap-2 p-3 border-t border-gray-200 bg-gray-50">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-100"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2.5 rounded-lg bg-black text-white text-sm font-medium hover:bg-gray-800"
+          >
+            Postar no Instagram
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
