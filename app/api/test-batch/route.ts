@@ -308,9 +308,29 @@ export async function POST(req: NextRequest) {
     // Salva todas no DB
     const rows = results
       .filter((r) => !("error" in r))
-      .map((r) => ({ ...r, batch_id: batch.id }));
+      .map((r) => {
+        // Separa campos que vao pro schema vs meta JSONB
+        // (critic_breakdown, critic_controverso, caption_options._gatilho_viral etc ficam em 'meta')
+        const { critic_breakdown, critic_controverso, ...base } = r as Record<string, unknown>;
+        return {
+          ...base,
+          batch_id: batch.id,
+          meta: { critic_breakdown, critic_controverso },
+        };
+      });
     if (rows.length) {
-      await sb.from("test_generations").insert(rows);
+      const { error: insErr } = await sb.from("test_generations").insert(rows);
+      if (insErr) {
+        console.error("[test-batch] insert falhou:", insErr.message);
+        // Tenta novamente sem meta (caso a coluna nao exista)
+        const fallback = rows.map((r) => {
+          const { meta, ...rest } = r as Record<string, unknown>;
+          void meta;
+          return rest;
+        });
+        const { error: retryErr } = await sb.from("test_generations").insert(fallback);
+        if (retryErr) console.error("[test-batch] fallback insert falhou:", retryErr.message);
+      }
     }
 
     // Ranker global — ordena todas as variantes

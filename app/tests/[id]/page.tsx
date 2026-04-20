@@ -9,12 +9,42 @@ type Variant = {
   approach: string;
   hook_strategy: string;
   slides: Array<Record<string, unknown>>;
-  caption_options: Array<{ legenda: string; hashtags: string[]; abordagem: string; hook?: string }>;
+  caption_options: Array<{
+    legenda: string;
+    hashtags: string[];
+    abordagem: string;
+    hook?: string;
+    _gatilho_viral?: string;
+    _score_viralidade?: number;
+    _viral_rationale?: string;
+  }>;
   agents_used: string[];
   critic_score?: number;
+  critic_breakdown?: Record<string, number>;
+  critic_controverso?: boolean;
   user_manual_score?: number;
   is_winner?: boolean;
   notes?: string;
+};
+
+const GATILHO_LABELS: Record<string, string> = {
+  pattern_interrupt: "Pattern Interrupt",
+  information_gap: "Information Gap",
+  contrarian: "Contrarian",
+  specific_number: "Numero",
+  status_prize_frame: "Prize Frame",
+  timing: "Timing",
+  outro: "Outro",
+};
+
+const GATILHO_COLORS: Record<string, string> = {
+  pattern_interrupt: "bg-purple-500/20 text-purple-200 border-purple-400/30",
+  information_gap: "bg-amber-500/20 text-amber-200 border-amber-400/30",
+  contrarian: "bg-red-500/20 text-red-200 border-red-400/30",
+  specific_number: "bg-blue-500/20 text-blue-200 border-blue-400/30",
+  status_prize_frame: "bg-pink-500/20 text-pink-200 border-pink-400/30",
+  timing: "bg-green-500/20 text-green-200 border-green-400/30",
+  outro: "bg-white/10 text-white/60 border-white/20",
 };
 
 type Batch = {
@@ -115,8 +145,47 @@ export default function TestBatchPage() {
                 )}
               </div>
               {v.critic_score !== null && v.critic_score !== undefined && (
-                <div className="text-[10px] opacity-60 mb-2">
-                  crítico: {v.critic_score}/100
+                <div className="mb-2">
+                  <div className="flex items-center gap-2 text-[10px] opacity-80">
+                    <span className="font-semibold">crítico ensemble: {v.critic_score}/100</span>
+                    {v.critic_controverso && (
+                      <span className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-200 border border-yellow-400/30">
+                        controverso
+                      </span>
+                    )}
+                  </div>
+                  {v.critic_breakdown && (
+                    <div className="flex gap-2 text-[9px] opacity-60 mt-1 flex-wrap">
+                      <span>hook:{v.critic_breakdown.hook}/25</span>
+                      <span>narr:{v.critic_breakdown.narrativa}/25</span>
+                      <span>pers:{v.critic_breakdown.persona}/20</span>
+                      <span>voc:{v.critic_breakdown.vocab}/15</span>
+                      <span>cta:{v.critic_breakdown.cta}/15</span>
+                      {typeof v.critic_breakdown.viral_score === "number" && (
+                        <>
+                          <span className="border-l border-white/10 pl-2">V:{v.critic_breakdown.viral_score}</span>
+                          <span>B:{v.critic_breakdown.brand_score}</span>
+                          <span>T:{v.critic_breakdown.technical_score}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              {cap?._gatilho_viral && (
+                <div className="mb-2 flex items-center gap-2 flex-wrap">
+                  <span
+                    className={`text-[9px] tracking-widest uppercase px-2 py-0.5 rounded border ${
+                      GATILHO_COLORS[cap._gatilho_viral] || GATILHO_COLORS.outro
+                    }`}
+                  >
+                    {GATILHO_LABELS[cap._gatilho_viral] || cap._gatilho_viral}
+                  </span>
+                  {typeof cap._score_viralidade === "number" && (
+                    <span className="text-[9px] opacity-60">
+                      viral {cap._score_viralidade}/10
+                    </span>
+                  )}
                 </div>
               )}
               {slide0 && (
