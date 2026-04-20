@@ -150,7 +150,10 @@ export default function Home() {
     setSlides([]);
     setAllImages([]);
     setError("");
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem("carrosel:caption:v1");
+    } catch {}
   }
 
   const searchProgress = useProgressSim(currentFlow === "search", [
@@ -615,6 +618,20 @@ function Step3({
   const [busyPost, setBusyPost] = useState(false);
   const [postResult, setPostResult] = useState<{ ok: boolean; permalink?: string; error?: string } | null>(null);
   const [selectedCaption, setSelectedCaption] = useState<string>("");
+
+  // Persiste legenda selecionada entre refreshes
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("carrosel:caption:v1");
+      if (v) setSelectedCaption(v);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      if (selectedCaption) localStorage.setItem("carrosel:caption:v1", selectedCaption);
+      else localStorage.removeItem("carrosel:caption:v1");
+    } catch {}
+  }, [selectedCaption]);
 
   const publishProgress = useProgressSim(busyPost, [
     { name: "Capturando os 6 slides do preview", seconds: 8 },
