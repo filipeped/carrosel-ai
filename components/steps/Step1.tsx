@@ -86,8 +86,15 @@ export function Step1({
           {autoLoading ? "Processando..." : "Sugerir + gerar carrossel viral"}
         </button>
         <button
-          disabled={anyLoading || !prompt.trim()}
-          onClick={() => onSearch()}
+          disabled={anyLoading}
+          onClick={() => {
+            if (!prompt.trim()) {
+              setIdeasErr("Digite um tema antes de gerar.");
+              return;
+            }
+            setIdeasErr("");
+            onSearch();
+          }}
           className="bg-white text-black px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40"
         >
           {loading ? "Processando..." : "Gerar carrossel smart"}
