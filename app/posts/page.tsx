@@ -311,7 +311,7 @@ export default function PostsPage() {
                 </div>
                 <button
                   onClick={() => republish(selected.id)}
-                  className="w-full min-h-[44px] border border-amber-400/40 text-amber-200 rounded px-4 py-2 text-xs tracking-wider uppercase hover:bg-amber-400/10"
+                  className="w-full min-h-[44px] border border-white/20 rounded px-4 py-2 text-xs tracking-wider uppercase hover:bg-white/5"
                 >
                   ↻ Repostar
                 </button>
