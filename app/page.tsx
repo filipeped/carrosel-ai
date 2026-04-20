@@ -210,7 +210,15 @@ export default function Home() {
           </div>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <Steps current={step} />
+          <Steps
+            current={step}
+            enabled={{
+              1: true,
+              2: !!selection,
+              3: slides.length > 0,
+            }}
+            onNavigate={(s) => setStep(s)}
+          />
           <Link
             href="/posts"
             className="text-[10px] sm:text-xs tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity border border-white/20 hover:border-white/40 rounded px-3 py-1.5"
