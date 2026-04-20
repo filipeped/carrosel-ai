@@ -64,6 +64,17 @@ export async function POST(req: NextRequest) {
       ? `\n\nBRIEFING EXTRA DO USUARIO (PRIORIDADE ALTA — segue literalmente):\n"""\n${String(userBrief).slice(0, 1200).trim()}\n"""`
       : "";
 
+    const strictOutputRule = `
+=== SAIDA ===
+Tua resposta DEVE:
+- Comecar com { como primeiro caractere
+- Terminar com } como ultimo caractere
+- NAO ter texto explicativo antes ou depois
+- NAO ter markdown, NAO ter code fence, NAO ter outline, NAO ter thinking visivel
+- NAO conter chave "hashtags" (isso eh de legenda, nao de slides)
+- NAO conter chave "legenda" (isso eh de legenda, nao de slides)
+- SO a chave "slides" com array de objetos`;
+
     const userPrompt = `Tema do usuario: "${prompt || "(sem tema — inspire-se nas imagens)"}"
 ${briefBlock}
 
@@ -74,24 +85,39 @@ REGRA DURA ANTI-ALUCINACAO:
 - Nao cite elemento (piscina, pergolado, deck, espelho d'agua etc) se ele NAO aparece em VISIVEL ou hero da imagem correspondente.
 - Se VISIVEL nao menciona X, nao escreva sobre X naquela slide.
 
-${SCHEMA}`;
+${SCHEMA}
+${strictOutputRule}`;
 
-    const resp = await getAi().chat.completions.create({
-      model: MODEL,
-      max_tokens: 1800,
-      messages: [
-        { role: "system", content: BRAND_VOICE + "\n\n" + SCHEMA },
-        { role: "user", content: userPrompt },
-      ],
-    });
+    const callCopy = async (extraInstruction = "") =>
+      getAi().chat.completions.create({
+        model: MODEL,
+        max_tokens: 2400,
+        messages: [
+          { role: "system", content: BRAND_VOICE + "\n\n" + SCHEMA + strictOutputRule },
+          { role: "user", content: userPrompt + (extraInstruction ? `\n\n${extraInstruction}` : "") },
+        ],
+      });
 
-    const raw = resp.choices[0]?.message?.content || "";
+    let resp = await callCopy();
+    let raw = resp.choices[0]?.message?.content || "";
     let parsed: any;
     try {
       parsed = extractJson(raw);
-    } catch (e) {
-      console.error("JSON parse failed. Raw:", raw);
-      return NextResponse.json({ error: "IA devolveu JSON invalido", raw: raw.slice(0, 300) }, { status: 500 });
+    } catch {
+      // Retry 1: instrucao ainda mais rigida
+      console.warn("[copy] JSON parse falhou na 1a tentativa, retry...");
+      resp = await callCopy(
+        'ATENCAO: tua ultima resposta nao foi JSON valido. ' +
+          'Retorna APENAS o objeto JSON. Comeca com { e termina com }. ' +
+          'Zero texto, outline, lista markdown, explicacao, hashtag, ou legenda.',
+      );
+      raw = resp.choices[0]?.message?.content || "";
+      try {
+        parsed = extractJson(raw);
+      } catch (e) {
+        console.error("JSON parse failed apos retry. Raw:", raw.slice(0, 500));
+        return NextResponse.json({ error: "IA devolveu JSON invalido apos retry", raw: raw.slice(0, 300) }, { status: 500 });
+      }
     }
     // normaliza: pode vir como array direto OU objeto com .slides
     if (Array.isArray(parsed)) parsed = { slides: parsed };
