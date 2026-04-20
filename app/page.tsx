@@ -1107,6 +1107,7 @@ function CaptionPanel({
   const [pickedIdx, setPickedIdx] = useState<number | null>(null);
   const [stale, setStale] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [historyId, setHistoryId] = useState<number | null>(null);
   const captionProgress = useProgressSim(loading, [
     { name: "Claude lendo as 6 fotos do carrossel", seconds: 12 },
     { name: "Escrevendo 3 legendas no seu tom real", seconds: 20 },
@@ -1121,32 +1122,34 @@ function CaptionPanel({
   const lastKeyRef = useRef<string | null>(null);
   const regenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Restaura opcoes geradas do localStorage (persiste entre refreshes)
+  // Restaura ultima geracao do Supabase pra esse prompt (persiste entre refreshes/browsers)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("carrosel:captions:v1");
-      if (raw) {
-        const s = JSON.parse(raw);
-        if (Array.isArray(s.options)) setOptions(s.options);
-        if (typeof s.pickedIdx === "number") setPickedIdx(s.pickedIdx);
-        if (typeof s.imagesKey === "string") lastKeyRef.current = s.imagesKey;
-      }
-    } catch {}
-    setHydrated(true);
-  }, []);
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      if (options) {
-        localStorage.setItem(
-          "carrosel:captions:v1",
-          JSON.stringify({ options, pickedIdx, imagesKey: lastKeyRef.current }),
-        );
-      } else {
-        localStorage.removeItem("carrosel:captions:v1");
-      }
-    } catch {}
-  }, [hydrated, options, pickedIdx]);
+    if (!prompt?.trim()) {
+      setHydrated(true);
+      return;
+    }
+    (async () => {
+      try {
+        const r = await fetch(`/api/captions-history?prompt=${encodeURIComponent(prompt)}`);
+        const d = await r.json();
+        if (d.data?.options) {
+          setOptions(d.data.options);
+          if (typeof d.data.picked_idx === "number") {
+            setPickedIdx(d.data.picked_idx);
+            const opt = d.data.options[d.data.picked_idx];
+            if (opt && onCaptionPicked) {
+              const hashtags = Array.isArray(opt.hashtags) ? opt.hashtags.join(" ") : "";
+              onCaptionPicked(`${opt.legenda}\n\n${hashtags}`.trim());
+            }
+          }
+          setHistoryId(d.data.id ?? null);
+          lastKeyRef.current = imagesKey;
+        }
+      } catch {}
+      setHydrated(true);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prompt]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -1186,6 +1189,16 @@ function CaptionPanel({
       if (d.error) throw new Error(d.error);
       setOptions(d.options || []);
       lastKeyRef.current = imagesKey;
+      // salva no Supabase (nao bloqueia UI em erro de persistencia)
+      try {
+        const save = await fetch("/api/captions-history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, options: d.options || [] }),
+        });
+        const saved = await save.json();
+        if (saved.id) setHistoryId(saved.id);
+      } catch {}
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -1200,6 +1213,14 @@ function CaptionPanel({
     setPickedIdx(i);
     if (onCaptionPicked) onCaptionPicked(full);
     setTimeout(() => setCopiedIdx(null), 1500);
+    // persiste escolha no Supabase (nao bloqueia UI)
+    if (historyId) {
+      fetch("/api/captions-history", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: historyId, picked_idx: i }),
+      }).catch(() => {});
+    }
   }
 
   return (
