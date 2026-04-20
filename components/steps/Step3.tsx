@@ -281,11 +281,13 @@ export function Step3({
           </button>
           <button
             disabled={regenCopy}
-            onClick={regenerateCopy}
+            onClick={() => {
+              if (confirm("Regenerar a copy de TODOS os 6 slides? (pra mudar só um, clica no botão ↻ de cada slide)")) regenerateCopy();
+            }}
             className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
-            title="Re-analisa as imagens atuais + tema e gera copy nova"
+            title="Regenera todos os slides — pra regenerar 1 so, use o botão ↻ dentro do card"
           >
-            {regenCopy ? "Gerando..." : "↻ Gerar copy"}
+            {regenCopy ? "Gerando..." : "↻ Copy todos"}
           </button>
           <button
             disabled={savingDraft || !carrosselId}
@@ -362,6 +364,8 @@ export function Step3({
             slide={s}
             images={allImages}
             onChange={(patch) => update(i, patch)}
+            prompt={prompt}
+            allSlides={slides}
           />
         ))}
       </div>

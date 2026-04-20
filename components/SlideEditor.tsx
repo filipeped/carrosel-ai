@@ -32,15 +32,20 @@ export function SlideEditor({
   slide,
   images,
   onChange,
+  prompt,
+  allSlides,
 }: {
   index: number;
   slide: SlideData;
   images: ImageRow[];
   onChange: (patch: Partial<SlideData>) => void;
+  prompt?: string;
+  allSlides?: SlideData[];
 }) {
   const img = images[slide.imageIdx] || images[0];
   const imgUrl = img?.url || "";
   const [busy, setBusy] = useState(false);
+  const [regenBusy, setRegenBusy] = useState(false);
 
   async function handleDownload() {
     setBusy(true);
@@ -48,6 +53,35 @@ export function SlideEditor({
       await downloadSlideFromDom(index);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function regenerateThisSlide() {
+    if (!img) return;
+    if (!confirm(`Regenerar só este slide ${index + 1}?`)) return;
+    setRegenBusy(true);
+    try {
+      const r = await fetch("/api/copy-single", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: prompt || "",
+          slideIndex: index,
+          slideType: slide.type,
+          image: img,
+          allSlides,
+        }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      if (!d.slide) throw new Error("retorno vazio");
+      // Aplica só os campos do slide gerado, preserva imageIdx
+      const { type, ...rest } = d.slide;
+      onChange({ ...rest });
+    } catch (e) {
+      alert(`Erro: ${(e as Error).message}`);
+    } finally {
+      setRegenBusy(false);
     }
   }
 
@@ -67,13 +101,23 @@ export function SlideEditor({
             <option value="cta">CTA</option>
           </select>
         </div>
-        <button
-          disabled={busy}
-          onClick={handleDownload}
-          className="text-xs tracking-wider uppercase bg-white text-black px-3 py-1.5 rounded hover:bg-white/90 disabled:opacity-40"
-        >
-          {busy ? "..." : "Baixar PNG"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            disabled={regenBusy}
+            onClick={regenerateThisSlide}
+            className="text-xs tracking-wider uppercase border border-white/20 px-3 py-1.5 rounded hover:bg-white/5 disabled:opacity-40"
+            title="Regenera so esse slide, mantendo os outros"
+          >
+            {regenBusy ? "..." : "↻"}
+          </button>
+          <button
+            disabled={busy}
+            onClick={handleDownload}
+            className="text-xs tracking-wider uppercase bg-white text-black px-3 py-1.5 rounded hover:bg-white/90 disabled:opacity-40"
+          >
+            {busy ? "..." : "Baixar PNG"}
+          </button>
+        </div>
       </div>
 
       <div id={`slide-preview-${index}`}>
