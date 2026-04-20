@@ -88,13 +88,10 @@ ${SCHEMA}`;
 
     // Validacao anti-alucinacao: plantDetail so passa se a planta realmente
     // aparece na imagem correspondente; caso contrario vira inspiration.
-    try {
-      const { validateSlidesAgainstImages } = await import("@/lib/smart-pipeline");
-      if (parsed.slides && Array.isArray(images)) {
-        parsed.slides = validateSlidesAgainstImages(parsed.slides, images as any);
-      }
-    } catch (e) {
-      console.warn("validation skipped", e);
+    // Falha aqui = copy nao-validado. Escala erro em vez de silenciar.
+    const { validateSlidesAgainstImages } = await import("@/lib/smart-pipeline");
+    if (parsed.slides && Array.isArray(images)) {
+      parsed.slides = validateSlidesAgainstImages(parsed.slides, images as any);
     }
 
     return NextResponse.json(parsed);
