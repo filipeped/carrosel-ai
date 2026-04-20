@@ -5,6 +5,7 @@
 import satori from "satori";
 import { html as htmlToReact } from "satori-html";
 import { Resvg } from "@resvg/resvg-js";
+import juice from "juice";
 
 type FontWeight = 300 | 400 | 500 | 600 | 700;
 type SatoriFont = {
@@ -226,35 +227,49 @@ function cleanCssForSatori(styleBlock: string): string {
 }
 
 function sanitizeForSatori(html: string): string {
-  // 1. Extrai <style> blocks do HTML inteiro (head ou body) pra preservar o CSS
-  const styles: string[] = [];
-  html.replace(/<style[\s\S]*?<\/style>/gi, (m) => {
-    styles.push(m);
-    return "";
-  });
+  // 1. Inline TODOS os estilos via juice — Satori nao suporta <style> com
+  //    seletores descendentes (.foo .bar) nem pseudo-classes. Inlining resolve.
+  //    juice fazer o matching CSS nativo, suporta descendentes, e coloca em style="".
+  let inlined: string;
+  try {
+    inlined = juice(html, {
+      removeStyleTags: true,
+      preserveMediaQueries: false,
+      preserveFontFaces: false,
+      preservePseudos: false,
+    });
+  } catch {
+    inlined = html;
+  }
 
   // 2. Pega conteudo do <body>
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  let cleaned = bodyMatch ? bodyMatch[1] : html;
+  const bodyMatch = inlined.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  let cleaned = bodyMatch ? bodyMatch[1] : inlined;
 
-  // 3. Remove wrappers residuais e <style> que sobraram dentro do body
+  // 3. Remove wrappers residuais
   cleaned = cleaned.replace(/<!doctype[^>]*>/gi, "");
   cleaned = cleaned.replace(/<\/?html[^>]*>/gi, "");
   cleaned = cleaned.replace(/<\/?body[^>]*>/gi, "");
   cleaned = cleaned.replace(/<head[\s\S]*?<\/head>/gi, "");
   cleaned = cleaned.replace(/<style[\s\S]*?<\/style>/gi, "");
+  cleaned = cleaned.replace(/<link[^>]*>/gi, "");
 
-  // 4. Collapse whitespace entre tags
+  // 4. Collapse whitespace entre tags (evita null children em satori-html)
   cleaned = cleaned.replace(/>\s+</g, "><");
 
-  // 5. Elementos vazios (span/div sem filho) recebem um espaco — satori-html
-  //    trata children vazio como null, e satori crasha iterando null.
+  // 5. Elementos vazios recebem &nbsp; (satori-html vira children null senao)
   cleaned = cleaned.replace(/<(span|div)([^>]*)><\/(?:span|div)>/g, "<$1$2>&nbsp;</$1>");
 
-  // 6. Limpa o CSS — sem :root/*/html/body/comments.
-  const stylesCleaned = styles.map(cleanCssForSatori).join("");
+  // 6. Force self-close em <img> (satori-html parse melhor com />)
+  cleaned = cleaned.replace(/<img([^>]*?)(?<!\/)>/g, "<img$1/>");
 
-  return (stylesCleaned + cleaned).trim();
+  // 7. Colapsa \n e espacos multiplos dentro de style="" (satori confuso com quebras)
+  cleaned = cleaned.replace(/style="([^"]*)"/g, (_, s: string) => {
+    const compact = s.replace(/\s+/g, " ").trim();
+    return `style="${compact}"`;
+  });
+
+  return cleaned.trim();
 }
 
 async function renderViaSatori(html: string): Promise<Buffer> {
@@ -272,11 +287,9 @@ async function renderViaSatori(html: string): Promise<Buffer> {
       embedFont: true,
     });
   } catch (e: any) {
-    // Log detalhado pra debug — preview do HTML que crashou
-    const preview = sanitized.slice(0, 1500);
     console.error("[satori] crash:", e.message);
-    console.error("[satori] sanitized preview:", preview);
-    throw new Error(`satori: ${e.message} | html_start: ${preview.slice(0, 400)}`);
+    console.error("[satori] sanitized full:", sanitized);
+    throw new Error(`satori: ${e.message} | full_html: ${sanitized}`);
   }
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: 1080 },
@@ -292,9 +305,8 @@ async function renderViaSatori(html: string): Promise<Buffer> {
 function shouldUsePuppeteer(): boolean {
   if (process.env.USE_PUPPETEER === "1") return true;
   if (process.env.USE_SATORI === "1") return false;
-  // Vercel tem @sparticuz/chromium configurado — usa Puppeteer tambem em prod
-  // (Satori tem muitas limitacoes com nossos templates)
-  return true;
+  // Prod Vercel: libnss3 missing no AL2023 — Satori eh mais confiavel
+  return process.env.NODE_ENV !== "production";
 }
 
 export async function renderHtmlToPng(html: string): Promise<Buffer> {
