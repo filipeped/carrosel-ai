@@ -20,36 +20,93 @@ type SatoriFont = {
 let _browser: any = null;
 let _launching: Promise<any> | null = null;
 
+async function launchBrowser() {
+  const puppeteer = await import("puppeteer");
+  return puppeteer.default.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    protocolTimeout: 60000,
+  });
+}
+
 async function getBrowser() {
+  if (_browser) {
+    try {
+      if (!_browser.isConnected || !_browser.isConnected()) {
+        _browser = null;
+      }
+    } catch {
+      _browser = null;
+    }
+  }
   if (_browser) return _browser;
   if (_launching) return _launching;
   _launching = (async () => {
-    const puppeteer = await import("puppeteer");
-    _browser = await puppeteer.default.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      protocolTimeout: 60000,
-    });
+    _browser = await launchBrowser();
     _launching = null;
     return _browser;
   })();
   return _launching;
 }
 
+async function resetBrowser() {
+  const old = _browser;
+  _browser = null;
+  _launching = null;
+  if (old) {
+    try { await old.close(); } catch {}
+  }
+}
+
+// Semaforo: max 2 renders Puppeteer simultaneos (browser trava com >3 pages)
+const MAX_CONCURRENT = 2;
+let _active = 0;
+const _queue: Array<() => void> = [];
+
+async function acquireSlot(): Promise<() => void> {
+  if (_active < MAX_CONCURRENT) {
+    _active++;
+    return () => {
+      _active--;
+      const next = _queue.shift();
+      if (next) next();
+    };
+  }
+  await new Promise<void>((resolve) => _queue.push(resolve));
+  _active++;
+  return () => {
+    _active--;
+    const next = _queue.shift();
+    if (next) next();
+  };
+}
+
 async function renderViaPuppeteer(html: string): Promise<Buffer> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const release = await acquireSlot();
   try {
-    await page.setViewport({ width: 1080, height: 1350, deviceScaleFactor: 1 });
-    await page.setContent(html, { waitUntil: "load", timeout: 15000 });
-    await new Promise((r) => setTimeout(r, 400));
-    const buf = (await page.screenshot({
-      type: "png",
-      clip: { x: 0, y: 0, width: 1080, height: 1350 },
-    })) as Buffer;
-    return buf;
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    try {
+      // Pre-inlina imagens em data:URI — setContent fica instantaneo, sem fetch de rede
+      const inlinedHtml = await inlineRemoteImages(html);
+      await page.setViewport({ width: 1080, height: 1350, deviceScaleFactor: 1 });
+      await page.setContent(inlinedHtml, { waitUntil: "domcontentloaded", timeout: 10000 });
+      // Espera as fontes aplicarem em vez de delay fixo
+      await page.evaluate(() => (document as any).fonts?.ready).catch(() => {});
+      const buf = (await page.screenshot({
+        type: "png",
+        clip: { x: 0, y: 0, width: 1080, height: 1350 },
+      })) as Buffer;
+      return buf;
+    } finally {
+      try { await page.close(); } catch {}
+    }
+  } catch (e) {
+    // se deu timeout ou erro de protocolo, recria browser pra proxima requisicao
+    await resetBrowser();
+    throw e;
   } finally {
-    try { await page.close(); } catch {}
+    release();
   }
 }
 
@@ -120,10 +177,6 @@ async function inlineRemoteImages(html: string): Promise<string> {
  * satori-html doesn't create null text-node children that crash Satori.
  */
 function sanitizeForSatori(html: string): string {
-  // satori-html converts whitespace between HTML tags into null children,
-  // which crashes Satori with "object null is not iterable".
-  // Fix: collapse whitespace between tags, but preserve <style> content.
-
   // 1. Extract and preserve <style> blocks
   const styles: string[] = [];
   let cleaned = html.replace(/<style[\s\S]*?<\/style>/gi, (m) => {
