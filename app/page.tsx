@@ -23,38 +23,44 @@ function loadStoredState() {
 }
 
 export default function Home() {
-  // Lazy init — lê localStorage ANTES do primeiro render (evita flash pra step 1)
-  const stored = typeof window !== "undefined" ? loadStoredState() : null;
-
-  const [step, setStep] = useState<1 | 2 | 3>(() =>
-    stored?.step === 2 || stored?.step === 3 ? stored.step : 1,
-  );
-  const [prompt, setPrompt] = useState<string>(() => stored?.prompt || "");
+  // State inicial sempre vazio (match SSR). Hidrata do localStorage em useEffect
+  // abaixo — evita React error #418 (hydration mismatch).
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [prompt, setPrompt] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [currentFlow, setCurrentFlow] = useState<"search" | "copy" | null>(null);
   const [error, setError] = useState("");
-
-  const [selection, setSelection] = useState<Selection | null>(() => stored?.selection || null);
-  const [slides, setSlides] = useState<SlideData[]>(() =>
-    Array.isArray(stored?.slides) ? stored.slides : [],
-  );
-  const [allImages, setAllImages] = useState<ImageRow[]>(() =>
-    Array.isArray(stored?.allImages) ? stored.allImages : [],
-  );
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [slides, setSlides] = useState<SlideData[]>([]);
+  const [allImages, setAllImages] = useState<ImageRow[]>([]);
   const [autoGenCaption, setAutoGenCaption] = useState<number>(0);
-  const [carrosselId, setCarrosselId] = useState<string | null>(() =>
-    typeof stored?.carrosselId === "string" ? stored.carrosselId : null,
-  );
+  const [carrosselId, setCarrosselId] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Salva state a cada mudanca
+  // Hidrata do localStorage apos mount (apos 1o render) — zero mismatch SSR/client
   useEffect(() => {
+    const stored = loadStoredState();
+    if (stored) {
+      if (stored.step === 2 || stored.step === 3) setStep(stored.step);
+      if (typeof stored.prompt === "string") setPrompt(stored.prompt);
+      if (stored.selection) setSelection(stored.selection);
+      if (Array.isArray(stored.slides)) setSlides(stored.slides);
+      if (Array.isArray(stored.allImages)) setAllImages(stored.allImages);
+      if (typeof stored.carrosselId === "string") setCarrosselId(stored.carrosselId);
+    }
+    setHydrated(true);
+  }, []);
+
+  // Salva state a cada mudanca — so depois de hydrated pra nao sobrescrever com vazio
+  useEffect(() => {
+    if (!hydrated) return;
     try {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ step, prompt, selection, slides, allImages, carrosselId }),
       );
     } catch {}
-  }, [step, prompt, selection, slides, allImages, carrosselId]);
+  }, [step, prompt, selection, slides, allImages, carrosselId, hydrated]);
 
   function resetToStart() {
     setStep(1);

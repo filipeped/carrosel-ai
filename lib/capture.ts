@@ -14,6 +14,23 @@ import { toPng } from "html-to-image";
  * IG specs 2026: 1080x1350 alvo (4:5 feed). Max 30MB/slide. Supersampling > direto.
  */
 
+/**
+ * Filter que exclui o <link rel=stylesheet> das fontes Google do snapshot.
+ * As fontes JA estao renderizadas no iframe (carregadas via link no HTML inicial),
+ * nao precisam ser re-embedadas. Pular o <link> elimina o SecurityError cssRules
+ * que polui o console sem bloquear captura.
+ */
+function captureFilter(node: HTMLElement): boolean {
+  // Exclui link stylesheet apontando pra fonts.googleapis ou fonts.gstatic
+  if (node.tagName === "LINK") {
+    const href = (node as HTMLLinkElement).href || "";
+    if (href.includes("fonts.googleapis") || href.includes("fonts.gstatic")) {
+      return false;
+    }
+  }
+  return true;
+}
+
 const BASE_OPTS = {
   width: 1080,
   height: 1350,
@@ -23,6 +40,7 @@ const BASE_OPTS = {
   type: "image/png" as const,
   quality: 1,
   imagePlaceholder: undefined,
+  filter: captureFilter,  // silencia SecurityError cssRules das fontes Google
 } as const;
 
 // 4MB = limite pratico (Vercel 4.5MB). Server tem sharp pra otimizar -20~40%,
