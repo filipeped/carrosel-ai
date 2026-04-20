@@ -2,7 +2,6 @@
 // Usa: npx tsx scripts/test-satori.ts
 
 process.env.USE_SATORI = "1";
-process.env.NODE_ENV = "production";
 
 import { writeFileSync, mkdirSync } from "node:fs";
 import { renderHtmlToPng } from "../lib/renderer";
