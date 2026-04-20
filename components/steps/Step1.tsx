@@ -34,26 +34,34 @@ export function Step1({
   onCuradoria?: () => void;
   curadoriaLoading?: boolean;
 }) {
-  // Lazy init — lê localStorage antes do primeiro render (evita flash)
-  const stored = typeof window !== "undefined" ? loadStoredIdeas() : null;
-
-  const [ideas, setIdeas] = useState<Idea[] | null>(stored);
+  // FIX hydration: state inicial SEMPRE vazio (match SSR).
+  // Hidrata do localStorage em useEffect apos mount. Evita React #418.
+  const [ideas, setIdeas] = useState<Idea[] | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const [ideasLoading, setIdeasLoading] = useState(false);
   const [ideasErr, setIdeasErr] = useState("");
   const [autoLoading, setAutoLoading] = useState(false);
-  // Para gerar em paralelo: set de titulos selecionados + jobs em background
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bgJobs, setBgJobs] = useState<Record<string, "running" | "done" | "error">>({});
   const [bgSummary, setBgSummary] = useState<string | null>(null);
 
-  // Persiste ideias no localStorage — somem so quando "Recomecar"
+  // Hidrata apos mount (zero mismatch SSR/client)
   useEffect(() => {
+    const stored = loadStoredIdeas();
+    if (stored) setIdeas(stored);
+    setHydrated(true);
+  }, []);
+
+  // Persiste ideias no localStorage — somem so quando "Recomecar".
+  // So salva apos hydrated pra nao sobrescrever com null.
+  useEffect(() => {
+    if (!hydrated) return;
     try {
       if (ideas && ideas.length) {
         localStorage.setItem(IDEAS_KEY, JSON.stringify(ideas));
       }
     } catch {}
-  }, [ideas]);
+  }, [ideas, hydrated]);
 
   const ideasProgress = useProgressSim(ideasLoading || autoLoading, [
     { name: "Gerando 12 ideias de curador", seconds: 18 },

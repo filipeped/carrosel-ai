@@ -2,13 +2,31 @@
 import { useEffect, useRef, useState } from "react";
 import type { SlideData } from "@/lib/types";
 
-const FONTS_LINK = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">`;
+/**
+ * Fontes SELF-HOSTED em /public/fonts/*.woff2 — elimina cross-origin de
+ * Google Fonts que causava SecurityError cssRules no html-to-image.
+ * Ao capturar via toPng(), CSS eh same-origin → zero erro.
+ */
+const FONTS_LINK = `<style>
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:300;src:url('/fonts/Fraunces-Light.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:400;src:url('/fonts/Fraunces-Regular.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Fraunces';font-style:italic;font-weight:300;src:url('/fonts/Fraunces-LightItalic.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Fraunces';font-style:italic;font-weight:400;src:url('/fonts/Fraunces-Italic.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:400;src:url('/fonts/Archivo-Regular.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:500;src:url('/fonts/Archivo-Medium.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;src:url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');font-display:swap}
+</style>`;
 
 export function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: string }) {
   const [html, setHtml] = useState("");
+  const [mounted, setMounted] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = useState(0.33);
+
+  // FIX hydration: iframe so renderiza apos mount — evita srcDoc mismatch
+  // entre SSR (html="") e client (html={template}).
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +92,7 @@ export function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: 
       className="relative w-full overflow-hidden bg-black"
       style={{ aspectRatio: "1080/1350" }}
     >
+      {mounted && (
       <iframe
         ref={iframeRef}
         srcDoc={html}
@@ -103,6 +122,7 @@ export function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: 
           pointerEvents: "none",
         }}
       />
+      )}
     </div>
   );
 }
