@@ -56,8 +56,7 @@ ${baseStyle(fontsBaseUrl)}
   margin-bottom: 16px;
 }
 .cover-head {
-  display: flex; flex-wrap: wrap;
-  
+  display: block;
   font-family: 'Fraunces', serif; font-weight: 400;
   font-size: 68px; line-height: 1.04; letter-spacing: -1px;
   color: #fff;

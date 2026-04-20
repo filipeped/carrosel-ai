@@ -27,8 +27,7 @@ export function renderCta(d: CtaData, fontsBaseUrl = ""): string {
   return `<!doctype html><html><head><meta charset="utf-8"/><style>
 ${baseStyle(fontsBaseUrl)}
 .cta-big {
-  display: flex;
-  flex-wrap: wrap;
+  display: block;
   font-family: 'Fraunces', serif; font-weight: 300;
   font-size: 68px; line-height: 1.04; letter-spacing: -1.4px;
   color: #fff;

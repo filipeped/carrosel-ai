@@ -30,14 +30,13 @@ ${baseStyle(fontsBaseUrl)}
   display: flex; width: 38px; height: 1px; background: rgba(255,255,255,0.6);
 }
 .insp-title {
-  display: flex; flex-wrap: wrap;
-  
+  display: block;
   font-family: 'Fraunces', serif; font-weight: 400;
   font-size: 74px; line-height: 1.04; letter-spacing: -1.4px;
   color: #fff;
 }
 .insp-sub {
-  display: flex;
+  display: block;
   font-family: 'Archivo', sans-serif;
   font-size: 18px; line-height: 1.5;
   color: rgba(255,255,255,0.92);
