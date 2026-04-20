@@ -1608,15 +1608,15 @@ function InstagramPreviewModal({
                 </button>
               </>
             )}
-            {needsTruncation && captionExpanded && (
-              <button
-                onClick={() => setCaptionExpanded(false)}
-                className="text-gray-500 hover:text-gray-700 font-normal block mt-2"
-              >
-                menos
-              </button>
-            )}
           </div>
+          {needsTruncation && captionExpanded && (
+            <button
+              onClick={() => setCaptionExpanded(false)}
+              className="mt-2 text-sm text-gray-500 hover:text-gray-800 font-medium"
+            >
+              mostrar menos
+            </button>
+          )}
           <div className="text-[11px] text-gray-500 uppercase tracking-wide mt-2 pb-3">
             há alguns segundos
           </div>
