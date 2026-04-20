@@ -58,7 +58,6 @@ export function SlideEditor({
 
   async function regenerateThisSlide() {
     if (!img) return;
-    if (!confirm(`Regenerar só este slide ${index + 1}?`)) return;
     setRegenBusy(true);
     try {
       const r = await fetch("/api/copy-single", {
