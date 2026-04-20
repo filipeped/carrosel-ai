@@ -18,14 +18,54 @@ export async function GET() {
     const { data, error } = await sb
       .from("carrosseis_gerados")
       .select(
-        "id, prompt, tema, slides, imagens_ids, draft_caption, scheduled_for, thumb_url, created_at",
+        "id, prompt, tema, slides, imagens_ids, draft_caption, scheduled_for, thumb_url, created_at, updated_at",
       )
       .eq("is_draft", true)
       .is("instagram_post_id", null)
-      .order("created_at", { ascending: false })
+      .order("updated_at", { ascending: false, nullsFirst: false })
       .limit(60);
     if (error) throw new Error(error.message);
-    return NextResponse.json({ data: data || [] });
+
+    // Resolve thumb_url pelo primeiro imagens_id quando nao tem gravado
+    const rows = (data || []) as Array<{
+      id: string;
+      slides?: Array<Record<string, unknown>>;
+      imagens_ids?: number[];
+      thumb_url?: string | null;
+      [k: string]: unknown;
+    }>;
+    const missingIds = Array.from(
+      new Set(
+        rows
+          .filter((r) => !r.thumb_url && r.imagens_ids?.length)
+          .map((r) => r.imagens_ids![0])
+          .filter(Boolean),
+      ),
+    );
+    if (missingIds.length) {
+      const { data: imgs } = await sb
+        .from("image_bank")
+        .select("id, url")
+        .in("id", missingIds);
+      const byId = new Map((imgs || []).map((i) => [i.id, i.url]));
+      for (const r of rows) {
+        if (!r.thumb_url && r.imagens_ids?.length) {
+          r.thumb_url = byId.get(r.imagens_ids[0]) || null;
+        }
+      }
+    }
+
+    // Adiciona "display_title" com o titulo da capa atual (slides[0].title)
+    const enriched = rows.map((r) => ({
+      ...r,
+      display_title:
+        (r.slides?.[0]?.title as string | undefined) ||
+        (r.tema as string | undefined) ||
+        (r.prompt as string | undefined) ||
+        "",
+    }));
+
+    return NextResponse.json({ data: enriched });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

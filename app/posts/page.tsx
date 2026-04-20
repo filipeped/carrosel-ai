@@ -7,6 +7,7 @@ type PostRow = {
   id: string;
   prompt: string;
   tema?: string;
+  display_title?: string;
   thumb_url?: string | null;
   instagram_post_id?: string | null;
   instagram_permalink?: string | null;
@@ -16,6 +17,7 @@ type PostRow = {
   scheduled_for?: string | null;
   is_draft?: boolean;
   created_at?: string;
+  updated_at?: string;
 };
 
 function formatRelative(iso?: string | null): string {
@@ -54,7 +56,8 @@ export default function PostsPage() {
 
   async function loadDrafts() {
     try {
-      const r = await fetch("/api/drafts");
+      // cache: no-store evita pegar versao antiga do browser/cdn
+      const r = await fetch("/api/drafts", { cache: "no-store" });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
       setDrafts(d.data || []);
@@ -234,7 +237,7 @@ export default function PostsPage() {
                     </div>
                   )}
                   <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full">
-                    {formatRelative(p.instagram_posted_at || p.created_at)}
+                    {formatRelative(p.instagram_posted_at || p.updated_at || p.created_at)}
                   </div>
                   {tab === "drafts" && (
                     <div className="absolute top-2 left-2 bg-amber-500/90 text-black text-[10px] px-2 py-0.5 rounded-full font-medium">
@@ -244,8 +247,13 @@ export default function PostsPage() {
                 </div>
                 <div className="p-3">
                   <div className="text-xs line-clamp-2 leading-snug opacity-90">
-                    {p.tema || p.prompt}
+                    {p.display_title || p.tema || p.prompt}
                   </div>
+                  {tab === "drafts" && (
+                    <div className="text-[10px] opacity-50 mt-1 truncate">
+                      {p.prompt}
+                    </div>
+                  )}
                   {tab === "drafts" && loadingDraft === p.id && (
                     <div className="text-[10px] opacity-60 mt-1">Abrindo...</div>
                   )}
