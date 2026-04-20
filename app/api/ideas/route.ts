@@ -5,7 +5,9 @@ import { getBrandVoiceReferences } from "@/lib/brand-voice";
 import { brandBlockCompact } from "@/lib/brand-context";
 
 export const runtime = "nodejs";
-export const maxDuration = 45;
+// Vercel Pro: 60s suficiente. 2 calls Claude em serie (gerar 16 + curar 8)
+// podem levar 20-40s cada com prompt grande. Antes era 45s e estourava em 504.
+export const maxDuration = 60;
 
 // ---------------------------------------------------------------------------
 // Persona — alinhada com brand-context (70% em obra / 30% casa pronta)
@@ -143,9 +145,11 @@ const FORMULAS = `10 FORMULAS VIRAIS — use variado, nao repete a mesma:
 OBS: formula 5, 9 e 1 funcionam MELHOR pra em obra (70% do publico). Use pelo menos 5 das 16 ideias com angle em obra.`;
 
 // ---------------------------------------------------------------------------
-// System: gerar 16 ideias
+// System: gerar 12 ideias virais JA CURADAS
 // ---------------------------------------------------------------------------
 function buildGenerateSystem(voiceRefs: string): string {
+  // Prompt compacto — antes era 5k tokens (PERSONA + GATILHOS + ANTI + FORMULAS + voiceRefs)
+  // e estourava timeout. Agora injetamos so o essencial.
   return `${brandBlockCompact()}
 
 ${PERSONA}
@@ -154,11 +158,9 @@ ${GATILHOS_VIRAIS}
 
 ${ANTI_INSPIRACIONAL}
 
-${FORMULAS}
+${voiceRefs ? `EXEMPLOS DO PERFIL (tom):\n${voiceRefs.slice(0, 1200)}\n\n` : ""}
 
-${voiceRefs ? `EXEMPLOS REAIS DO PERFIL (tom de voz):\n\n${voiceRefs}\n\n` : ""}
-
-TAREFA: gerar 16 ideias VIRAIS — nao inspiracionais. Cada uma em contexto diferente.
+TAREFA: gerar 12 ideias VIRAIS (JA CURADAS — so as melhores, nao 16). Cada uma em contexto diferente.
 
 REGRAS DURAS:
 - PELO MENOS 6 das 16 com angle EM OBRA (timing/retrabalho/integracao — nao da pra ignorar 70% do publico).
@@ -185,7 +187,7 @@ RETORNE JSON PURO:
     }
   ]
 }
-Exatamente 16. Distribuicao: 6+ em-obra, 3+ casa-pronta, resto ambos. Gatilhos variados.`;
+Exatamente 12. Distribuicao: 5+ em-obra, 3+ casa-pronta, resto ambos. Gatilhos variados.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -233,7 +235,7 @@ export async function POST(req: NextRequest) {
     // Busca referencias reais do perfil (top-20 posts)
     const voiceRefs = await getBrandVoiceReferences().catch(() => "");
 
-    // ETAPA 1
+    // ETAPA UNICA: gera 12 candidatas JA CURADAS (antes era 16+8 em 2 calls, estourava 504)
     const gen = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 2800,
@@ -243,8 +245,8 @@ export async function POST(req: NextRequest) {
           role: "user",
           content:
             (nicho
-              ? `Interesse: "${nicho}". So 1 das 16 pode tocar nisso; 15 exploram outros contextos com tom DIRETO AO DONO DE CASA. JSON puro.`
-              : "16 candidatas VIRAIS, distribuicao 6+ em-obra / 3+ casa-pronta / resto ambos. JSON puro.") +
+              ? `Interesse: "${nicho}". So 1-2 das 12 podem tocar nisso; resto explora outros contextos. JSON puro.`
+              : "12 ideias VIRAIS (NAO 16), JA CURADAS — retorna so as melhores. Distribuicao: 5+ em-obra / 3+ casa-pronta / resto ambos. JSON puro.") +
             excludeBlock +
             (seed ? `\n\n[rng=${seed}]` : ""),
         },
@@ -256,35 +258,49 @@ export async function POST(req: NextRequest) {
       const parsed: any = extractJson(genRaw);
       candidatas = Array.isArray(parsed) ? parsed : parsed.candidatas || [];
     } catch {
-      return NextResponse.json({ error: "IA JSON invalido (etapa 1)", raw: genRaw.slice(0, 300) }, { status: 500 });
+      return NextResponse.json({ error: "IA JSON invalido", raw: genRaw.slice(0, 300) }, { status: 500 });
     }
-    if (candidatas.length < 6) {
+    if (candidatas.length < 4) {
       return NextResponse.json({ error: `Apenas ${candidatas.length} candidatas`, candidatas }, { status: 500 });
     }
 
-    // ETAPA 2: curadoria
-    const cur = await getAi().chat.completions.create({
-      model: MODEL,
-      max_tokens: 1400,
-      messages: [
-        { role: "system", content: CURATE_SYSTEM },
-        {
-          role: "user",
-          content: `16 candidatas:\n${JSON.stringify(candidatas, null, 2)}\n\nSelecione as 8 mais VIRAIS. JSON puro.`,
-        },
-      ],
-    });
-    const curRaw = cur.choices[0]?.message?.content || "";
-    let ideias: any = {};
-    try {
-      const parsed: any = extractJson(curRaw);
-      ideias = Array.isArray(parsed) ? { ideias: parsed } : parsed;
-    } catch {
-      return NextResponse.json({
-        ideias: candidatas.slice(0, 8).map((c) => ({ titulo: c.titulo, hook: c.gancho || "" })),
-        _fallback: "curadoria falhou",
-      });
+    // Curadoria DETERMINISTICA (sem 2a call Claude) — pega top 8 evitando
+    // formulas/contextos repetidos. Prioriza em-obra e contrarian/info-gap.
+    const scoreHeuristic = (c: any): number => {
+      let s = 0;
+      if (c.persona === "em-obra") s += 3;
+      else if (c.persona === "ambos") s += 1;
+      const gat = String(c.gatilho_principal || "").toLowerCase();
+      if (gat.includes("information") || gat.includes("info-gap") || gat.includes("gap")) s += 3;
+      if (gat.includes("contrarian") || gat.includes("loss")) s += 3;
+      if (gat.includes("numero")) s += 2;
+      if (gat.includes("timing")) s += 2;
+      const formula = String(c.formula || "").toLowerCase();
+      if (formula.includes("inspiracional")) s -= 2;
+      return s;
+    };
+    const sorted = [...candidatas].sort((a, b) => scoreHeuristic(b) - scoreHeuristic(a));
+    const seenContexts = new Map<string, number>();
+    const seenFormulas = new Map<string, number>();
+    const top: any[] = [];
+    for (const c of sorted) {
+      if (top.length >= 8) break;
+      const ctx = String(c.contexto || "").toLowerCase();
+      const f = String(c.formula || "").toLowerCase();
+      if ((seenContexts.get(ctx) || 0) >= 2) continue;
+      if ((seenFormulas.get(f) || 0) >= 2) continue;
+      seenContexts.set(ctx, (seenContexts.get(ctx) || 0) + 1);
+      seenFormulas.set(f, (seenFormulas.get(f) || 0) + 1);
+      top.push(c);
     }
+    const ideias = {
+      ideias: top.map((c) => ({
+        titulo: c.titulo,
+        hook: c.gancho || "",
+        persona: c.persona,
+        gatilho: c.gatilho_principal,
+      })),
+    };
     return NextResponse.json(ideias);
   } catch (e: any) {
     console.error(e);
