@@ -56,14 +56,17 @@ export async function searchImages(prompt: string, count = 24): Promise<{ filter
 function buildCopySchema(slideCount: number): string {
   const lastIdx = slideCount - 1;
   return `Retorne OBJETO JSON { "slides": [ ...${slideCount} items... ] } sem markdown.
-[0] cover: { type:"cover", imageIdx:0, topLabel, numeral|null, title, italicWords:[] }
-[1..${lastIdx - 1}] plantDetail OU inspiration (alterne pra ter variedade)
+[0] cover: { type:"cover", imageIdx:0, topLabel, numeral:null, title, italicWords:[] }
+[1..${lastIdx - 1}] plantDetail OU inspiration (prefira inspiration pra desenvolver tese)
 [${lastIdx}] cta: { type:"cta", imageIdx:${lastIdx}, pergunta, italicWords:[] }
 
+FILOSOFIA: carrossel eh TESE defendida em ${slideCount} slides, nao lista numerada.
+Capa afirma crenca; slides sustentam com observacoes concretas; CTA contempla.
+
 REGRA DURA pro "numeral" da capa:
-- Deve ser APENAS 1 ou 2 digitos numericos puros (ex.: "5", "4", "12") — ou null.
-- PROIBIDO: "420m2", "120%", "3x", letras, unidades, porcentagem, superscript.
-- Se o tema nao pede contagem de itens, use null.`;
+- SEMPRE null. NAO prometa "N especies", "N decisoes", "N coisas".
+- Numero dificilmente cobre exatamente N itens — fica vazio e perde credibilidade.
+- Use numero no title SOMENTE se for fato concreto (tempo, medida real).`;
 }
 
 export async function generateCopy(

@@ -239,15 +239,28 @@ function buildCopyFromAnalysisSchema(slideCount: number): string {
   return `Retorne JSON: { "slides": [${slideCount} items] } sem markdown.
 Ordem: [0]cover, [1..${lastIdx - 1}]plantDetail|inspiration, [${lastIdx}]cta.
 
-cover: { type:"cover", imageIdx:0, topLabel, numeral|null, title, italicWords:[] }
+cover: { type:"cover", imageIdx:0, topLabel, numeral:null, title, italicWords:[] }
 plantDetail: { type:"plantDetail", imageIdx, nomePopular, nomeCientifico, title:null, subtitle:null, topLabel:null }
 inspiration: { type:"inspiration", imageIdx, title, subtitle, topLabel, nomePopular:null, nomeCientifico:null }
 cta: { type:"cta", imageIdx:${lastIdx}, pergunta, italicWords:[] }
 
-REGRAS ESTRUTURAIS:
+# FILOSOFIA DO CARROSSEL
+
+Carrossel eh uma TESE DESENVOLVIDA em ${slideCount} slides. NAO eh listagem.
+Capa afirma uma crenca; slides internos sustentam com argumentos/observacoes
+concretas; CTA final convida a contemplacao — nao pitch.
+
+# REGRAS ESTRUTURAIS
+
 - slides[0].type DEVE ser "cover"; slides[${lastIdx}].type DEVE ser "cta"
-- numeral: 1-2 digitos numericos puros ou null
-- Numeros em titulos: 3, 4 ou 5 apenas (nunca 6+)
+- numeral: SEMPRE null. NAO prometa "N especies", "N decisoes", "N motivos" — vira vazio
+  porque na maioria das vezes nao existe exatamente N de qualquer coisa pra falar.
+  Use numero so se for FATO concreto (ex: "8 anos" da historia da planta).
+- Titulos da capa: SEM numero generico na frente. NAO "As 5 plantas que...", NAO
+  "3 coisas que...". Prefira afirmacao/tese direta.
+- plantDetail SO se a planta aparece VISIVELMENTE na imagem — caso contrario use
+  inspiration. Preferir inspiration pra desenvolver a TESE mesmo em slides internos.
+- CTA: pergunta aberta contemplativa — nao "me manda no direct", nao "em que fase"
 
 REGRAS DE COERENCIA (CRITICAS):
 - A descricao_visual de cada imagem e SUA FONTE DE VERDADE. Nao invente elementos.

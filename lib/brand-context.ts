@@ -155,12 +155,35 @@ export const COMERCIAL_VENDEDOR = [
 ];
 
 /**
- * 6 hook frameworks 2026 — NAO COMERCIAIS.
- * Filosofia: conteudo de curador apaixonado, nao de vendedor educando cliente.
- * O que viraliza eh revelacao, sensorial, historia, observacao — nao "contrate".
- * Os hits reais do @digitalpaisagismo (249, 170, 94 saves) sao todos dessa linhagem.
+ * Listagem numerada forçada no titulo — raramente existem exatamente N itens
+ * relevantes pra falar, vira lista vazia ou generica. Banido.
+ * Match via regex: "3 plantas", "5 coisas", "4 motivos", "As 6 especies" etc.
+ */
+export const NUMERIC_LIST_REGEX = /^(as?\s+)?\d+\s+(decis|coisas|motivos|passos|regras|plantas|especies|detalhes|dicas|truques|verdades|erros|lic[oõ]es|princ[ií]pios)/i;
+
+/**
+ * 6 hook frameworks 2026 — NAO COMERCIAIS, NAO FORMULAICOS.
+ *
+ * Filosofia atualizada: carrossel eh uma TESE DESENVOLVIDA, nao uma listagem.
+ * Filipe defende uma crenca em 6-8 slides — nao promete "N itens" nem "N decisoes"
+ * (dificilmente se tem exatamente N plantas/motivos pra falar; o numero fica vazio
+ * e perde credibilidade).
+ *
+ * Hits reais do @digitalpaisagismo (249, 170, 94 saves) sao POSICIONAMENTOS, nao
+ * listas: "Quando a area externa faz sentido, voce para de viver so dentro de casa",
+ * "Sua casa merece um projeto que conecte cada ambiente com a natureza". Nenhum
+ * deles promete N de qualquer coisa.
  */
 export const HOOK_FRAMEWORKS_2026 = {
+  manifesto_tese: {
+    descricao: "Carrossel como manifesto. Capa afirma uma TESE; slides sustentam com argumentos/observacoes. Nao eh lista numerada — eh um ponto de vista defendido. A voz tem conviccao.",
+    exemplos: [
+      "Sua casa eh unica. Seu jardim tambem deveria ser.",
+      "Jardim nao eh decoracao. Eh extensao de como voce vive.",
+      "A area externa nao existe pra ser vista. Existe pra ser vivida.",
+      "Paisagismo nao eh plantar bonito. Eh projetar pra daqui 10 anos.",
+    ],
+  },
   revelacao: {
     descricao: "Revela um padrao/segredo que so quem ve muitos jardins percebe. Curiosidade pura, zero venda.",
     exemplos: [

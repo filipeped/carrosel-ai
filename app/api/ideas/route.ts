@@ -37,6 +37,16 @@ Zero "contrate", zero "antes da obra", zero "3 decisoes que", zero "me manda no 
 
 GATILHOS DE CURADOR QUE GERAM SAVE/SHARE:
 
+0. MANIFESTO/TESE (prioridade maxima — eh o DNA editorial)
+   Afirmacao de crenca forte que defende um ponto de vista. Carrossel vira ensaio
+   que sustenta a tese em multiplos slides. Nao lista — posicionamento.
+   ✅ "Sua casa eh unica. Seu jardim tambem deveria ser."
+   ✅ "Jardim nao eh decoracao. Eh extensao de como voce vive."
+   ✅ "Paisagismo nao eh plantar bonito. Eh projetar pra daqui 10 anos."
+   ✅ "A area externa nao existe pra ser vista. Existe pra ser vivida."
+   ❌ "3 decisoes antes de chamar paisagista" (lista comercial — NAO)
+   ❌ "Seu jardim eh lindo" (afirmacao vaga sem tese — NAO)
+
 1. REVELACAO (padrao que so quem ve muitos jardins percebe)
    ✅ "A maioria dos jardins alto padrao usa as mesmas 5 plantas. Nao eh coincidencia."
    ✅ "Existe uma arvore que todo jardim classico tem. E quase ninguem presta atencao nela."
@@ -160,31 +170,31 @@ ${voiceRefs ? `EXEMPLOS DO PERFIL (tom):\n${voiceRefs.slice(0, 1200)}\n\n` : ""}
 TAREFA: gerar 12 ideias VIRAIS (JA CURADAS — so as melhores, nao 16). Cada uma em contexto diferente.
 
 REGRAS DURAS:
-- Distribuicao por GATILHO: 3+ revelacao, 2+ sensorial, 2+ historia_da_planta, 2+ observacao, resto mix.
+- Distribuicao por GATILHO: 3+ manifesto/tese, 2+ revelacao, 2+ sensorial, 2+ historia ou observacao, resto mix.
 - Titulo fala pra QUEM OLHA jardim (dona, marido, arquiteto), nao pra quem vai CONTRATAR.
-- Entre 8 e 14 palavras.
-- Linguagem concreta, nao poesia: planta, arvore, folha, luz, sombra, tempo, estacao, detalhe, ritmo.
-- Pode citar contextos: entrada, fachada, area externa (nao "quintal"), varanda, piscina, area gourmet, rooftop, casa de campo, casa de praia, pergolado, deck, jardim de inverno.
+- Entre 7 e 14 palavras.
+- Linguagem concreta e com CONVICCAO: planta, arvore, folha, luz, sombra, tempo, estacao, detalhe, ritmo.
+- Um bom titulo de manifesto eh afirmativo ("X nao eh Y. Eh Z.") ou declarativo ("Sua casa merece...").
 - PROIBIDO:
   (a) Frases vazias: "acolhe", "abraca", "floresce", "reflete a alma"
-  (b) Tom comercial: "contratar", "antes de chamar", "antes da obra", "3 decisoes antes", "projeto 3D", "retrabalho", "o erro de R$", "custa 3x", "me manda no direct", "em que fase"
-  (c) Clickbait: "incrivel", "impressionante", "top", "dicas", "confira"
-  (d) Emoji, hashtag no titulo
-- Numero em lista so 3, 4 ou 5 — E sempre sobre PLANTAS/ELEMENTOS, nao sobre decisoes comerciais.
+  (b) Tom comercial: "contratar", "antes de chamar", "antes da obra", "N decisoes antes", "projeto 3D", "retrabalho", "o erro de R$", "custa 3x", "me manda no direct", "em que fase"
+  (c) Listagem numerada no titulo: "3 plantas que...", "5 coisas...", "4 motivos..." — dificilmente a gente tem exatamente N itens pra falar, fica vazio
+  (d) Clickbait: "incrivel", "impressionante", "top", "dicas", "confira"
+  (e) Emoji, hashtag no titulo
 
 RETORNE JSON PURO:
 {
   "candidatas": [
     {
       "titulo": string,
-      "formula": "revelacao|sensorial|historia-planta|observacao|comportamento|quebra-expectativa",
+      "formula": "manifesto|revelacao|sensorial|historia-planta|observacao|comportamento|quebra-expectativa",
       "contexto": string,
-      "gatilho_principal": "revelacao|sensorial|historia|observacao|comportamento|quebra",
+      "gatilho_principal": "manifesto|revelacao|sensorial|historia|observacao|comportamento|quebra",
       "gancho": string (por que alguem apaixonado por jardim salva essa — nao generico)
     }
   ]
 }
-Exatamente 12. Gatilhos variados (3+ revelacao, 2+ sensorial, 2+ historia, 2+ observacao).`;
+Exatamente 12. Distribuicao: 3+ manifesto/tese (prioridade), 2+ revelacao, 2+ sensorial, 2+ historia/observacao.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -265,16 +275,20 @@ export async function POST(req: NextRequest) {
     // historia, observacao). Penaliza tom comercial e inspiracional vazio no titulo.
     const COMMERCIAL_TERMS = [
       "contratar", "antes de chamar", "antes da obra", "antes do pedreiro", "antes do gesso",
-      "antes do arquiteto", "3 decis", "4 decis", "5 decis", "projeto 3d",
+      "antes do arquiteto", "projeto 3d",
       "retrabalho", "r$", "custa 3x", "custa o dobro", "me manda", "no direct",
       "em que fase", "a pergunta que voce devia",
     ];
     const INSPIRATIONAL_TERMS = [
       "abrac", "floresce", "acolhe", "reflete", "respira natureza", "envolve em",
     ];
+    // Titulos com numero forcado ("3 decis", "5 coisas", "4 motivos" etc) — raramente
+    // existe exatamente N itens pra falar, vira lista vazia. Penaliza forte.
+    const NUM_LIST_REGEX = /^(as?\s+)?\d+\s+(decis|coisas|motivos|passos|regras|plantas|especies|detalhes|dicas|truques|verdades|erros)/i;
     const scoreHeuristic = (c: any): number => {
       let s = 0;
       const gat = String(c.gatilho_principal || "").toLowerCase();
+      if (gat.includes("manifesto") || gat.includes("tese")) s += 5;  // prioridade maxima
       if (gat.includes("revelac")) s += 4;
       if (gat.includes("sensorial")) s += 3;
       if (gat.includes("historia")) s += 3;
@@ -284,6 +298,7 @@ export async function POST(req: NextRequest) {
       const titulo = String(c.titulo || "").toLowerCase();
       for (const t of COMMERCIAL_TERMS) if (titulo.includes(t)) s -= 5;
       for (const t of INSPIRATIONAL_TERMS) if (titulo.includes(t)) s -= 4;
+      if (NUM_LIST_REGEX.test(titulo)) s -= 6;  // lista numerada forcada
       return s;
     };
     const sorted = [...candidatas].sort((a, b) => scoreHeuristic(b) - scoreHeuristic(a));

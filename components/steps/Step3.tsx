@@ -167,14 +167,19 @@ export function Step3({
     }
     setSavingDraft(true);
     try {
+      // Salva SOMENTE as imagens escolhidas (ordem final), nao o pool inteiro.
+      // Antes enviava allImages (24 fotos do banco) — virou bug ao reabrir rascunho.
+      const orderedNow = [selection.cover, ...selection.inner, selection.cta];
+      const imagens_ids = orderedNow.map((im) => im?.id).filter(Boolean);
+
       const r = await fetch("/api/drafts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: carrosselId,
-          caption: selectedCaption,
-          slides, // persiste edicoes dos slides
-          imagens_ids: allImages.map((i) => i.id),
+          caption: selectedCaption,  // legenda selecionada no momento
+          slides,                     // slides com edicoes atuais
+          imagens_ids,                // ordem final das escolhidas
         }),
       });
       if (!r.ok) throw new Error("falha ao salvar");

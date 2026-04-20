@@ -11,31 +11,35 @@ function buildSchema(slideCount: number): string {
 
 IMPORTANTE: retorne um OBJETO JSON com a chave "slides" contendo array de ${slideCount} items. NAO retorne array direto. SEM texto explicativo antes ou depois. SEM code-fence markdown.
 
+FILOSOFIA: carrossel eh TESE defendida em ${slideCount} slides, nao lista numerada.
+- Capa afirma uma CRENCA ou observacao forte (ex: "Sua casa eh unica. Seu jardim tambem deveria ser.")
+- Slides internos sustentam a tese com observacoes concretas ou especies reais
+- CTA contempla a tese — pergunta aberta, nao pitch
+
 Formato:
 {
   "slides": [ ...${slideCount} slides aqui... ]
 }
 
-Onde cada slide segue:
+[0] CAPA:
+    { "type": "cover", "imageIdx": 0, "topLabel": string, "numeral": null, "title": string, "italicWords": string[] }
 
-[0] CAPA (obrigatorio type="cover"):
-    { "type": "cover", "imageIdx": 0, "topLabel": string, "numeral": string|null, "title": string, "italicWords": string[] }
-
-[1..${lastIdx - 1}] MIOLO — ${slideCount - 2} slides (obrigatorio type="plantDetail" ou "inspiration"):
+[1..${lastIdx - 1}] MIOLO:
     { "type": "plantDetail", "imageIdx": number, "nomePopular": string, "nomeCientifico": string, "title": null, "subtitle": null, "topLabel": null }
-    OU
+    OU (PREFERIR pra sustentar tese)
     { "type": "inspiration", "imageIdx": number, "title": string, "subtitle": string, "topLabel": string, "nomePopular": null, "nomeCientifico": null }
 
-[${lastIdx}] CTA FINAL (obrigatorio type="cta"):
+[${lastIdx}] CTA FINAL:
     { "type": "cta", "imageIdx": ${lastIdx}, "pergunta": string, "italicWords": string[] }
 
 REGRAS DURAS:
-- slides[0].type DEVE ser "cover"
-- slides[${lastIdx}].type DEVE ser "cta" (pergunta aberta pro leitor, ex: "Qual delas entra na sua casa?")
-- slides[1..${lastIdx - 1}] podem misturar "plantDetail" e "inspiration" conforme fizer sentido pra cada foto
-- imageIdx: use indices 0..N-1 das imagens; distribua bem, evite repetir
-- italicWords: 1-3 palavras do title/pergunta pra renderizar em italico decorativo
-- pra plantDetail, tire o nome cientifico da lista de plantas da imagem; nomePopular curto e poetico`;
+- slides[0].type DEVE ser "cover"; slides[${lastIdx}].type DEVE ser "cta"
+- numeral da capa: SEMPRE null. NAO prometa "N plantas", "N decisoes", "N motivos".
+  Numero dificilmente cobre N itens exatos — fica vazio, perde credibilidade.
+- plantDetail SO se a planta aparece VISIVELMENTE na imagem; se duvida, use inspiration.
+- imageIdx: 0..${lastIdx} das imagens; distribua bem, evite repetir
+- italicWords: 1-3 palavras do title/pergunta pra italico decorativo
+- CTA: pergunta aberta contemplativa, nao pitch de DM`;
 }
 
 export async function POST(req: NextRequest) {
