@@ -20,6 +20,11 @@ export function baseStyle(fontsBaseUrl = ""): string {
       color: #fff;
       background: #0a0d0b;
       display: flex;
+      /* QUALIDADE MAXIMA: forca antialiasing + text-rendering precisao geometrica.
+         Combina com pixelRatio=2 do capture pra texto super nitido no IG. */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: geometricPrecision;
     }
     .slide {
       position: relative;

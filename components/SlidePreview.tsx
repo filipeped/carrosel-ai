@@ -7,6 +7,7 @@ const FONTS_LINK = `<link rel="preconnect" href="https://fonts.googleapis.com"><
 export function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: string }) {
   const [html, setHtml] = useState("");
   const wrapRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = useState(0.33);
 
   useEffect(() => {
@@ -74,9 +75,22 @@ export function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: 
       style={{ aspectRatio: "1080/1350" }}
     >
       <iframe
+        ref={iframeRef}
         srcDoc={html}
         title="preview"
         sandbox="allow-same-origin"
+        onLoad={() => {
+          // Pre-warm: dispara fetch das fontes Google o mais cedo possivel
+          // pra que document.fonts.ready no capture nao precise esperar muito.
+          try {
+            const doc = iframeRef.current?.contentDocument;
+            if (doc?.fonts?.ready) {
+              doc.fonts.ready.catch(() => {});
+            }
+          } catch {
+            // ignora
+          }
+        }}
         style={{
           width: 1080,
           height: 1350,

@@ -27,6 +27,35 @@ export function InstagramPreviewModal({
   const [idx, setIdx] = useState(0);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [slideInfo, setSlideInfo] = useState<
+    Array<{ bytes: number; width: number; height: number }>
+  >([]);
+
+  // Mede bytes + dimensao de cada PNG capturado (data URL ou http URL).
+  // Transparente pro user: so pra exibir no rodape de qualidade.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const info: Array<{ bytes: number; width: number; height: number }> = [];
+      for (const url of images) {
+        try {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          const bytes = blob.size;
+          const bitmap = await createImageBitmap(blob);
+          info.push({ bytes, width: bitmap.width, height: bitmap.height });
+          bitmap.close?.();
+        } catch {
+          info.push({ bytes: 0, width: 0, height: 0 });
+        }
+        if (cancelled) return;
+      }
+      if (!cancelled) setSlideInfo(info);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [images]);
   const prev = () => !publishing && setIdx((i) => Math.max(0, i - 1));
   const next = () => !publishing && setIdx((i) => Math.min(images.length - 1, i + 1));
 
@@ -235,20 +264,48 @@ export function InstagramPreviewModal({
               )}
             </div>
           ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={onCancel}
-                className="flex-1 min-h-[44px] py-2.5 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-100"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={onConfirm}
-                className="flex-1 min-h-[44px] py-2.5 rounded-lg bg-black text-white text-sm font-medium hover:bg-gray-800"
-              >
-                Postar no Instagram
-              </button>
-            </div>
+            <>
+              {slideInfo.length > 0 && (
+                <div className="mb-3 text-[10px] text-gray-500 leading-tight space-y-0.5">
+                  {(() => {
+                    const curr = slideInfo[idx];
+                    if (!curr) return null;
+                    const kb = (curr.bytes / 1024).toFixed(0);
+                    const warn = curr.width < 1800;
+                    const avgKb = (
+                      slideInfo.reduce((s, x) => s + x.bytes, 0) / slideInfo.length / 1024
+                    ).toFixed(0);
+                    return (
+                      <>
+                        <div>
+                          Slide {idx + 1}: <strong>{curr.width}×{curr.height}</strong> · {kb}KB
+                          {warn && (
+                            <span className="ml-1 text-amber-600">⚠ dimensão baixa</span>
+                          )}
+                        </div>
+                        <div>
+                          {slideInfo.length} slides · média {avgKb}KB · Instagram faz downsize para 1080×1350
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={onCancel}
+                  className="flex-1 min-h-[44px] py-2.5 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={onConfirm}
+                  className="flex-1 min-h-[44px] py-2.5 rounded-lg bg-black text-white text-sm font-medium hover:bg-gray-800"
+                >
+                  Postar no Instagram
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
