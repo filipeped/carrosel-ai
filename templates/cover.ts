@@ -20,7 +20,7 @@ function highlightItalic(title: string, italicWords: string[] = []): string {
       `<span style="font-style:italic;font-weight:300;color:#d6e7c4">${safe}</span>`,
     );
   });
-  return `<span style="display:contents">${out}</span>`;
+  return out;
 }
 
 export function renderCover(d: CoverData, fontsBaseUrl = ""): string {

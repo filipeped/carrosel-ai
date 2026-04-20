@@ -211,12 +211,21 @@ async function renderViaSatori(html: string): Promise<Buffer> {
   const sanitized = sanitizeForSatori(htmlWithInlinedImages);
   const markup = htmlToReact(sanitized);
   if (!markup) throw new Error("satori-html retornou markup vazio");
-  const svg = await satori(markup as any, {
-    width: 1080,
-    height: 1350,
-    fonts: fonts as any,
-    embedFont: true,
-  });
+  let svg: string;
+  try {
+    svg = await satori(markup as any, {
+      width: 1080,
+      height: 1350,
+      fonts: fonts as any,
+      embedFont: true,
+    });
+  } catch (e: any) {
+    // Log detalhado pra debug — preview do HTML que crashou
+    const preview = sanitized.slice(0, 1500);
+    console.error("[satori] crash:", e.message);
+    console.error("[satori] sanitized preview:", preview);
+    throw new Error(`satori: ${e.message} | html_start: ${preview.slice(0, 400)}`);
+  }
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: 1080 },
     font: { loadSystemFonts: false },

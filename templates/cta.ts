@@ -18,9 +18,7 @@ function highlightItalic(title: string, italicWords: string[] = []): string {
       `<span style="font-style:italic;color:#d6e7c4">${safe}</span>`,
     );
   });
-  // Envolve em display:contents — evita que Satori trate text+span+text
-  // como "div multi-child sem display". Wrap some no layout.
-  return `<span style="display:contents">${out}</span>`;
+  return out;
 }
 
 export function renderCta(d: CtaData, fontsBaseUrl = ""): string {
