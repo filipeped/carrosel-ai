@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import type { ImageRow, Selection, SlideData } from "@/lib/types";
 import { useProgressSim } from "@/lib/hooks";
-import { captureSlideAsBlob, downloadSlideFromDom } from "@/lib/capture";
+import { captureSlideAsBlob, downloadSlideFromDom, resetCaptureRatio } from "@/lib/capture";
 import { CaptionPanel } from "../CaptionPanel";
 import { SlideEditor } from "../SlideEditor";
 import { InstagramPreviewModal } from "../InstagramPreviewModal";
@@ -215,6 +215,8 @@ export function Step3({
     }
     setCapturingPreview(true);
     setPostResult(null);
+    // Reset memoria de ratio: comeca em 2.5x na 1a tentativa do novo preview
+    resetCaptureRatio();
     try {
       const dataUrls: string[] = [];
       for (let i = 0; i < slides.length; i++) {

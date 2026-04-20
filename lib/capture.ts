@@ -36,6 +36,22 @@ function estimateBytes(dataUrl: string): number {
 }
 
 /**
+ * Memoiza o ratio que funcionou na ultima captura.
+ * Se slide 1 caiu em 1.5x porque imagem de fundo era pesada, muito provavel
+ * que slide 2 tambem caia no mesmo — comeca direto dai em vez de testar
+ * 2.5x e 2x que sempre vao estourar no mesmo carrossel.
+ */
+let lastSuccessfulRatio: number | null = null;
+
+/**
+ * Reseta o ratio memoizado. Chamar antes de iniciar um novo batch de captura
+ * (ex: novo preview, novo carrossel) pra que a 1a tentativa seja em 2.5x.
+ */
+export function resetCaptureRatio(): void {
+  lastSuccessfulRatio = null;
+}
+
+/**
  * Aguarda fontes do iframe carregarem antes de capturar. Evita flash of
  * unstyled text (FOUT) no snapshot final.
  */
@@ -59,7 +75,13 @@ async function waitForFonts(iframe: HTMLIFrameElement): Promise<void> {
  * mesmo que passe do limite (melhor entregar algo degradado que falhar).
  */
 async function captureDataUrl(inner: HTMLElement, attempt = 1): Promise<string | null> {
-  const ratios = [2.5, 2, 1.5, 1];   // ordem de preferencia (sempre cai ate 1)
+  const allRatios = [2.5, 2, 1.5, 1];
+  // Se o slide anterior caiu em R, comeca direto de R no atual — evita desperdicar
+  // tempo testando 2.5x e 2x num carrossel onde imagens de fundo sao pesadas
+  const startFrom = lastSuccessfulRatio
+    ? allRatios.findIndex((r) => r <= lastSuccessfulRatio!)
+    : 0;
+  const ratios = startFrom >= 0 ? allRatios.slice(startFrom) : allRatios;
   let lastDataUrl: string | null = null;
   let lastBytes = 0;
   let lastRatio = 0;
@@ -71,6 +93,7 @@ async function captureDataUrl(inner: HTMLElement, attempt = 1): Promise<string |
       lastBytes = bytes;
       lastRatio = ratio;
       if (bytes <= MAX_CLIENT_BYTES) {
+        lastSuccessfulRatio = ratio;
         if (ratio !== 2.5) {
           console.log(`[capture] ratio ${ratio}x OK (${(bytes / 1024).toFixed(0)}KB)`);
         }
