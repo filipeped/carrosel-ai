@@ -27,7 +27,8 @@ ${baseStyle(fontsBaseUrl)}
   margin-bottom: 18px;
 }
 .plant-name {
-  display: block;
+  display: flex; flex-wrap: wrap;
+  
   font-family: 'Fraunces', serif; font-weight: 400;
   font-size: 86px; line-height: 1; letter-spacing: -2px;
   color: #fff;
