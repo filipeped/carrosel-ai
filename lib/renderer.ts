@@ -177,30 +177,32 @@ async function inlineRemoteImages(html: string): Promise<string> {
  * satori-html doesn't create null text-node children that crash Satori.
  */
 function sanitizeForSatori(html: string): string {
-  // 1. Extract and preserve <style> blocks
+  // 1. Extrai <style> blocks do HTML inteiro (head ou body) pra preservar o CSS
   const styles: string[] = [];
-  let cleaned = html.replace(/<style[\s\S]*?<\/style>/gi, (m) => {
+  html.replace(/<style[\s\S]*?<\/style>/gi, (m) => {
     styles.push(m);
-    return "__STYLE_" + (styles.length - 1) + "__";
+    return "";
   });
 
-  // 2. Remove doctype/html/head wrappers (keep body content)
-  const bodyMatch = cleaned.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  if (bodyMatch) cleaned = bodyMatch[1];
+  // 2. Pega conteudo do <body>
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  let cleaned = bodyMatch ? bodyMatch[1] : html;
+
+  // 3. Remove wrappers residuais e <style> que sobraram dentro do body
   cleaned = cleaned.replace(/<!doctype[^>]*>/gi, "");
   cleaned = cleaned.replace(/<\/?html[^>]*>/gi, "");
   cleaned = cleaned.replace(/<\/?body[^>]*>/gi, "");
   cleaned = cleaned.replace(/<head[\s\S]*?<\/head>/gi, "");
+  cleaned = cleaned.replace(/<style[\s\S]*?<\/style>/gi, "");
 
-  // 3. Collapse whitespace between tags
+  // 4. Collapse whitespace entre tags
   cleaned = cleaned.replace(/>\s+</g, "><");
 
-  // 4. Restore <style> blocks (minified)
-  styles.forEach((s, i) => {
-    cleaned = cleaned.replace("__STYLE_" + i + "__", s.replace(/\n\s*/g, " "));
-  });
+  // 5. PREPENDA os <style> extraidos — assim Satori tem acesso ao CSS
+  //    (divs ja renderizam com display:flex das classes)
+  const stylesMinified = styles.map((s) => s.replace(/\n\s*/g, " ")).join("");
 
-  return cleaned.trim();
+  return (stylesMinified + cleaned).trim();
 }
 
 async function renderViaSatori(html: string): Promise<Buffer> {
