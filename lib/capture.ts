@@ -85,7 +85,8 @@ async function captureDataUrl(inner: HTMLElement, attempt = 1): Promise<string |
   let lastDataUrl: string | null = null;
   let lastBytes = 0;
   let lastRatio = 0;
-  for (const ratio of ratios) {
+  for (let idx = 0; idx < ratios.length; idx++) {
+    const ratio = ratios[idx];
     try {
       const dataUrl = await toPng(inner, { ...BASE_OPTS, pixelRatio: ratio });
       const bytes = estimateBytes(dataUrl);
@@ -98,6 +99,18 @@ async function captureDataUrl(inner: HTMLElement, attempt = 1): Promise<string |
           console.log(`[capture] ratio ${ratio}x OK (${(bytes / 1024).toFixed(0)}KB)`);
         }
         return dataUrl;
+      }
+      // SMART SKIP: se excedeu o dobro do limite, pula direto pra 1x.
+      // Nao faz sentido testar 2x e 1.5x quando 2.5x deu 13MB (todos vao estourar).
+      // Ratio 1x ~= 16% dos bytes de 2.5x (area), entao 13MB -> ~2MB em 1x.
+      const hugelyOver = bytes > MAX_CLIENT_BYTES * 2;
+      if (hugelyOver && idx < ratios.length - 1) {
+        console.warn(
+          `[capture] ratio ${ratio}x gerou ${(bytes / 1024 / 1024).toFixed(2)}MB (>2x limit), pulando direto pra 1x`,
+        );
+        // Salta pra ultimo indice (1x)
+        idx = ratios.length - 2;  // -2 porque o for vai incrementar
+        continue;
       }
       console.warn(
         `[capture] ratio ${ratio}x gerou ${(bytes / 1024 / 1024).toFixed(2)}MB > limit, tentando menor...`,
