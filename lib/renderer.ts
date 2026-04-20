@@ -119,7 +119,10 @@ async function inlineRemoteImages(html: string): Promise<string> {
 async function renderViaSatori(html: string): Promise<Buffer> {
   const fonts = await loadFonts();
   const htmlWithInlinedImages = await inlineRemoteImages(html);
-  const markup = htmlToReact(htmlWithInlinedImages);
+  // Remove whitespace between tags — satori-html converts it to null children
+  // which causes "object null is not iterable" in Satori
+  const minified = htmlWithInlinedImages.replace(/>\s+</g, "><").trim();
+  const markup = htmlToReact(minified);
   if (!markup) throw new Error("satori-html retornou markup vazio");
   const svg = await satori(markup as any, {
     width: 1080,
