@@ -266,25 +266,54 @@ export function InstagramPreviewModal({
           ) : (
             <>
               {slideInfo.length > 0 && (
-                <div className="mb-3 text-[10px] text-gray-500 leading-tight space-y-0.5">
+                <div className="mb-3 text-[10px] text-gray-500 leading-tight space-y-1">
                   {(() => {
                     const curr = slideInfo[idx];
                     if (!curr) return null;
                     const kb = (curr.bytes / 1024).toFixed(0);
-                    const warn = curr.width < 1800;
                     const avgKb = (
                       slideInfo.reduce((s, x) => s + x.bytes, 0) / slideInfo.length / 1024
                     ).toFixed(0);
+
+                    // Badge por tier de qualidade
+                    let badge: { label: string; cls: string };
+                    if (curr.width >= 2700) {
+                      badge = {
+                        label: "super HD 2.5x ✓",
+                        cls: "bg-emerald-100 text-emerald-800 border-emerald-300",
+                      };
+                    } else if (curr.width >= 2160) {
+                      badge = {
+                        label: "HD 2x ✓",
+                        cls: "bg-green-100 text-green-800 border-green-300",
+                      };
+                    } else if (curr.width >= 1080) {
+                      badge = {
+                        label: "nativo IG ✓",
+                        cls: "bg-blue-100 text-blue-800 border-blue-300",
+                      };
+                    } else {
+                      badge = {
+                        label: "abaixo do ideal",
+                        cls: "bg-amber-100 text-amber-800 border-amber-300",
+                      };
+                    }
+
                     return (
                       <>
-                        <div>
-                          Slide {idx + 1}: <strong>{curr.width}×{curr.height}</strong> · {kb}KB
-                          {warn && (
-                            <span className="ml-1 text-amber-600">⚠ dimensão baixa</span>
-                          )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>
+                            Slide {idx + 1}: <strong>{curr.width}×{curr.height}</strong> · {kb}KB
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full border text-[9px] uppercase tracking-wider ${badge.cls}`}>
+                            {badge.label}
+                          </span>
                         </div>
                         <div>
-                          {slideInfo.length} slides · média {avgKb}KB · Instagram faz downsize para 1080×1350
+                          {slideInfo.length} slides · média {avgKb}KB
+                        </div>
+                        <div className="text-gray-400 italic leading-snug pt-1">
+                          1080×1350 é o tamanho oficial do Instagram. Supersampling 2x/2.5x é bônus pra telas retina — IG faz downsize de qualquer foto maior.
                         </div>
                       </>
                     );

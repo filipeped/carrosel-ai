@@ -50,8 +50,9 @@ function readPngDimensions(buf: Buffer): { width: number; height: number } | nul
 
 // 4.5MB limite Vercel — 4MB pra ter folga
 const MAX_BYTES = 4 * 1024 * 1024;
-// Minimo garantido: capturado em 2x (2160x2700). Alerta se <1800 (algo quebrou).
-const MIN_WIDTH_WARN = 1800;
+// 1080 eh o tamanho NATIVO do Instagram (4:5). Abaixo disso eh captura quebrada.
+// Supersampling 2x (2160) ou 2.5x (2700) eh bonus pra telas retina.
+const EXPECTED_NATIVE_WIDTH = 1080;
 
 export async function POST(req: NextRequest) {
   try {
@@ -84,11 +85,11 @@ export async function POST(req: NextRequest) {
       `[upload-slide] slide-${index + 1}: ${dimStr} ${origKb}KB -> ${finalKb}KB (economia ${savedKb}KB)`,
     );
 
-    // FIX B.3 — warn se dimensao < esperado (captura quebrada em 1x?)
-    if (dims && dims.width < MIN_WIDTH_WARN) {
+    // Warn so se dimensao < target IG (1080) — algo REAL quebrou.
+    // Entre 1080 e 2700+ eh tudo valido (nativo ou supersampled).
+    if (dims && dims.width < EXPECTED_NATIVE_WIDTH) {
       console.warn(
-        `[upload-slide] slide-${index + 1}: dimensao ${dimStr} < esperada (2160x2700). ` +
-          `Captura pode estar rodando em 1x ao inves de 2x.`,
+        `[upload-slide] slide-${index + 1}: dimensao ${dimStr} < ${EXPECTED_NATIVE_WIDTH}px (target IG). Captura quebrada.`,
       );
     }
 
