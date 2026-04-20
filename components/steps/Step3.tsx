@@ -41,6 +41,7 @@ export function Step3({
   const [capturingPreview, setCapturingPreview] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
+  const [regenCopy, setRegenCopy] = useState(false);
 
   useEffect(() => {
     try {
@@ -72,6 +73,51 @@ export function Step3({
       }
     } finally {
       setBusyAll(false);
+    }
+  }
+
+  async function regenerateCopy() {
+    setRegenCopy(true);
+    try {
+      // Pega as imagens atualmente atribuidas aos slides (respeita trocas)
+      const ordered = slides.map((s) => allImages[s.imageIdx] || allImages[0]);
+      const r = await fetch("/api/copy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, images: ordered }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      const sl = (d.slides || []).slice(0, 6);
+      while (sl.length < 6) {
+        sl.push({ type: "inspiration", imageIdx: sl.length, title: "", subtitle: "" });
+      }
+      setSlides(sl);
+
+      // Regenera legendas em background com prompt + slides novos
+      const imageUrls = Array.from(
+        new Set(ordered.map((im) => im?.url).filter(Boolean)),
+      ).slice(0, 6);
+      fetch("/api/caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, slides: sl, imageUrls }),
+      })
+        .then((res) => res.json())
+        .then((cap) => {
+          if (cap.options?.length) {
+            fetch("/api/captions-history", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt, options: cap.options }),
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {});
+    } catch (e) {
+      alert(`Erro ao regenerar: ${(e as Error).message}`);
+    } finally {
+      setRegenCopy(false);
     }
   }
 
@@ -189,6 +235,14 @@ export function Step3({
             className="flex-1 sm:flex-none px-3 sm:px-4 py-2 min-h-[44px] text-xs tracking-wider uppercase opacity-60 hover:opacity-100 transition-opacity"
           >
             ← Voltar
+          </button>
+          <button
+            disabled={regenCopy}
+            onClick={regenerateCopy}
+            className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
+            title="Re-analisa as imagens atuais + tema e gera copy nova"
+          >
+            {regenCopy ? "Gerando..." : "↻ Gerar copy"}
           </button>
           <button
             disabled={savingDraft || !carrosselId}
