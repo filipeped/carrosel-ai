@@ -645,25 +645,24 @@ function Step3({
     setBusyPost(true);
     setPostResult(null);
     try {
-      // render server-side (Puppeteer em dev, Satori em prod) — evita stack overflow do html-to-image
-      const pngs: string[] = [];
-      for (let i = 0; i < slides.length; i++) {
-        const s = slides[i];
-        const imgUrl = allImages[s.imageIdx]?.url || allImages[0]?.url;
-        if (!imgUrl) throw new Error(`slide ${i + 1} sem imagem`);
-        const r = await fetch("/api/render-slide", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slide: s, imageUrl: imgUrl }),
-        });
-        if (!r.ok) {
-          const err = await r.json().catch(() => ({ error: `status ${r.status}` }));
-          throw new Error(`falha ao renderizar slide ${i + 1}: ${err.error}`);
-        }
-        const buf = await r.arrayBuffer();
-        const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-        pngs.push(b64);
-      }
+      // render server-side em paralelo (Puppeteer em dev, Satori em prod) — evita stack overflow do html-to-image
+      const pngs = await Promise.all(
+        slides.map(async (s, i) => {
+          const imgUrl = allImages[s.imageIdx]?.url || allImages[0]?.url;
+          if (!imgUrl) throw new Error(`slide ${i + 1} sem imagem`);
+          const r = await fetch("/api/render-slide", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slide: s, imageUrl: imgUrl }),
+          });
+          if (!r.ok) {
+            const err = await r.json().catch(() => ({ error: `status ${r.status}` }));
+            throw new Error(`falha ao renderizar slide ${i + 1}: ${err.error}`);
+          }
+          const buf = await r.arrayBuffer();
+          return btoa(String.fromCharCode(...new Uint8Array(buf)));
+        }),
+      );
       const r = await fetch("/api/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

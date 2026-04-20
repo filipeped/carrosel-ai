@@ -28,6 +28,7 @@ async function getBrowser() {
     _browser = await puppeteer.default.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      protocolTimeout: 60000,
     });
     _launching = null;
     return _browser;
@@ -40,7 +41,10 @@ async function renderViaPuppeteer(html: string): Promise<Buffer> {
   const page = await browser.newPage();
   try {
     await page.setViewport({ width: 1080, height: 1350, deviceScaleFactor: 1 });
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30000 });
+    // 'load' em vez de 'networkidle0' — nao espera Google Fonts/Supabase ficarem totalmente idle
+    await page.setContent(html, { waitUntil: "load", timeout: 15000 });
+    // pequeno delay pra fontes aplicarem
+    await new Promise((r) => setTimeout(r, 400));
     const buf = (await page.screenshot({
       type: "png",
       clip: { x: 0, y: 0, width: 1080, height: 1350 },
