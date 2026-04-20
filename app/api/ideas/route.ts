@@ -163,7 +163,11 @@ Exatamente 8. Ordene da mais forte pra mais fraca (em termos de potencial de sav
 
 export async function POST(req: NextRequest) {
   try {
-    const { nicho } = await req.json().catch(() => ({}));
+    const { nicho, exclude, seed } = await req.json().catch(() => ({}));
+    const excludeList: string[] = Array.isArray(exclude) ? exclude.slice(0, 30) : [];
+    const excludeBlock = excludeList.length
+      ? `\n\nNAO REPETIR ideias similares a essas (ja foram geradas recentemente):\n${excludeList.map((t) => `- ${t}`).join("\n")}\nSugira angulos e temas DIFERENTES.`
+      : "";
 
     // Busca referencias reais do perfil (top-20 posts)
     const voiceRefs = await getBrandVoiceReferences().catch(() => "");
@@ -176,9 +180,12 @@ export async function POST(req: NextRequest) {
         { role: "system", content: buildGenerateSystem(voiceRefs) },
         {
           role: "user",
-          content: nicho
-            ? `Interesse: "${nicho}". So 1 das 16 pode tocar nisso; 15 exploram outros contextos com tom DIRETO AO DONO DE CASA. JSON puro.`
-            : "16 candidatas, tons variados, sempre falando ao DONO DE CASA com linguagem emocional e concreta. JSON puro.",
+          content:
+            (nicho
+              ? `Interesse: "${nicho}". So 1 das 16 pode tocar nisso; 15 exploram outros contextos com tom DIRETO AO DONO DE CASA. JSON puro.`
+              : "16 candidatas, tons variados, sempre falando ao DONO DE CASA com linguagem emocional e concreta. JSON puro.") +
+            excludeBlock +
+            (seed ? `\n\n[rng=${seed}]` : ""),
         },
       ],
     });

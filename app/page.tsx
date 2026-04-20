@@ -243,23 +243,27 @@ export default function Home() {
         </div>
       )}
 
+      {/* Barra global — fica visivel em qualquer step enquanto gera */}
+      {currentFlow && (
+        <div className="mb-6 border border-[#d6e7c4]/30 bg-[#d6e7c4]/5 rounded-lg px-4 py-3">
+          <div className="text-[10px] tracking-widest uppercase opacity-70 mb-1">
+            {currentFlow === "search" ? "Gerando seleção de imagens…" : "Gerando copy dos slides…"} (continua mesmo se trocar de aba)
+          </div>
+          <ProgressBar progress={currentFlow === "search" ? searchProgress : copyProgress} />
+        </div>
+      )}
+
       {step === 1 && (
-        <>
-          <Step1 prompt={prompt} setPrompt={setPrompt} loading={loading} onSearch={doSmartSearch} />
-          <ProgressBar progress={searchProgress} />
-        </>
+        <Step1 prompt={prompt} setPrompt={setPrompt} loading={loading} onSearch={doSmartSearch} />
       )}
       {step === 2 && selection && (
-        <>
-          <Step2
-            selection={selection}
-            loading={loading}
-            onBack={() => setStep(1)}
-            onConfirm={confirmAndGenerateCopy}
-            onSwap={swapSelection}
-          />
-          <ProgressBar progress={copyProgress} />
-        </>
+        <Step2
+          selection={selection}
+          loading={loading}
+          onBack={() => setStep(1)}
+          onConfirm={confirmAndGenerateCopy}
+          onSwap={swapSelection}
+        />
       )}
       {step === 3 && selection && (
         <Step3
