@@ -21,6 +21,22 @@ let _browser: any = null;
 let _launching: Promise<any> | null = null;
 
 async function launchBrowser() {
+  // Em Vercel serverless: puppeteer-core + @sparticuz/chromium
+  // Em dev local: puppeteer full
+  const isServerless = !!process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+  if (isServerless) {
+    const [{ default: chromium }, { default: puppeteerCore }] = await Promise.all([
+      import("@sparticuz/chromium"),
+      import("puppeteer-core"),
+    ]);
+    return puppeteerCore.launch({
+      args: chromium.args,
+      defaultViewport: { width: 1080, height: 1350 },
+      executablePath: await chromium.executablePath(),
+      headless: true,
+      protocolTimeout: 60000,
+    });
+  }
   const puppeteer = await import("puppeteer");
   return puppeteer.default.launch({
     headless: true,
@@ -176,6 +192,39 @@ async function inlineRemoteImages(html: string): Promise<string> {
  * <style>/<script>/<head> blocks, and collapse inter-tag whitespace so
  * satori-html doesn't create null text-node children that crash Satori.
  */
+/**
+ * Satori aceita <style> mas engasga em coisas tipo :root, *, html/body, e
+ * comentarios. Preserva o resto (inclusive seletor composto .foo .bar).
+ */
+function cleanCssForSatori(styleBlock: string): string {
+  const inner = styleBlock.replace(/<\/?style[^>]*>/gi, "");
+  // remove comentarios /* ... */
+  const noComments = inner.replace(/\/\*[\s\S]*?\*\//g, "");
+  // quebra em regras { ... } e filtra as indesejaveis
+  const rules: string[] = [];
+  const ruleRegex = /([^{}]+)\{([^{}]*)\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = ruleRegex.exec(noComments)) !== null) {
+    const selectorRaw = m[1].trim();
+    const body = m[2].trim();
+    if (!selectorRaw || !body) continue;
+    // remove pseudo, :root, *, html/body do seletor
+    const selectors = selectorRaw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .filter((s) => {
+        if (s.startsWith(":")) return false; // :root, :hover, etc
+        if (s === "*") return false;
+        if (/^(html|body)\b/.test(s)) return false;
+        return true;
+      });
+    if (!selectors.length) continue;
+    rules.push(`${selectors.join(",")} { ${body} }`);
+  }
+  return `<style>${rules.join(" ")}</style>`;
+}
+
 function sanitizeForSatori(html: string): string {
   // 1. Extrai <style> blocks do HTML inteiro (head ou body) pra preservar o CSS
   const styles: string[] = [];
@@ -198,11 +247,14 @@ function sanitizeForSatori(html: string): string {
   // 4. Collapse whitespace entre tags
   cleaned = cleaned.replace(/>\s+</g, "><");
 
-  // 5. PREPENDA os <style> extraidos — assim Satori tem acesso ao CSS
-  //    (divs ja renderizam com display:flex das classes)
-  const stylesMinified = styles.map((s) => s.replace(/\n\s*/g, " ")).join("");
+  // 5. Elementos vazios (span/div sem filho) recebem um espaco — satori-html
+  //    trata children vazio como null, e satori crasha iterando null.
+  cleaned = cleaned.replace(/<(span|div)([^>]*)><\/(?:span|div)>/g, "<$1$2>&nbsp;</$1>");
 
-  return (stylesMinified + cleaned).trim();
+  // 6. Limpa o CSS — sem :root/*/html/body/comments.
+  const stylesCleaned = styles.map(cleanCssForSatori).join("");
+
+  return (stylesCleaned + cleaned).trim();
 }
 
 async function renderViaSatori(html: string): Promise<Buffer> {
@@ -240,7 +292,9 @@ async function renderViaSatori(html: string): Promise<Buffer> {
 function shouldUsePuppeteer(): boolean {
   if (process.env.USE_PUPPETEER === "1") return true;
   if (process.env.USE_SATORI === "1") return false;
-  return process.env.NODE_ENV !== "production";
+  // Vercel tem @sparticuz/chromium configurado — usa Puppeteer tambem em prod
+  // (Satori tem muitas limitacoes com nossos templates)
+  return true;
 }
 
 export async function renderHtmlToPng(html: string): Promise<Buffer> {
