@@ -109,10 +109,12 @@ REGRA DURA DE HONESTIDADE VISUAL:
 - Nunca cite especie por nome cientifico se voce nao ve claramente. Prefira nome popular ou descricao ("folhagem tropical densa").
 - Nunca afirme "no slide 3 aparece X" se voce nao ve X no slide 3.
 
-3 ABORDAGENS DIFERENTES (alinhadas ao tom real do @digitalpaisagismo):
+5 ABORDAGENS DIFERENTES (alinhadas ao tom real do @digitalpaisagismo):
 - **direta_emocional** — afirmacao factual curta que conecta emocionalmente ("Chegar em casa e sentir a natureza em cada detalhe"). Parte de um insight concreto do resultado, nao de tecnica.
 - **contraste_verdade** — provocacao honesta que quebra crenca comum ("A maioria dos jardins de alto padrao usa as mesmas 5 plantas. Nao e coincidencia."). Ativa ego do publico AA.
 - **tecnico_relacional** — explica o porque tecnico sem jargao, sempre conectando ao USO do espaco ("Um bom paisagismo nao e so sobre plantas. E sobre criar espacos que fazem sentido com a sua rotina.").
+- **contrarian_forte** — quebra forte de consenso + custo concreto. Vai contra o que o publico assume como verdade. Gera debate/save. Ex: "Contratar paisagista depois da obra custa 3x mais. E a maioria descobre tarde demais." Sempre tem numero ou custo real.
+- **information_gap** — abre loop de curiosidade que SO a ultima frase fecha. Forca leitura completa. Ex: "A pergunta que voce devia fazer ao arquiteto antes de fechar o projeto nao tem nada a ver com plantas. Tem a ver com uma decisao que custa caro demais pra voltar atras depois. E quase ninguem pensa nela."
 
 REGRAS DURAS:
 - TAMANHO: MAXIMO 50 PALAVRAS. Nao eh sugestao, eh limite duro — contar cada palavra. Ideal 30-45.

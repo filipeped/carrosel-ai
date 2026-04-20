@@ -93,6 +93,110 @@ export const PRIVILEGIO_3D = [
 ];
 
 /**
+ * Frases inspiracionais vazias — BANIDAS em carrossel viral 2026.
+ * Linguagem poetica que soa bonita mas nao gera save nem share.
+ */
+export const INSPIRACIONAL_VAZIO = [
+  "abraça", "abraçando", "abraçar",
+  "floresce", "florescer", "florescendo",
+  "reflete sua alma", "reflete a alma",
+  "acolhe", "acolhendo", "acolher",
+  "convida pra", "convida o olhar",
+  "dança com", "dançando com",
+  "respira natureza",
+  "se conecta com",
+  "pulsa vida",
+  "sussurra",
+  "envolve em magia",
+  "traduz sentimentos",
+  "eleva os sentidos",
+  "desperta emoções",
+  "cria um refugio de paz",
+  "toca o coração",
+];
+
+/**
+ * 6 hook frameworks 2026 — o que realmente viraliza.
+ * Fonte: pesquisa TrueFuture/Postnitro/Rafael Terra 2026.
+ * Cada um com 3 exemplos aplicados a paisagismo.
+ */
+export const HOOK_FRAMEWORKS_2026 = {
+  pattern_interrupt: {
+    descricao: "Quebra expectativa visual/cognitiva em 2 segundos. Estado afirmativo forte, nao pergunta.",
+    exemplos: [
+      "Piscina nao eh o destaque da area externa.",
+      "Contratar paisagista depois da obra eh retrabalho com nome bonito.",
+      "O jardim nao esta errado. A ordem das decisoes estava.",
+    ],
+  },
+  information_gap: {
+    descricao: "Abre loop que so o carrossel fecha. Promete payoff especifico. Obriga swipe.",
+    exemplos: [
+      "3 decisoes que o arquiteto nao toma por voce e definem o jardim por 20 anos.",
+      "A pergunta que paisagistas evitam — e muda tudo no teu projeto.",
+      "O erro de R$40 mil que aparece no segundo verao depois da obra.",
+    ],
+  },
+  contrarian: {
+    descricao: "Vai contra senso comum. Gera debate nos comments. Shares por discordancia.",
+    exemplos: [
+      "Casa pronta eh onde mais se perde dinheiro com paisagismo ruim.",
+      "A planta certa no lugar errado custa o dobro pra consertar.",
+      "Jardim grande nao eh melhor. So eh mais caro quando da errado.",
+    ],
+  },
+  specific_number: {
+    descricao: "Numero concreto + consequencia mensuravel. Credibilidade imediata.",
+    exemplos: [
+      "Quebrar piso pra passar irrigacao custa 3x mais do que planejar antes.",
+      "5 anos olhando aquela area externa sem usar. Quantos domingos ja foram?",
+      "40% do orcamento de paisagismo vai pra retrabalho quando a ordem esta errada.",
+    ],
+  },
+  status_prize_frame: {
+    descricao: "Ativa pertencimento a clube alto padrao. Prize Frame: voce eh o premio.",
+    exemplos: [
+      "Projetos alto padrao sao seletivos. Nao eh pra todo mundo.",
+      "O detalhe que quem entende de paisagismo olha primeiro.",
+      "Voce decide com uma clareza que 99% das pessoas nao tem.",
+    ],
+  },
+  timing: {
+    descricao: "Urgencia especifica ao momento do publico. Timing de obra eh ouro pra 70% em-obra.",
+    exemplos: [
+      "Se a obra esta na alvenaria, esse eh o momento de definir a irrigacao.",
+      "Antes do gesso fechar, o projeto paisagistico ja precisa existir.",
+      "O momento exato pra contratar paisagismo nao eh quando voce pensou.",
+    ],
+  },
+} as const;
+
+export type HookFrameworkKey = keyof typeof HOOK_FRAMEWORKS_2026;
+
+/**
+ * Bloco que lista todos os 6 frameworks — pra injetar no prompt do viralMaster.
+ */
+export function viralFrameworksBlock(): string {
+  const items = Object.entries(HOOK_FRAMEWORKS_2026)
+    .map(
+      ([key, v]) =>
+        `### ${key}\n${v.descricao}\nExemplos aplicados:\n${v.exemplos.map((e) => `- "${e}"`).join("\n")}`,
+    )
+    .join("\n\n");
+  return `## 6 FRAMEWORKS DE HOOK VIRAL 2026 (fonte: TrueFuture, Postnitro, Rafael Terra)
+
+Cada carrossel DEVE usar 1 destes frameworks no slide 1 (capa) e na primeira linha da legenda.
+
+${items}
+
+## ANTI-INSPIRACIONAL (BANIDO)
+Zero tolerancia a frases de efeito vazias. Lista banida (regex match):
+${INSPIRACIONAL_VAZIO.map((w) => `- "${w}"`).join("\n")}
+
+Se a copy usa qualquer termo acima, REESCREVE. Frase inspiracional bonita = zero save, zero share.`;
+}
+
+/**
  * Bloco compacto pra injetar em prompts de sistema (Claude).
  * Evita estourar tokens, foca no essencial.
  */

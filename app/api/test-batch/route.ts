@@ -3,6 +3,7 @@ import { getSupabase } from "@/lib/supabase";
 import { runSmartCarousel } from "@/lib/smart-pipeline";
 import { generateCaption } from "@/lib/pipeline";
 import { optimizeCaption } from "@/lib/agents/caption-optimizer";
+import { viralMaster } from "@/lib/agents/viral-master";
 import { rankCaptionVariants } from "@/lib/agents/variant-ranker";
 import { critiqueCarousel } from "@/lib/agents/carousel-critic";
 import { getAi, MODEL, BRAND_VOICE } from "@/lib/claude";
@@ -80,17 +81,17 @@ Retorne APENAS o JSON da capa:
 }
 
 const VARIANTS_10: Variant[] = [
-  // 3 abordagens x 3 estratégias de hook + 1 baseline
+  // 5 abordagens (3 classicas + 2 novas virais) x hooks rotativos = 10 variantes
   { label: "direta_pergunta", approach: "direta_emocional", hookStrategy: "pergunta", useAgents: true },
-  { label: "direta_contraste", approach: "direta_emocional", hookStrategy: "contraste", useAgents: true },
   { label: "direta_promessa", approach: "direta_emocional", hookStrategy: "promessa", useAgents: true },
-  { label: "contraste_pergunta", approach: "contraste_verdade", hookStrategy: "pergunta", useAgents: true },
   { label: "contraste_contraste", approach: "contraste_verdade", hookStrategy: "contraste", useAgents: true },
   { label: "contraste_promessa", approach: "contraste_verdade", hookStrategy: "promessa", useAgents: true },
   { label: "tecnico_pergunta", approach: "tecnico_relacional", hookStrategy: "pergunta", useAgents: true },
-  { label: "tecnico_contraste", approach: "tecnico_relacional", hookStrategy: "contraste", useAgents: true },
   { label: "tecnico_promessa", approach: "tecnico_relacional", hookStrategy: "promessa", useAgents: true },
-  { label: "baseline_no_agents", approach: "mix", hookStrategy: "auto", useAgents: false },
+  { label: "contrarian_contraste", approach: "contrarian_forte", hookStrategy: "contraste", useAgents: true },
+  { label: "contrarian_promessa", approach: "contrarian_forte", hookStrategy: "promessa", useAgents: true },
+  { label: "infogap_pergunta", approach: "information_gap", hookStrategy: "pergunta", useAgents: true },
+  { label: "infogap_contraste", approach: "information_gap", hookStrategy: "contraste", useAgents: true },
 ];
 
 export async function POST(req: NextRequest) {
@@ -138,26 +139,58 @@ export async function POST(req: NextRequest) {
           let options = r.options || [];
           if (v.approach !== "mix") {
             const matched = options.find((o) => o.abordagem === v.approach);
+            // Fallback: se nao achou approach exato, usa primeira option disponivel
+            // (evita erro silencioso quando LLM nomeia abordagem diferente)
             if (matched) options = [matched];
+            else if (options.length > 0) {
+              console.warn(`[test-batch] variante ${v.label}: approach "${v.approach}" nao encontrado, usando "${options[0].abordagem}"`);
+            }
           }
           const chosen = options[0];
-          if (!chosen) throw new Error("sem opcao gerada");
+          if (!chosen) throw new Error(`sem opcao gerada pro approach "${v.approach}" (recebeu ${r.options?.length || 0} options)`);
 
-          // 3. Optimizer (se useAgents)
-          let finalCaption = chosen;
+          // 3. Optimizer (brand polish) + Viral Master (hook 2026) se useAgents
+          let finalCaption: typeof chosen & {
+            _gatilho_viral?: string;
+            _score_viralidade?: number;
+            _viral_rationale?: string;
+          } = chosen;
           if (v.useAgents) {
             const opt = await optimizeCaption({
               legenda: chosen.legenda,
               hashtags: chosen.hashtags,
               approach: chosen.abordagem,
-            }).catch(() => null);
-            if (opt) {
-              finalCaption = {
-                ...chosen,
-                legenda: opt.legenda,
-                hashtags: opt.hashtags,
-              };
-            }
+            }).catch((e) => {
+              console.error(`[test-batch] optimizer falhou na variante ${v.label}:`, (e as Error).message);
+              return null;
+            });
+            const afterOptimizer = opt
+              ? { ...chosen, legenda: opt.legenda, hashtags: opt.hashtags }
+              : chosen;
+
+            // Viral Master — mata inspiracional + garante hook 2026
+            const vm = await viralMaster({
+              legenda: afterOptimizer.legenda,
+              hashtags: afterOptimizer.hashtags,
+              slides: slidesForVariant,
+              prompt,
+              approach: afterOptimizer.abordagem,
+              persona: baseRun.analysis?.persona,
+            }).catch((e) => {
+              console.error(`[test-batch] viral-master falhou na variante ${v.label}:`, (e as Error).message);
+              return null;
+            });
+
+            finalCaption = vm
+              ? {
+                  ...afterOptimizer,
+                  legenda: vm.legenda_viral,
+                  hashtags: vm.hashtags.length ? vm.hashtags : afterOptimizer.hashtags,
+                  _gatilho_viral: vm.gatilho_usado,
+                  _score_viralidade: vm.score_viralidade,
+                  _viral_rationale: vm.rationale,
+                }
+              : afterOptimizer;
           }
 
           // 4. Critic avalia os slides DESSA variante (com capa nova)
@@ -170,7 +203,9 @@ export async function POST(req: NextRequest) {
                 persona: baseRun.analysis?.persona,
               });
               variantCriticScore = crit.score;
-            } catch {}
+            } catch (e) {
+              console.error(`[test-batch] critic falhou na variante ${v.label}:`, (e as Error).message);
+            }
           }
 
           return {
@@ -179,13 +214,15 @@ export async function POST(req: NextRequest) {
             hook_strategy: v.hookStrategy,
             slides: slidesForVariant,
             caption_options: [finalCaption],
-            agents_used: v.useAgents ? ["prompt-analyst", "critic", "optimizer"] : [],
+            agents_used: v.useAgents ? ["prompt-analyst", "critic", "optimizer", "viral-master"] : [],
             critic_score: variantCriticScore,
           };
         } catch (e) {
+          const err = e as Error;
+          console.error(`[test-batch] variante ${v.label} falhou:`, err.message, err.stack?.split("\n")[1]?.trim());
           return {
             variant_label: v.label,
-            error: (e as Error).message,
+            error: err.message,
           };
         }
       }),

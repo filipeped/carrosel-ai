@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateCaption } from "@/lib/pipeline";
 import { optimizeCaption } from "@/lib/agents/caption-optimizer";
+import { viralMaster } from "@/lib/agents/viral-master";
 import { rankCaptionVariants } from "@/lib/agents/variant-ranker";
 
 export const runtime = "nodejs";
@@ -20,36 +21,67 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(r);
     }
 
-    // 2. Optimizer — paralelo em todas as 3 variantes
+    // 2. Optimizer (brand polish) — paralelo em todas as variantes
     const optimized = await Promise.all(
       options.map((o) =>
         optimizeCaption({
           legenda: o.legenda,
           hashtags: o.hashtags,
           approach: o.abordagem,
-        }).catch(() => null),
+        }).catch((e) => {
+          console.error("[caption] optimizer falhou:", (e as Error).message);
+          return null;
+        }),
       ),
     );
 
-    // Merge: se optimizer falhou pra uma, mantem a original
+    // 3. Viral Master (hook 2026) — paralelo apos optimizer
+    const viralized = await Promise.all(
+      options.map((o, i) => {
+        const opt = optimized[i];
+        const legenda = opt?.legenda || o.legenda;
+        const hashtags = opt?.hashtags?.length ? opt.hashtags : o.hashtags;
+        return viralMaster({
+          legenda,
+          hashtags,
+          slides,
+          prompt,
+          approach: o.abordagem,
+        }).catch((e) => {
+          console.error("[caption] viral-master falhou:", (e as Error).message);
+          return null;
+        });
+      }),
+    );
+
+    // Merge: opt > viral > original, preservando metadata de ambos
     const finalOptions = options.map((o, i) => {
       const opt = optimized[i];
-      if (!opt) return o;
+      const vm = viralized[i];
+      const legendaBase = opt?.legenda || o.legenda;
+      const legendaFinal = vm?.legenda_viral || legendaBase;
+      const hashtagsFinal = vm?.hashtags?.length
+        ? vm.hashtags
+        : opt?.hashtags?.length
+        ? opt.hashtags
+        : o.hashtags;
       return {
         ...o,
-        legenda: opt.legenda,
-        hashtags: opt.hashtags.length ? opt.hashtags : o.hashtags,
-        _changes: opt.changes,
-        _big_domino_adicionado: opt.big_domino_adicionado,
-        _word_count: opt.word_count,
+        legenda: legendaFinal,
+        hashtags: hashtagsFinal,
+        _changes: [...(opt?.changes || []), ...(vm?.changes || [])],
+        _big_domino_adicionado: opt?.big_domino_adicionado,
+        _word_count: legendaFinal.trim().split(/\s+/).length,
+        _gatilho_viral: vm?.gatilho_usado,
+        _score_viralidade: vm?.score_viralidade,
+        _viral_rationale: vm?.rationale,
       };
     });
 
-    // 3. Ranker — ordena por engajamento estimado
+    // 4. Ranker — ordena por engajamento estimado
     let ranked: typeof finalOptions = finalOptions;
     try {
       const rank = await rankCaptionVariants(finalOptions);
-      // Reordena mantendo referencias originais (com metadata do rank)
       ranked = rank
         .map((rk) => ({
           ...finalOptions[rk.idx],
@@ -57,8 +89,8 @@ export async function POST(req: NextRequest) {
           _rankReason: rk.reason,
         }))
         .filter(Boolean) as typeof finalOptions;
-    } catch {
-      /* fallback: mantem ordem original */
+    } catch (e) {
+      console.error("[caption] ranker falhou:", (e as Error).message);
     }
 
     return NextResponse.json({ options: ranked });

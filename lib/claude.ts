@@ -18,6 +18,17 @@ export function getAi(): OpenAI {
 
 export const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-4-6";
 
+/**
+ * Modelo premium pra tarefas criticas (viral-master, critic de viralidade).
+ * Se CLAUDE_PREMIUM_MODEL nao setado no env, retorna null e chamadas caem pro MODEL base.
+ * Gateway pode nao expor opus — fallback transparente.
+ */
+export function getPremiumModel(): string | null {
+  const premium = process.env.CLAUDE_PREMIUM_MODEL;
+  if (!premium || premium === MODEL) return null;
+  return premium;
+}
+
 // Voice base — usado em texto DENTRO DO SLIDE (onde emoji nao faz sentido visual).
 // Pra LEGENDA do post, getBrandVoiceReferences() injeta os 20 posts reais do
 // Filipe como few-shot, que ja carrega o tom verdadeiro (incluindo emoji).
