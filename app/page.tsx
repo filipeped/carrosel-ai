@@ -105,19 +105,6 @@ function ProgressBar({ progress }: { progress: ProgressState }) {
 
 const STORAGE_KEY = "carrosel:state:v1";
 
-async function mapLimit<T, R>(items: T[], limit: number, fn: (it: T, i: number) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length);
-  let next = 0;
-  async function worker() {
-    while (next < items.length) {
-      const i = next++;
-      out[i] = await fn(items[i], i);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return out;
-}
-
 export default function Home() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [prompt, setPrompt] = useState("");
@@ -658,25 +645,18 @@ function Step3({
     setBusyPost(true);
     setPostResult(null);
     try {
-      // render server-side com concorrencia controlada (max 3) — evita overwhelm do Puppeteer
-      const pngs = await mapLimit(slides, 3, async (s, i) => {
-        const imgUrl = allImages[s.imageIdx]?.url || allImages[0]?.url;
-        if (!imgUrl) throw new Error(`slide ${i + 1} sem imagem`);
-        const r = await fetch("/api/render-slide", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slide: s, imageUrl: imgUrl }),
-        });
-        if (!r.ok) {
-          const err = await r.json().catch(() => ({ error: `status ${r.status}` }));
-          throw new Error(`falha ao renderizar slide ${i + 1}: ${err.error}`);
-        }
-        const buf = await r.arrayBuffer();
+      // render client-side via html-to-image (mesmo flow do botao "Baixar PNG")
+      // — 100% fiel ao preview, zero servidor, sem Satori/Puppeteer
+      const pngs: string[] = [];
+      for (let i = 0; i < slides.length; i++) {
+        const blob = await captureSlideAsBlob(i);
+        if (!blob) throw new Error(`falha ao capturar slide ${i + 1}`);
+        const buf = await blob.arrayBuffer();
         const bytes = new Uint8Array(buf);
         let binary = "";
         for (let j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
-        return btoa(binary);
-      });
+        pngs.push(btoa(binary));
+      }
       const r = await fetch("/api/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
