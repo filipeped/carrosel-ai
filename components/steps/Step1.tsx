@@ -24,11 +24,15 @@ export function Step1({
   setPrompt,
   loading,
   onSearch,
+  onCuradoria,
+  curadoriaLoading,
 }: {
   prompt: string;
   setPrompt: (s: string) => void;
   loading: boolean;
   onSearch: (overridePrompt?: string) => void;
+  onCuradoria?: () => void;
+  curadoriaLoading?: boolean;
 }) {
   // Lazy init — lê localStorage antes do primeiro render (evita flash)
   const stored = typeof window !== "undefined" ? loadStoredIdeas() : null;
@@ -238,7 +242,7 @@ export function Step1({
     setSelected(new Set());
   }
 
-  const anyLoading = loading || autoLoading;
+  const anyLoading = loading || autoLoading || !!curadoriaLoading;
   const bgRunning = Object.values(bgJobs).some((s) => s === "running");
 
   return (
@@ -252,13 +256,23 @@ export function Step1({
         className="w-full bg-black/30 border border-white/15 rounded p-3 text-sm"
       />
       <div className="mt-4 grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
+        {onCuradoria && (
+          <button
+            disabled={anyLoading}
+            onClick={onCuradoria}
+            className="bg-[#d6e7c4] text-black px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 relative"
+            style={{ background: "#d6e7c4" }}
+            title="Sem tema: IA olha o arquivo, agrupa fotos coerentes e escreve copy observacional"
+          >
+            {curadoriaLoading ? "Curando arquivo..." : "✨ Gerar do arquivo (observacional)"}
+          </button>
+        )}
         <button
           disabled={anyLoading}
           onClick={autoViral}
-          className="bg-[color:var(--color-accent,#d6e7c4)] text-black px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40"
-          style={{ background: "#d6e7c4" }}
+          className="bg-white/90 text-black px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40"
         >
-          {autoLoading ? "Processando..." : "Sugerir + gerar carrossel viral"}
+          {autoLoading ? "Processando..." : "Sugerir + gerar (com tema)"}
         </button>
         <button
           disabled={anyLoading}

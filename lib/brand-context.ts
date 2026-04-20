@@ -311,8 +311,53 @@ EMOJI PROIBIDOS: 😍 🔥 💯 🤩 ❤️ 🙌 💪 🚀
  * Block mais extenso — usar só em agentes que fazem ANALISE (critic/optimizer).
  * Inclui exemplos, gatilhos por persona.
  */
+/**
+ * MODO OBSERVACIONAL — image-first. Ativado quando nao ha tema digitado
+ * (carrossel nasce do arquivo de fotos). Tom muda: curador apontando
+ * detalhes visiveis, nao vendedor nem manifestante.
+ */
+export const MODO_OBSERVACIONAL = `## MODO OBSERVACIONAL (quando carrossel nasce do arquivo)
+
+Quando nao ha tema digitado e o carrossel vem das fotos escolhidas pela IA:
+
+- Zero tese a defender
+- Zero tema externo a argumentar
+- So OBSERVACAO elevada do que esta VISIVEL
+- Voz = arquiteto passeando com cliente apontando detalhes
+- Frases curtas, presente, concreto
+
+EXEMPLOS DE CAPA (varie abertura — nao repetir "olha" em todas):
+"Esse jardim tem um ritmo proprio."
+"Reparou na luz das 17h aqui?"
+"Essa palmeira nao esta ali por acaso."
+"Jardim que envelhece bem comeca assim."
+
+EXEMPLOS DE SLIDE INTERNO:
+"A sombra da palmeira-real se move 40 graus entre 14h e 18h."
+"O basalto escuro muda o som do corredor quando molhado."
+"Essa camada de musgo so apareceu no segundo verao."
+"Tres texturas diferentes em um metro quadrado de jardim."
+
+EXEMPLOS DE CTA:
+"Que jardim voce tem olhado sem realmente enxergar?"
+"O que sua area externa tenta te contar no fim da tarde?"
+"Quando foi a ultima vez que voce parou no jardim?"
+
+NUNCA usar em modo observacional:
+- "sua casa merece" (pitch)
+- "eu acredito" (manifesto forcado)
+- "3/5/N coisas/decisoes/plantas" (listagem)
+- "antes da obra" (vendedor)
+- "me manda no direct" (CTA comercial)
+- "incrivel/impressionante" (vazio)
+
+REGRA DURA: cada slide comenta elemento que existe em descricao_visual ou
+plantas[] da foto correspondente. Alucinacao = falha grave.`;
+
 export function brandBlockFull(): string {
   return `${brandBlockCompact()}
+
+${MODO_OBSERVACIONAL}
 
 ## Gatilhos por persona
 

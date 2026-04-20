@@ -125,6 +125,22 @@ export function Step3({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, images: ordered, userBrief: customBrief }),
       });
+      // Se status nao-ok, response pode ser HTML (ex: 504 timeout Vercel).
+      // r.json() quebra com 'Unexpected token A' porque comeca com 'An error...'.
+      // Leemos como texto primeiro e tratamos.
+      if (!r.ok) {
+        const text = await r.text().catch(() => "");
+        const msg = text.startsWith("{")
+          ? (() => {
+              try {
+                return JSON.parse(text).error;
+              } catch {
+                return "";
+              }
+            })()
+          : "";
+        throw new Error(msg || `HTTP ${r.status} — servidor demorou demais ou caiu`);
+      }
       const d = await r.json();
       if (d.error) throw new Error(d.error);
       const sl = (d.slides || []).slice(0, 10);

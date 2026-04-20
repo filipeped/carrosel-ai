@@ -82,6 +82,43 @@ export default function Home() {
     { name: "Escrevendo texto dentro dos slides (cards)", seconds: 10 },
   ]);
 
+  async function doCuradoria() {
+    setLoading(true);
+    setCurrentFlow("search");
+    setError("");
+    setCarrosselId(null);
+    try {
+      const r = await fetch("/api/curadoria", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slideCount: 8 }),
+      });
+      if (!r.ok) {
+        const text = await r.text().catch(() => "");
+        let msg = `HTTP ${r.status}`;
+        try {
+          msg = JSON.parse(text).error || msg;
+        } catch {}
+        throw new Error(msg);
+      }
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      const sel: Selection = d.selection;
+      setSelection(sel);
+      setAllImages([sel.cover, ...sel.inner, sel.cta, ...(sel.alternatives || [])]);
+      setSlides(d.slides || []);
+      setPrompt(d.tese_detectada || "[observacional]");
+      setCarrosselId(d.carrosselId || null);
+      setStep(3); // Pula Step 2 (ja tem slides)
+      setAutoGenCaption(Date.now());
+    } catch (e) {
+      setError(`Curadoria: ${(e as Error).message}`);
+    } finally {
+      setLoading(false);
+      setCurrentFlow(null);
+    }
+  }
+
   async function doSmartSearch(overridePrompt?: string) {
     const effective = (overridePrompt ?? prompt).trim();
     if (!effective) return;
@@ -262,7 +299,14 @@ export default function Home() {
       )}
 
       {step === 1 && (
-        <Step1 prompt={prompt} setPrompt={setPrompt} loading={loading} onSearch={doSmartSearch} />
+        <Step1
+          prompt={prompt}
+          setPrompt={setPrompt}
+          loading={loading}
+          onSearch={doSmartSearch}
+          onCuradoria={doCuradoria}
+          curadoriaLoading={loading && currentFlow === "search" && !prompt.trim()}
+        />
       )}
       {step === 2 && selection && (
         <Step2
