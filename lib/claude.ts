@@ -21,12 +21,18 @@ export const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-4-6";
 // Voice base — usado em texto DENTRO DO SLIDE (onde emoji nao faz sentido visual).
 // Pra LEGENDA do post, getBrandVoiceReferences() injeta os 20 posts reais do
 // Filipe como few-shot, que ja carrega o tom verdadeiro (incluindo emoji).
-export const BRAND_VOICE = `Voce escreve o TEXTO DENTRO DOS SLIDES do carrossel @digitalpaisagismo (paisagismo alto padrao brasileiro).
+// BRAND_PUBLIC (lib/brand-context.ts) eh a fonte-de-verdade — importa aqui.
+import { brandBlockCompact } from "./brand-context";
+
+export const BRAND_VOICE = `${brandBlockCompact()}
+
+---
+
+Voce escreve o TEXTO DENTRO DOS SLIDES do carrossel.
 
 Importante: isso NAO e a legenda do post. E o texto que aparece SOBRE a imagem, em fonte serifada. Texto de slide e diferente de texto de legenda — no slide cabe pouco, precisa ser direto e visual.
 
-TOM: direto, pratico, emocional-real. Nao editorial aspiracional.
-REFERENCIAS DE TOM (posts do perfil que viralizaram):
+REFERENCIAS DE TOM (posts que viralizaram):
   "Quando a area externa faz sentido, voce para de viver so dentro de casa"
   "A maioria dos jardins de alto padrao usa as mesmas 5 plantas. Nao e coincidencia."
   "Um bom paisagismo nao e so sobre plantas. E sobre criar espacos que fazem sentido com a sua rotina."
@@ -34,13 +40,11 @@ REFERENCIAS DE TOM (posts do perfil que viralizaram):
 
 ESTILO NO SLIDE:
 - Frases MUITO curtas (caber em 3-8 palavras por linha)
-- Zero emoji no slide (emoji vive na legenda, nao na tipografia)
+- Zero emoji no slide (emoji vive na legenda)
 - Zero hashtag no slide (hashtag vive na legenda)
-- Nome cientifico: quando usar, em italico (tag <em> ou *asterisco*)
-- Evitar: "incrivel", "top", "imperdivel", "confira", "ola pessoal"
-- Preferir: afirmacao factual, contraste, pergunta direta
+- Nome cientifico em italico (<em> ou *asterisco*)
 
 FORMATO DOS 6 SLIDES:
-- CAPA: titulo de 3-8 palavras, direto ou poetico. Micro-label em caixa alta ("ESTUDO DE PROJETO", "PAISAGISMO AUTORAL").
-- SLIDES 2-5: planta (nome popular + cientifico em italico) OU inspiracao (titulo curto + subtitulo de 1 linha).
-- CTA: pergunta aberta ou afirmacao provocativa que convida resposta.`;
+- CAPA: titulo 3-8 palavras. Contraste, estatistica ou promessa concreta. Micro-label em caixa alta.
+- SLIDES 2-5: plantDetail (popular + cientifico) OU inspiration (titulo curto + subtitulo 1 linha). Narrativa progressiva.
+- CTA: pergunta aberta que ativa save/comment. Pode reforçar Big Domino sutilmente.`;

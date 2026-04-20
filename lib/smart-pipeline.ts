@@ -2,6 +2,8 @@
 import { getAi, MODEL, BRAND_VOICE } from "./claude";
 import { searchImages as _searchImages } from "./pipeline";
 import { analyzeAndCache, enrichImagesWithPlantId, AnaliseVisual } from "./image-analysis";
+import { analyzePrompt } from "./agents/prompt-analyst";
+import { critiqueCarousel } from "./agents/carousel-critic";
 import { extractJson } from "./utils";
 import { getSupabase, ImageBankRow } from "./supabase";
 import type { SlideSpec } from "./pipeline";
@@ -363,13 +365,27 @@ function capFirst(s: string): string {
 
 export async function searchAndSelect(
   prompt: string,
-  opts: { candidateCount?: number } = {},
+  opts: { candidateCount?: number; userBrief?: string; skipAgents?: boolean } = {},
 ): Promise<{
   selection: SmartSelection;
   allAnalyzed: AnalyzedImage[];
+  analysis?: Awaited<ReturnType<typeof analyzePrompt>>;
 }> {
   const count = opts.candidateCount ?? 24;
-  const { imagens } = await _searchImages(prompt, count);
+
+  // AGENTE 1: Prompt Analyst — enriquece o prompt antes da busca
+  let enrichedPrompt = prompt;
+  let analysis: Awaited<ReturnType<typeof analyzePrompt>> | undefined;
+  if (!opts.skipAgents) {
+    try {
+      analysis = await analyzePrompt(prompt, opts.userBrief);
+      enrichedPrompt = analysis.enrichedPrompt || prompt;
+    } catch {
+      /* fallback: usa prompt cru */
+    }
+  }
+
+  const { imagens } = await _searchImages(enrichedPrompt, count);
   if (!imagens.length) throw new Error("Nenhuma imagem encontrada no banco pra esse tema");
 
   // enriquece (busca_semantica so retorna fonte/id/descricao/url/tipo_area/estilo/similarity/analise_visual)
@@ -387,17 +403,42 @@ export async function searchAndSelect(
     console.warn("[plant-id] enrich falhou:", e.message),
   );
 
-  return { selection, allAnalyzed: analyzed };
+  return { selection, allAnalyzed: analyzed, analysis };
 }
 
 export async function runSmartCarousel(
   prompt: string,
-  opts: { withCaption?: boolean; candidateCount?: number; persist?: boolean } = {},
+  opts: {
+    withCaption?: boolean;
+    candidateCount?: number;
+    persist?: boolean;
+    userBrief?: string;
+    skipAgents?: boolean;
+  } = {},
 ) {
-  const { selection, allAnalyzed } = await searchAndSelect(prompt, opts);
+  const { selection, allAnalyzed, analysis } = await searchAndSelect(prompt, opts);
   const { slides: rawSlides } = await generateCopyFromAnalysis(prompt, selection);
   const ordered = [selection.cover, ...selection.inner, selection.cta];
-  const slides = validateSlidesAgainstImages(rawSlides, ordered);
+  let slides = validateSlidesAgainstImages(rawSlides, ordered);
+
+  // AGENTE 2: Carousel Critic — avalia e opcionalmente regenera se score baixo
+  let critique: Awaited<ReturnType<typeof critiqueCarousel>> | undefined;
+  if (!opts.skipAgents) {
+    try {
+      critique = await critiqueCarousel({
+        slides,
+        prompt,
+        persona: analysis?.persona,
+      });
+      // Se score < 65, faz 1 regen com feedback
+      if (critique.score < 65 && critique.issues.length) {
+        const retry = await generateCopyFromAnalysis(prompt, selection);
+        slides = validateSlidesAgainstImages(retry.slides, ordered);
+      }
+    } catch {
+      /* fallback: mantem slides originais */
+    }
+  }
 
   // Persiste no historico (anti-repeticao + learning loop)
   let carrosselId: string | undefined;
@@ -417,5 +458,7 @@ export async function runSmartCarousel(
     allAnalyzed,
     slides,
     imagens: ordered,
+    analysis,
+    critique,
   };
 }
