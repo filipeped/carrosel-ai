@@ -40,17 +40,28 @@ export async function POST(req: NextRequest) {
     const { prompt, images } = await req.json();
     if (!images?.length) return NextResponse.json({ error: "images required" }, { status: 400 });
 
+    // Prioriza descricao_visual do Vision (analise_visual.descricao_visual) — e o que
+    // realmente aparece na foto. So cai pra 'descricao' generica se nao tiver cache Vision.
     const imgDescs = images
-      .map(
-        (im: any, i: number) =>
-          `  [${i}] plantas=[${(im.plantas || []).slice(0, 4).join(", ")}], estilo=${im.estilo?.join(",")}, mood=${(im.mood || []).join(",")}, area=${im.tipo_area}, descricao="${(im.descricao || "").slice(0, 180)}"`,
-      )
+      .map((im: any, i: number) => {
+        const av = im.analise_visual;
+        const visual = av?.descricao_visual
+          ? `VISIVEL="${String(av.descricao_visual).slice(0, 220)}"`
+          : `descricao="${(im.descricao || "").slice(0, 180)}"`;
+        const hero = av?.hero_element ? `hero="${String(av.hero_element).slice(0, 60)}"` : "";
+        const plantas = (im.plantas || []).slice(0, 4).join(", ");
+        return `  [${i}] ${visual}${hero ? ` | ${hero}` : ""} | plantas=[${plantas}] | area=${im.tipo_area}`;
+      })
       .join("\n");
 
     const userPrompt = `Tema do usuario: "${prompt || "(sem tema — inspire-se nas imagens)"}"
 
-Imagens selecionadas (${images.length} no total):
+Imagens selecionadas (${images.length} no total). VISIVEL = o que a IA ja viu na foto (use isso pra nao inventar):
 ${imgDescs}
+
+REGRA DURA ANTI-ALUCINACAO:
+- Nao cite elemento (piscina, pergolado, deck, espelho d'agua etc) se ele NAO aparece em VISIVEL ou hero da imagem correspondente.
+- Se VISIVEL nao menciona X, nao escreva sobre X naquela slide.
 
 ${SCHEMA}`;
 
