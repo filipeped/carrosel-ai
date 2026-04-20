@@ -29,10 +29,10 @@ type Variant = {
  */
 
 const HOOK_INSTRUCTIONS: Record<string, string> = {
-  pergunta: "Use um HOOK em forma de PERGUNTA curta pra capa. Ex: 'Sua fachada fala alto, ou passa despercebida?'",
-  contraste: "Use um HOOK de CONTRASTE na capa — quebra expectativa. Ex: 'Piscina não é destaque. É o que está ao redor dela.'",
-  promessa: "Use um HOOK de PROMESSA CONCRETA na capa. Ex: '3 decisões que valem mais que escolher as plantas.'",
-  auto: "Hook livre — escolha o que mais se encaixa.",
+  pergunta: "Use um HOOK em forma de PERGUNTA curta e contemplativa. Ex: 'Sua fachada fala alto, ou passa despercebida?'",
+  contraste: "Use um HOOK de QUEBRA DE EXPECTATIVA. Afirmacao curta que contraria intuicao visual. Ex: 'Piscina nao eh o destaque da area externa. Eh o que fica em volta.'",
+  revelacao: "Use um HOOK de REVELACAO — padrao que so quem ve muitos jardins percebe. Ex: 'A maioria dos jardins alto padrao usa as mesmas 5 plantas. Nao eh coincidencia.'",
+  auto: "Hook livre de CURADOR (revelacao, sensorial, observacao) — NUNCA tom comercial.",
 };
 
 async function regenerateCover(
@@ -82,17 +82,17 @@ Retorne APENAS o JSON da capa:
 }
 
 const VARIANTS_10: Variant[] = [
-  // 5 abordagens (3 classicas + 2 novas virais) x hooks rotativos = 10 variantes
+  // 5 abordagens de CURADOR (zero comercial) x 2 hook strategies = 10 variantes
+  { label: "direta_contraste", approach: "direta_emocional", hookStrategy: "contraste", useAgents: true },
   { label: "direta_pergunta", approach: "direta_emocional", hookStrategy: "pergunta", useAgents: true },
-  { label: "direta_promessa", approach: "direta_emocional", hookStrategy: "promessa", useAgents: true },
-  { label: "contraste_contraste", approach: "contraste_verdade", hookStrategy: "contraste", useAgents: true },
-  { label: "contraste_promessa", approach: "contraste_verdade", hookStrategy: "promessa", useAgents: true },
+  { label: "revela_contraste", approach: "contraste_verdade", hookStrategy: "contraste", useAgents: true },
+  { label: "revela_pergunta", approach: "contraste_verdade", hookStrategy: "pergunta", useAgents: true },
+  { label: "tecnico_contraste", approach: "tecnico_relacional", hookStrategy: "contraste", useAgents: true },
   { label: "tecnico_pergunta", approach: "tecnico_relacional", hookStrategy: "pergunta", useAgents: true },
-  { label: "tecnico_promessa", approach: "tecnico_relacional", hookStrategy: "promessa", useAgents: true },
-  { label: "contrarian_contraste", approach: "contrarian_forte", hookStrategy: "contraste", useAgents: true },
-  { label: "contrarian_promessa", approach: "contrarian_forte", hookStrategy: "promessa", useAgents: true },
-  { label: "infogap_pergunta", approach: "information_gap", hookStrategy: "pergunta", useAgents: true },
-  { label: "infogap_contraste", approach: "information_gap", hookStrategy: "contraste", useAgents: true },
+  { label: "sensorial_contraste", approach: "sensorial_curador", hookStrategy: "contraste", useAgents: true },
+  { label: "sensorial_pergunta", approach: "sensorial_curador", hookStrategy: "pergunta", useAgents: true },
+  { label: "historia_contraste", approach: "historia_da_planta", hookStrategy: "contraste", useAgents: true },
+  { label: "historia_pergunta", approach: "historia_da_planta", hookStrategy: "pergunta", useAgents: true },
 ];
 
 export async function POST(req: NextRequest) {

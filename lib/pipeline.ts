@@ -118,12 +118,17 @@ REGRA DURA DE HONESTIDADE VISUAL:
 - Nunca cite especie por nome cientifico se voce nao ve claramente. Prefira nome popular ou descricao ("folhagem tropical densa").
 - Nunca afirme "no slide 3 aparece X" se voce nao ve X no slide 3.
 
-5 ABORDAGENS DIFERENTES (alinhadas ao tom real do @digitalpaisagismo):
-- **direta_emocional** — afirmacao factual curta que conecta emocionalmente ("Chegar em casa e sentir a natureza em cada detalhe"). Parte de um insight concreto do resultado, nao de tecnica.
-- **contraste_verdade** — provocacao honesta que quebra crenca comum ("A maioria dos jardins de alto padrao usa as mesmas 5 plantas. Nao e coincidencia."). Ativa ego do publico AA.
-- **tecnico_relacional** — explica o porque tecnico sem jargao, sempre conectando ao USO do espaco ("Um bom paisagismo nao e so sobre plantas. E sobre criar espacos que fazem sentido com a sua rotina.").
-- **contrarian_forte** — quebra forte de consenso + custo concreto. Vai contra o que o publico assume como verdade. Gera debate/save. Ex: "Contratar paisagista depois da obra custa 3x mais. E a maioria descobre tarde demais." Sempre tem numero ou custo real.
-- **information_gap** — abre loop de curiosidade que SO a ultima frase fecha. Forca leitura completa. Ex: "A pergunta que voce devia fazer ao arquiteto antes de fechar o projeto nao tem nada a ver com plantas. Tem a ver com uma decisao que custa caro demais pra voltar atras depois. E quase ninguem pensa nela."
+5 ABORDAGENS (todas de CURADOR, nao de vendedor):
+- **direta_emocional** — afirmacao factual curta que conecta emocionalmente, sem pitch ("Chegar em casa e sentir a natureza em cada detalhe"). Foco em experiencia, nao em contratar.
+- **contraste_verdade** — revela padrao que o leigo nao nota ("A maioria dos jardins alto padrao usa as mesmas 5 plantas. Nao eh coincidencia."). Sem vender nada.
+- **tecnico_relacional** — explica o PORQUE sem jargao, conectando ao USO do espaco ("Um bom paisagismo nao eh so sobre plantas. Eh sobre criar espacos que fazem sentido com a sua rotina."). Sem "contrate" no fim.
+- **sensorial_curador** — convida a sentir: som, luz, textura, tempo ("O barulho da agua na pedra basalto muda o som da casa inteira"). Zero tom comercial.
+- **historia_da_planta** — conta o tempo de uma especie, comportamento, transformacao ("Essa arvore leva 8 anos pra ficar assim. Mas o primeiro ano decide tudo."). Storytelling natural, sem pitch.
+
+REGRA DURA: NUNCA transforme legenda em anuncio. Frases proibidas:
+"contratar", "antes de chamar", "3 decisoes antes", "projeto 3D", "retrabalho", "o erro de R$",
+"custa 3x", "me manda no direct", "em que fase da obra", "antes do gesso", "a pergunta que voce devia".
+Se a copy cair nesse tom, reescreve como curador apaixonado.
 
 REGRAS DURAS:
 - TAMANHO: MAXIMO 50 PALAVRAS. Nao eh sugestao, eh limite duro — contar cada palavra. Ideal 30-45.
@@ -139,7 +144,7 @@ REGRAS DURAS:
 - HASHTAGS: 3-5 por legenda (nao 10-14 — algoritmo 2026 pune excesso). TODAS minusculas, SEM acento, SEM camelCase, SEM char especial. Nicho especifico. Ex correto: #paisagismoaltopadrao. Errado: #paisagismoAltoPadrao.
 - PRIMEIRA LINHA: max 120 caracteres (IG corta em 125 no feed)
 - SHARE-ABILITY: a 2a frase deve funcionar sozinha se copiada num WhatsApp. Ou seja, deve fazer sentido fora do contexto do post.
-- CTA: 1 das 3 abordagens pode usar CTA de DM ("me manda 'PROJETO' no direct e te envio o PDF") — shares por DM sao o super-sinal 2026.
+- CTA: pergunta aberta contemplativa que convida pausa e resposta organica ("qual essa estacao pro teu jardim?", "qual planta marcou tua infancia?"). NAO use "me manda no direct", "em que fase", "qual projeto" — isso eh tom comercial, algoritmo rebaixa.
 - EMOJI: permitido moderadamente (maximo 3 por legenda) APENAS os que o perfil ja usa: 🌿 ✨ 🌴 📐 👇 📍. PROIBIDO: 😍 🔥 💯 🤩 ❤️ 🙌 💪 🚀 (cringe, fora do tom).
 - Proibido: arrow-chars (→↓↑), "ola pessoal", "confira", "top", "incrivel", "imperdivel", "voce nao vai acreditar", clickbait vazio.
 - Quando citar nome cientifico, pode em italico via *asteriscos* OU sem italico (ambos ok).

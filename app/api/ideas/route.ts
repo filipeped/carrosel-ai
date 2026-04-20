@@ -28,74 +28,71 @@ QUEM NAO EH PUBLICO: paisagista querendo debater tecnica. Curador de botanica. D
 OBJETIVO: ideias que a DONA DA CASA salva pra mostrar ao marido OU manda pro arquiteto.`;
 
 // ---------------------------------------------------------------------------
-// Gatilhos VIRAIS 2026 (o que MOVE a pessoa a salvar/compartilhar)
+// Gatilhos de CURADOR (nao-comerciais) — o que viraliza de verdade
 // ---------------------------------------------------------------------------
-const GATILHOS_VIRAIS = `GATILHOS QUE GERAM ENGAJAMENTO REAL (nao so like vazio):
+const GATILHOS_VIRAIS = `FILOSOFIA EDITORIAL: CURADOR APAIXONADO > VENDEDOR EDUCANDO CLIENTE.
 
-1. INFORMATION GAP (curiosidade forte)
-   Abre um loop que so fecha depois que a pessoa ve. Exige payoff real nos slides.
-   ✅ "O erro de R$30 mil que aparece 6 meses depois da obra"
-   ✅ "A pergunta que paisagista evita — e muda tudo no seu projeto"
-   ❌ "Descubra como ter um jardim lindo" (vazio, generico)
+Os hits reais do perfil (249, 170, 94 saves) sao todos desta linhagem.
+Zero "contrate", zero "antes da obra", zero "3 decisoes que", zero "me manda no direct".
 
-2. LOSS AVERSION (medo de perder — 2x mais forte que ganho)
-   Foco no que a pessoa PERDE se nao agir agora.
-   ✅ "Cada mes que voce adia o paisagismo, a obra fica mais cara depois"
-   ✅ "Quebrar piso pra passar irrigacao custa 3x fazer no planejamento"
-   ❌ "Seu jardim pode ser lindo" (promessa vaga de ganho)
+GATILHOS DE CURADOR QUE GERAM SAVE/SHARE:
 
-3. CONTRARIAN / QUEBRA DE CONSENSO (vai contra senso comum)
-   Discorda de algo que o publico assume como verdade. Gera debate nos comments.
-   ✅ "Contratar o paisagista cedo demais eh dinheiro jogado fora"
-   ✅ "Piscina nao eh destaque. Eh o que ta em volta dela."
-   ❌ "Natureza faz bem pra casa" (todo mundo concorda, zero engajamento)
+1. REVELACAO (padrao que so quem ve muitos jardins percebe)
+   ✅ "A maioria dos jardins alto padrao usa as mesmas 5 plantas. Nao eh coincidencia."
+   ✅ "Existe uma arvore que todo jardim classico tem. E quase ninguem presta atencao nela."
+   ❌ "O erro de R$40 mil que aparece depois da obra" (tom comercial/medo)
 
-4. NUMERO CONCRETO + DOR ESPECIFICA (nao frase poetica)
-   Numero da credibilidade e especifica o custo.
-   ✅ "3 decisoes que valem mais que escolher as plantas"
-   ✅ "40% do orcamento vai pra dar errado se voce decidir nessa ordem"
-   ❌ "Muitas coisas podem dar errado" (vago)
+2. SENSORIAL (textura, som, luz, tempo — nao 'ter um jardim')
+   ✅ "O barulho da agua na pedra basalto muda o som da casa inteira"
+   ✅ "Folhagem de palmeira real desenha sombras diferentes a cada hora do dia"
+   ❌ "Seu jardim reflete sua alma" (inspiracional vazio)
 
-5. QUESTAO DE STATUS / PRIZE FRAME
-   A pessoa salva porque quer se sentir no clube certo.
-   ✅ "Projetos alto padrao sao seletivos — nem todo mundo vira cliente"
-   ✅ "O detalhe que quem entende de paisagismo olha primeiro"
-   ❌ "Venha conhecer nossos projetos" (vendedor)
+3. HISTORIA DA PLANTA (tempo, crescimento, transformacao)
+   ✅ "Essa arvore leva 8 anos pra ficar assim. Mas o primeiro ano decide tudo."
+   ✅ "Algumas palmeiras so mostram pra que vieram depois do 3o verao"
+   ❌ "Plantas para area externa" (generico)
 
-6. TIMING ESPECIFICO (urgencia real, nao fake)
-   Amarra no momento do publico (obra andando, fim do ano, casa de campo).
-   ✅ "Se a obra esta na fase da alvenaria, esse eh o momento da irrigacao"
-   ✅ "Antes do gesso fechar, o projeto paisagistico ja precisa existir"
-   ❌ "Hora de plantar" (sem contexto)`;
+4. OBSERVACAO DE QUEM ENTENDE (olhar tecnico traduzido em detalhe visivel)
+   ✅ "O detalhe que quem entende de jardim olha primeiro"
+   ✅ "Jardim fotografico e jardim que se vive nao sao a mesma coisa"
+   ❌ "A pergunta que voce devia fazer ao arquiteto" (comercial disfarcado)
+
+5. COMPORTAMENTO DO JARDIM (como ele age no tempo)
+   ✅ "Jardim bom nao eh no primeiro mes. Eh no segundo verao."
+   ✅ "Cada jardim tem uma estacao em que ele se mostra por inteiro"
+   ❌ "3 decisoes antes de chamar o paisagista" (vendedor)
+
+6. QUEBRA DE EXPECTATIVA (afirmacao curta que contraria intuicao)
+   ✅ "Piscina nao eh o destaque da area externa. Eh o que fica em volta."
+   ✅ "A cor mais importante de um jardim nao eh verde."
+   ❌ "Contratar paisagista depois da obra custa 3x mais" (venda disfarcada de contrarian)`;
 
 // ---------------------------------------------------------------------------
 // Anti-padrão: o que NAO fazer (a reclamacao do user foi exatamente isso)
 // ---------------------------------------------------------------------------
-const ANTI_INSPIRACIONAL = `DIAGNOSTICO ATUAL — muito conteudo inspiracional, pouco viral.
+const ANTI_INSPIRACIONAL = `2 DIAGNOSTICOS a evitar:
 
-REPROVA automatico:
+A) INSPIRACIONAL VAZIO — frase bonitinha sem carne, zero save.
+  "Chegar em casa e sentir o jardim abracando voce"
+  "Seu jardim eh o reflexo da sua alma"
+  "Transforme sua area externa num refugio"
+  "A natureza cura"
 
-[FRASE BONITINHA SEM CARNE]
-  "Chegar em casa e sentir o jardim abraçando voce" — bonito, mas quem salva isso? 0 acao.
-  "Seu jardim eh o reflexo da sua alma" — pura frase de efeito.
+B) COMERCIAL DISFARCADO — parece anuncio, algoritmo rebaixa, share=0.
+  "Contratar paisagista depois da obra eh retrabalho"
+  "3 decisoes antes de contratar paisagista"
+  "A pergunta que voce devia fazer ao arquiteto"
+  "O erro de R$40 mil que aparece depois da obra"
+  "Antes do gesso fechar, o projeto ja precisa existir"
+  "Me manda no direct"
+  "40% do orcamento"
 
-[PROMESSA VAGA DE BELEZA]
-  "Um jardim que muda tudo" — vazio.
-  "Transforme sua area externa" — todo anuncio diz isso.
+AMBOS reprovam. Se a ideia eh de REVELACAO, SENSORIAL, HISTORIA de planta, OBSERVACAO
+de curador ou COMPORTAMENTO do jardim, aprova. Se eh pitch disfarcado ou poesia oca, reprova.
 
-[POESIA EMOCIONAL GENERICA]
-  "A natureza cura" / "Um refugio pra sua familia" — lindo mas nao gera salve nem share.
-
-[AUTORIDADE VAZIA]
-  "Vocabulario tecnico de fitossociologia" — so paisagista entende.
-  "Isabel Duprat usa essa tecnica" — nome afasta leigo.
-
-[TECNIQUES QUE SO PAISAGISTA ENTENDE]
-  "Estratificacao vertical em entrada" — cliente nao salva.
-  "Dossel de nivel 2 com especies de porte" — tecnico demais.
-
-REGRA DURA: se a pessoa nao consegue explicar a ideia pro conjuge em 5 segundos, a ideia nao eh boa.
-REGRA DURA 2: se a ideia funciona igual pra qualquer marca de paisagismo, nao serve. Tem que ter a cara Digital Paisagismo (projeto 3D, alto padrao, em obra).`;
+REGRA 1: se a pessoa nao consegue explicar a ideia pro conjuge em 5 segundos, a ideia nao serve.
+REGRA 2: se a ideia parece "eu vendo paisagismo", a ideia nao serve. Tem que parecer "eu amo jardim e quero te mostrar algo que voce nao reparou".
+REGRA 3: evite linguagem de OBRA (gesso, alvenaria, pedreiro, retrabalho). Nao eh errado, mas vira vibe de consultor, nao de curador.`;
 
 // ---------------------------------------------------------------------------
 // Formulas viralizaveis — misturando emocional + gatilho forte
@@ -163,31 +160,31 @@ ${voiceRefs ? `EXEMPLOS DO PERFIL (tom):\n${voiceRefs.slice(0, 1200)}\n\n` : ""}
 TAREFA: gerar 12 ideias VIRAIS (JA CURADAS — so as melhores, nao 16). Cada uma em contexto diferente.
 
 REGRAS DURAS:
-- PELO MENOS 6 das 16 com angle EM OBRA (timing/retrabalho/integracao — nao da pra ignorar 70% do publico).
-- PELO MENOS 3 com Loss Aversion / custo concreto / numero (nao so emocional).
-- PELO MENOS 2 Contrarian (quebra consenso — gera debate).
-- Maximo 3 inspiracionais puras (nao eh zero — ainda tem lugar pra emocional).
-- Titulo fala pra DONA DA CASA ou PARA O CASAL (nao pro paisagista).
+- Distribuicao por GATILHO: 3+ revelacao, 2+ sensorial, 2+ historia_da_planta, 2+ observacao, resto mix.
+- Titulo fala pra QUEM OLHA jardim (dona, marido, arquiteto), nao pra quem vai CONTRATAR.
 - Entre 8 e 14 palavras.
-- Linguagem concreta, nao poesia: casa, obra, projeto, decisao, custo, timing, rotina, familia.
-- Pode citar contextos: entrada, fachada, area externa (nao "quintal"), varanda, piscina, area gourmet, rooftop, casa de campo, casa de praia, pergolado, deck, corredor lateral, jardim de inverno.
-- Proibido: frases de efeito vazias ("acolhe", "abraca", "floresce", "reflete a alma"), "alto padrao" explicito mais de 1x, "incrivel", "impressionante", "top", "dicas", "confira", emoji, hashtag.
-- Numero em lista so 3, 4 ou 5.
+- Linguagem concreta, nao poesia: planta, arvore, folha, luz, sombra, tempo, estacao, detalhe, ritmo.
+- Pode citar contextos: entrada, fachada, area externa (nao "quintal"), varanda, piscina, area gourmet, rooftop, casa de campo, casa de praia, pergolado, deck, jardim de inverno.
+- PROIBIDO:
+  (a) Frases vazias: "acolhe", "abraca", "floresce", "reflete a alma"
+  (b) Tom comercial: "contratar", "antes de chamar", "antes da obra", "3 decisoes antes", "projeto 3D", "retrabalho", "o erro de R$", "custa 3x", "me manda no direct", "em que fase"
+  (c) Clickbait: "incrivel", "impressionante", "top", "dicas", "confira"
+  (d) Emoji, hashtag no titulo
+- Numero em lista so 3, 4 ou 5 — E sempre sobre PLANTAS/ELEMENTOS, nao sobre decisoes comerciais.
 
 RETORNE JSON PURO:
 {
   "candidatas": [
     {
       "titulo": string,
-      "formula": "erro-custo|contrarian|pergunta|numero-decisao|timing-obra|consequencia-escondida|quebra-expectativa|custo-inacao|etapa-escondida|prize-frame|inspiracional",
+      "formula": "revelacao|sensorial|historia-planta|observacao|comportamento|quebra-expectativa",
       "contexto": string,
-      "persona": "em-obra|casa-pronta|ambos",
-      "gatilho_principal": "information-gap|loss-aversion|contrarian|numero-concreto|status|timing|custo-inacao",
-      "gancho": string (por que essa pessoa especifica salva — nao generico)
+      "gatilho_principal": "revelacao|sensorial|historia|observacao|comportamento|quebra",
+      "gancho": string (por que alguem apaixonado por jardim salva essa — nao generico)
     }
   ]
 }
-Exatamente 12. Distribuicao: 5+ em-obra, 3+ casa-pronta, resto ambos. Gatilhos variados.`;
+Exatamente 12. Gatilhos variados (3+ revelacao, 2+ sensorial, 2+ historia, 2+ observacao).`;
 }
 
 // ---------------------------------------------------------------------------
@@ -264,19 +261,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Apenas ${candidatas.length} candidatas`, candidatas }, { status: 500 });
     }
 
-    // Curadoria DETERMINISTICA (sem 2a call Claude) — pega top 8 evitando
-    // formulas/contextos repetidos. Prioriza em-obra e contrarian/info-gap.
+    // Curadoria DETERMINISTICA — prioriza gatilhos de CURADOR (revelacao, sensorial,
+    // historia, observacao). Penaliza tom comercial e inspiracional vazio no titulo.
+    const COMMERCIAL_TERMS = [
+      "contratar", "antes de chamar", "antes da obra", "antes do pedreiro", "antes do gesso",
+      "antes do arquiteto", "3 decis", "4 decis", "5 decis", "projeto 3d",
+      "retrabalho", "r$", "custa 3x", "custa o dobro", "me manda", "no direct",
+      "em que fase", "a pergunta que voce devia",
+    ];
+    const INSPIRATIONAL_TERMS = [
+      "abrac", "floresce", "acolhe", "reflete", "respira natureza", "envolve em",
+    ];
     const scoreHeuristic = (c: any): number => {
       let s = 0;
-      if (c.persona === "em-obra") s += 3;
-      else if (c.persona === "ambos") s += 1;
       const gat = String(c.gatilho_principal || "").toLowerCase();
-      if (gat.includes("information") || gat.includes("info-gap") || gat.includes("gap")) s += 3;
-      if (gat.includes("contrarian") || gat.includes("loss")) s += 3;
-      if (gat.includes("numero")) s += 2;
-      if (gat.includes("timing")) s += 2;
-      const formula = String(c.formula || "").toLowerCase();
-      if (formula.includes("inspiracional")) s -= 2;
+      if (gat.includes("revelac")) s += 4;
+      if (gat.includes("sensorial")) s += 3;
+      if (gat.includes("historia")) s += 3;
+      if (gat.includes("observac")) s += 3;
+      if (gat.includes("comportamento")) s += 2;
+      if (gat.includes("quebra")) s += 2;
+      const titulo = String(c.titulo || "").toLowerCase();
+      for (const t of COMMERCIAL_TERMS) if (titulo.includes(t)) s -= 5;
+      for (const t of INSPIRATIONAL_TERMS) if (titulo.includes(t)) s -= 4;
       return s;
     };
     const sorted = [...candidatas].sort((a, b) => scoreHeuristic(b) - scoreHeuristic(a));
@@ -297,7 +304,6 @@ export async function POST(req: NextRequest) {
       ideias: top.map((c) => ({
         titulo: c.titulo,
         hook: c.gancho || "",
-        persona: c.persona,
         gatilho: c.gatilho_principal,
       })),
     };

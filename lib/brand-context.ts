@@ -116,57 +116,97 @@ export const INSPIRACIONAL_VAZIO = [
 ];
 
 /**
- * 6 hook frameworks 2026 — o que realmente viraliza.
- * Fonte: pesquisa TrueFuture/Postnitro/Rafael Terra 2026.
- * Cada um com 3 exemplos aplicados a paisagismo.
+ * Linguagem COMERCIAL disfarcada de educativa — BANIDA.
+ * Conteudo que parece "venda de projeto" nao viraliza no IG 2026.
+ * Gera save baixo, share zero, e algoritmo rebaixa por parecer ad.
+ */
+export const COMERCIAL_VENDEDOR = [
+  "contratar paisagista",
+  "antes de chamar",
+  "antes de contratar",
+  "antes da obra",
+  "antes do pedreiro",
+  "antes do arquiteto",
+  "projeto 3d",
+  "projeto paisagistico",
+  "decisoes antes",
+  "3 decisoes",
+  "4 decisoes",
+  "5 decisoes",
+  "n decisoes que valem",
+  "retrabalho",
+  "custa r$",
+  "custa 3x",
+  "custa o dobro",
+  "40% do orcamento",
+  "40% do projeto",
+  "me manda",
+  "manda no direct",
+  "entre em contato",
+  "fale com",
+  "consultoria",
+  "orcamento",
+  "qual fase da obra",
+  "qual a fase",
+  "em que fase",
+  "a pergunta que voce devia fazer",
+  "o erro de r$",
+  "o erro que custa",
+];
+
+/**
+ * 6 hook frameworks 2026 — NAO COMERCIAIS.
+ * Filosofia: conteudo de curador apaixonado, nao de vendedor educando cliente.
+ * O que viraliza eh revelacao, sensorial, historia, observacao — nao "contrate".
+ * Os hits reais do @digitalpaisagismo (249, 170, 94 saves) sao todos dessa linhagem.
  */
 export const HOOK_FRAMEWORKS_2026 = {
-  pattern_interrupt: {
-    descricao: "Quebra expectativa visual/cognitiva em 2 segundos. Estado afirmativo forte, nao pergunta.",
+  revelacao: {
+    descricao: "Revela um padrao/segredo que so quem ve muitos jardins percebe. Curiosidade pura, zero venda.",
     exemplos: [
-      "Piscina nao eh o destaque da area externa.",
-      "Contratar paisagista depois da obra eh retrabalho com nome bonito.",
-      "O jardim nao esta errado. A ordem das decisoes estava.",
+      "A maioria dos jardins alto padrao usa as mesmas 5 plantas. Nao eh coincidencia.",
+      "Existe uma arvore que todo jardim classico tem. E quase ninguem presta atencao nela.",
+      "Jardins que envelhecem bem tem uma coisa em comum que poucos notam.",
     ],
   },
-  information_gap: {
-    descricao: "Abre loop que so o carrossel fecha. Promete payoff especifico. Obriga swipe.",
+  sensorial: {
+    descricao: "Convida a experimentar com os sentidos. Foco em textura, som, luz, tempo — nao em 'ter um jardim'.",
     exemplos: [
-      "3 decisoes que o arquiteto nao toma por voce e definem o jardim por 20 anos.",
-      "A pergunta que paisagistas evitam — e muda tudo no teu projeto.",
-      "O erro de R$40 mil que aparece no segundo verao depois da obra.",
+      "O barulho da agua na pedra basalto muda o som da casa inteira.",
+      "Folhagem de palmeira real desenha sombras diferentes a cada hora do dia.",
+      "Jardim noturno bem feito tem um cheiro proprio. E nao eh perfume de flor.",
     ],
   },
-  contrarian: {
-    descricao: "Vai contra senso comum. Gera debate nos comments. Shares por discordancia.",
+  historia_da_planta: {
+    descricao: "Conta o tempo de uma planta — crescimento, transformacao, comportamento. Storytelling de natureza.",
     exemplos: [
-      "Casa pronta eh onde mais se perde dinheiro com paisagismo ruim.",
-      "A planta certa no lugar errado custa o dobro pra consertar.",
-      "Jardim grande nao eh melhor. So eh mais caro quando da errado.",
+      "Essa arvore leva 8 anos pra ficar assim. Mas o primeiro ano decide tudo.",
+      "Algumas palmeiras so mostram pra que vieram depois do 3o verao.",
+      "A primeira floracao dessa trepadeira vale a espera de 2 anos.",
     ],
   },
-  specific_number: {
-    descricao: "Numero concreto + consequencia mensuravel. Credibilidade imediata.",
+  observacao_de_quem_entende: {
+    descricao: "O olhar tecnico traduzido em detalhe visivel. Prize Frame sutil — voce percebe o que outros nao veem.",
     exemplos: [
-      "Quebrar piso pra passar irrigacao custa 3x mais do que planejar antes.",
-      "5 anos olhando aquela area externa sem usar. Quantos domingos ja foram?",
-      "40% do orcamento de paisagismo vai pra retrabalho quando a ordem esta errada.",
+      "O detalhe que quem entende de jardim olha primeiro.",
+      "Repare como a luz bate diferente num jardim bem posicionado.",
+      "Jardim fotografico e jardim que se vive nao sao a mesma coisa.",
     ],
   },
-  status_prize_frame: {
-    descricao: "Ativa pertencimento a clube alto padrao. Prize Frame: voce eh o premio.",
+  comportamento_do_jardim: {
+    descricao: "Como o jardim age ao longo do tempo. Ensina sem vender. Gera save de quem quer ter um.",
     exemplos: [
-      "Projetos alto padrao sao seletivos. Nao eh pra todo mundo.",
-      "O detalhe que quem entende de paisagismo olha primeiro.",
-      "Voce decide com uma clareza que 99% das pessoas nao tem.",
+      "Jardim bom nao eh no primeiro mes. Eh no segundo verao.",
+      "Muda pequena plantada no lugar certo supera qualquer adulta no lugar errado.",
+      "Cada jardim tem uma estacao em que ele se mostra por inteiro.",
     ],
   },
-  timing: {
-    descricao: "Urgencia especifica ao momento do publico. Timing de obra eh ouro pra 70% em-obra.",
+  quebra_expectativa: {
+    descricao: "Afirmacao curta que contraria intuicao visual. Desperta 'como assim?'. Zero tom comercial.",
     exemplos: [
-      "Se a obra esta na alvenaria, esse eh o momento de definir a irrigacao.",
-      "Antes do gesso fechar, o projeto paisagistico ja precisa existir.",
-      "O momento exato pra contratar paisagismo nao eh quando voce pensou.",
+      "Piscina nao eh o destaque da area externa. Eh o que fica em volta.",
+      "A cor mais importante de um jardim nao eh verde.",
+      "Jardim pequeno bem feito eh mais imponente que jardim grande generico.",
     ],
   },
 } as const;
@@ -183,17 +223,27 @@ export function viralFrameworksBlock(): string {
         `### ${key}\n${v.descricao}\nExemplos aplicados:\n${v.exemplos.map((e) => `- "${e}"`).join("\n")}`,
     )
     .join("\n\n");
-  return `## 6 FRAMEWORKS DE HOOK VIRAL 2026 (fonte: TrueFuture, Postnitro, Rafael Terra)
+  return `## 6 FRAMEWORKS DE HOOK VIRAL 2026 — linha editorial
 
-Cada carrossel DEVE usar 1 destes frameworks no slide 1 (capa) e na primeira linha da legenda.
+CONTEUDO EH DE CURADOR APAIXONADO, NAO DE VENDEDOR EDUCANDO CLIENTE.
+Os hits reais do perfil (249/170/94 saves) foram todos de revelacao, sensorial, observacao.
+Zero "contrate", "antes da obra", "o erro de R$". Isso eh anuncio disfarcado e nao viraliza.
+
+Cada carrossel DEVE usar 1 destes 6 frameworks no slide 1 (capa) e na primeira linha da legenda.
 
 ${items}
 
-## ANTI-INSPIRACIONAL (BANIDO)
-Zero tolerancia a frases de efeito vazias. Lista banida (regex match):
+## ANTI-INSPIRACIONAL (BANIDO — regex match)
+Frases de efeito vazias, poesia sem carne:
 ${INSPIRACIONAL_VAZIO.map((w) => `- "${w}"`).join("\n")}
 
-Se a copy usa qualquer termo acima, REESCREVE. Frase inspiracional bonita = zero save, zero share.`;
+## ANTI-COMERCIAL (BANIDO — regex match)
+Linguagem vendedora disfarcada de educativa. Algoritmo 2026 detecta e rebaixa.
+Post que parece "eu vendo projeto 3D" gera save baixo, share zero:
+${COMERCIAL_VENDEDOR.map((w) => `- "${w}"`).join("\n")}
+
+Se a copy usa qualquer termo das duas listas, REESCREVE. Substitua por REVELACAO,
+SENSORIAL ou OBSERVACAO DE CURADOR — nunca por outra forma de vender.`;
 }
 
 /**

@@ -11,6 +11,7 @@ import {
   brandBlockFull,
   viralFrameworksBlock,
   INSPIRACIONAL_VAZIO,
+  COMERCIAL_VENDEDOR,
   HOOK_FRAMEWORKS_2026,
   type HookFrameworkKey,
 } from "../brand-context";
@@ -35,7 +36,7 @@ type ViralInput = {
 };
 
 /**
- * Detecta frases banidas na legenda. Retorna lista de matches.
+ * Detecta frases banidas (inspiracional E comercial). Retorna lista de matches.
  */
 export function detectInspiracionalVazio(texto: string): string[] {
   const lower = texto.toLowerCase();
@@ -46,17 +47,27 @@ export function detectInspiracionalVazio(texto: string): string[] {
   return hits;
 }
 
+export function detectComercialVendedor(texto: string): string[] {
+  const lower = texto.toLowerCase();
+  const hits: string[] = [];
+  for (const bad of COMERCIAL_VENDEDOR) {
+    if (lower.includes(bad.toLowerCase())) hits.push(bad);
+  }
+  return hits;
+}
+
 /**
  * Se detecta gatilho conhecido (por heuristica), retorna a key.
+ * Agora com os 6 frameworks NAO-COMERCIAIS (revelacao, sensorial, etc).
  */
 function detectGatilho(texto: string): HookFrameworkKey | "outro" {
   const lower = texto.toLowerCase();
-  if (/\br?\$ ?\d+|\d+%|\d+ anos|\d+x mais|\d+ vezes/.test(lower)) return "specific_number";
-  if (/obra (esta|andando|em [a-z]+)|antes (do gesso|da alvenaria)|momento (de|exato)/.test(lower)) return "timing";
-  if (/a maioria|99%|seletivo|clube|alto padrao/.test(lower)) return "status_prize_frame";
-  if (/nao eh|nao e o que|contrariando|vai contra/.test(lower)) return "contrarian";
-  if (/^(a pergunta|o erro|o passo|o detalhe|3 decis|5 coisas|\d+ )/.test(lower)) return "information_gap";
-  if (/\b(piscina|jardim) nao eh\b|reverte|quebra/.test(lower)) return "pattern_interrupt";
+  if (/a maioria|em comum|nao eh coincidencia|quase ninguem|poucos notam|raro/.test(lower)) return "revelacao";
+  if (/barulho|cheiro|sombra|luz|textura|folha|desenha|silencio|perfume/.test(lower)) return "sensorial";
+  if (/\d+ anos|\d+o verao|\d+o ano|leva \d|floracao|crescimento|primeiro ano/.test(lower)) return "historia_da_planta";
+  if (/detalhe que|repare|olhar de quem|quem entende|percebe|nao eh o mesmo/.test(lower)) return "observacao_de_quem_entende";
+  if (/\bno (primeiro|segundo) (mes|verao|ano)\b|estacao|comportamento|se mostra/.test(lower)) return "comportamento_do_jardim";
+  if (/\b(piscina|jardim|cor|grande) nao eh\b/.test(lower)) return "quebra_expectativa";
   return "outro";
 }
 
@@ -70,19 +81,30 @@ ${competitorInspirationBlock({ limit: 6 })}
 
 # TUA FUNCAO
 
-Voce eh o VIRAL MASTER. Recebe uma legenda ja otimizada na voz da marca.
-Tua unica missao: garantir que ela VIRALIZE.
+Voce eh o VIRAL MASTER. Recebe uma legenda otimizada na voz da marca.
+Tua unica missao: garantir que ela VIRALIZA sem parecer ANUNCIO.
+
+## FILOSOFIA EDITORIAL
+
+CURADOR APAIXONADO > VENDEDOR EDUCANDO CLIENTE.
+
+Posts que viralizam no @digitalpaisagismo (hits reais: 249, 170, 94 saves) sao todos
+de REVELACAO, SENSORIAL, OBSERVACAO DE CURADOR. Nao sao "3 decisoes antes de contratar".
+Algoritmo 2026 detecta tom comercial disfarcado e REBAIXA. Share zero vem de ad vibe.
 
 ## PIPELINE DO TEU TRABALHO
 
 1. Le a legenda recebida.
-2. Identifica qual dos 6 frameworks 2026 ela usa (ou nenhum).
-3. Se usa inspiracional vazio (lista banida), REESCREVE a primeira linha usando 1 dos 6 frameworks.
-4. Se a primeira linha eh "setup" (descrevendo cena bonita) em vez de HOOK, REESCREVE.
-5. Valida SHARE-ABILITY: a 2a frase deve funcionar sozinha copiada num WhatsApp.
-6. Valida CTA: ultima frase de preferencia pede DM ("me manda 'PROJETO' no direct") — shares pesam 3-5x mais que likes em 2026.
-7. Mantem o TAMANHO (max 50 palavras, ideal 30-45).
-8. Nao toca no CORPO da mensagem — so polimento viral.
+2. Identifica qual dos 6 frameworks ela usa (revelacao/sensorial/historia/observacao/comportamento/quebra).
+3. Se usa INSPIRACIONAL vazio (lista banida), REESCREVE a primeira linha.
+4. Se usa COMERCIAL vendedor (lista banida: "contratar", "antes de chamar", "projeto 3D",
+   "o erro de R$", "me manda no direct", "3 decisoes"), REESCREVE removendo o tom de venda.
+5. Se a primeira linha eh "setup" em vez de HOOK, REESCREVE.
+6. Valida SHARE-ABILITY: a 2a frase deve funcionar sozinha copiada num WhatsApp.
+7. CTA sutil: pergunta aberta que convida contemplacao ("onde o teu jardim te leva primeiro?"),
+   NAO call de direct. CTA de DM eh tom de venda — banido.
+8. Mantem o TAMANHO (max 50 palavras, ideal 30-45).
+9. Nao toca no CORPO da mensagem — so polimento editorial.
 
 ## REGRA DURA
 
@@ -95,17 +117,19 @@ Se NAO usa, voce REESCREVE a abertura ate conseguir. Iteracao invisivel — o ou
 - Tamanho total: max 50 palavras
 - Hashtags: 3-5 (mantem do input, nao inventa novas)
 - Zero frase inspiracional vazia (lista banida acima)
-- Primeira linha = HOOK explicito (1 dos 6 frameworks), nao setup
-- Estrutura: hook \\n\\n corpo (1-2 frases) \\n\\n CTA
-- CTA de DM quando couber
+- Zero tom comercial (lista COMERCIAL_VENDEDOR banida)
+- Primeira linha = HOOK de curador (1 dos 6 frameworks), nao setup nem pitch
+- Estrutura: hook \\n\\n corpo (1-2 frases curator tone) \\n\\n fecho contemplativo
+- Fecho = pergunta aberta que convida pausa ("qual essa estacao pro teu jardim?"),
+  NAO "me manda no direct", NAO "em que fase", NAO "qual projeto"
 
 ## SCORE_VIRALIDADE (0-10)
 
-- 10: hook forte + payoff claro + CTA DM + zero banido
+- 10: hook de curador forte + revelacao ou sensorial claro + fecho contemplativo + zero banido
 - 8: hook ok + 1-2 micro ajustes
-- 5: hook generico, ainda pode engajar
-- 3: inspiracional disfarcado, precisa reescrever
-- 0: inspiracional puro, sem hook
+- 5: hook generico ou neutro
+- 3: inspiracional vazio disfarcado OU tom comercial sutil
+- 0: venda explicita, "contrate", pitch de projeto
 
 ## RETORNE JSON PURO
 
@@ -120,6 +144,7 @@ Se NAO usa, voce REESCREVE a abertura ate conseguir. Iteracao invisivel — o ou
 
 export async function viralMaster(input: ViralInput): Promise<ViralOutput> {
   const banidas = detectInspiracionalVazio(input.legenda);
+  const comerciais = detectComercialVendedor(input.legenda);
   const gatilhoDetectado = detectGatilho(input.legenda);
 
   const contextBlock = `APPROACH: ${input.approach || "nao especificado"}
@@ -133,11 +158,13 @@ ${input.legenda}
 HASHTAGS: ${(input.hashtags || []).join(" ") || "(nenhuma)"}
 
 PRE-CHECK:
-- Frases banidas detectadas: ${banidas.length ? banidas.join(", ") : "nenhuma ✓"}
+- Inspiracional vazio detectado: ${banidas.length ? banidas.join(", ") : "nenhum ✓"}
+- Tom comercial detectado: ${comerciais.length ? comerciais.join(", ") : "nenhum ✓"}
 - Gatilho detectado (heuristica): ${gatilhoDetectado}
 - Tamanho: ${input.legenda.split(/\s+/).length} palavras
 
 ${banidas.length ? "ATENCAO: contem inspiracional vazio — REESCREVER obrigatoriamente." : ""}
+${comerciais.length ? "ATENCAO: contem TOM COMERCIAL (venda disfarcada). REESCREVE removendo pitch — curador, nao vendedor." : ""}
 
 Retorna JSON puro.`;
 
@@ -181,7 +208,7 @@ Retorna JSON puro.`;
       legenda_viral: input.legenda,
       hashtags: input.hashtags || [],
       gatilho_usado: gatilhoDetectado,
-      score_viralidade: banidas.length ? 3 : 5,
+      score_viralidade: banidas.length || comerciais.length ? 3 : 5,
       changes: [],
       rationale: "fallback sem mudanca (viral master offline)",
     };
