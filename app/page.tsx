@@ -66,6 +66,7 @@ export default function Home() {
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("carrosel:caption:v1");
+      localStorage.removeItem("carrosel:ideas:v1");   // Limpa ideias sugeridas
     } catch {}
   }
 
