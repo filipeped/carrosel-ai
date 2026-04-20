@@ -660,7 +660,7 @@ function Step3({
             throw new Error(`falha ao renderizar slide ${i + 1}: ${err.error}`);
           }
           const buf = await r.arrayBuffer();
-          return btoa(String.fromCharCode(...new Uint8Array(buf)));
+          const bytes = new Uint8Array(buf); let binary = ""; for (let j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]); return btoa(binary);
         }),
       );
       const r = await fetch("/api/publish", {
