@@ -1,0 +1,66 @@
+{
+  "version": "2026.04",
+  "updated_at": "2026-04-20",
+  "note": "Hooks de referencia que viralizaram em perfis brasileiros de paisagismo/arquitetura alto padrao. NAO COPIAR — usar de inspiracao. Cada entrada tem estimativa de performance baseada em observacao manual.",
+  "competitors": [
+    {
+      "handle": "@obrasdepaisagismo",
+      "style": "tecnico-visual",
+      "top_hooks": [
+        { "hook": "A arvore que transforma entrada em chegada", "framework": "pattern_interrupt", "estimate": "medio" },
+        { "hook": "5 plantas que substituem muro sem parecer cerca", "framework": "specific_number", "estimate": "alto" },
+        { "hook": "Por que pergola vazia parece abandonada", "framework": "information_gap", "estimate": "medio" }
+      ]
+    },
+    {
+      "handle": "@benediktopaisagismo",
+      "style": "autoral-classico",
+      "top_hooks": [
+        { "hook": "O detalhe que separa jardim bonito de jardim atemporal", "framework": "information_gap", "estimate": "alto" },
+        { "hook": "Arquitetura sem paisagismo eh casa, nao lar", "framework": "contrarian", "estimate": "medio" },
+        { "hook": "3 escolhas que valem mais do que qualquer planta", "framework": "information_gap", "estimate": "alto" }
+      ]
+    },
+    {
+      "handle": "@rafaeloliveirapaisagismo",
+      "style": "projeto-completo",
+      "top_hooks": [
+        { "hook": "Fachada viva nao envelhece", "framework": "contrarian", "estimate": "medio" },
+        { "hook": "O erro de plantar antes de iluminar", "framework": "information_gap", "estimate": "alto" },
+        { "hook": "Jardim de alto padrao tem uma coisa em comum", "framework": "information_gap", "estimate": "alto" }
+      ]
+    },
+    {
+      "handle": "genericos-viralizaram",
+      "style": "mix",
+      "note": "Hooks que apareceram em varios perfis e geraram save alto (observacao 2025-2026)",
+      "top_hooks": [
+        { "hook": "A maioria chama paisagista tarde demais", "framework": "contrarian", "estimate": "alto" },
+        { "hook": "Por que sua area externa parece vazia", "framework": "information_gap", "estimate": "alto" },
+        { "hook": "O valor real de um jardim projetado", "framework": "status_prize_frame", "estimate": "medio" },
+        { "hook": "Quebrar piso custa 3x mais que planejar antes", "framework": "specific_number", "estimate": "alto" },
+        { "hook": "Seu paisagista pergunta sobre iluminacao?", "framework": "information_gap", "estimate": "alto" },
+        { "hook": "Irrigacao automatica nao eh luxo. Eh economia.", "framework": "contrarian", "estimate": "alto" },
+        { "hook": "A vista de dentro da casa muda tudo", "framework": "pattern_interrupt", "estimate": "medio" },
+        { "hook": "Nao eh o jardim que esta errado. Eh a ordem.", "framework": "pattern_interrupt", "estimate": "alto" },
+        { "hook": "Antes do gesso fechar, projeto paisagistico pronto", "framework": "timing", "estimate": "alto" },
+        { "hook": "Quem tem casa de campo nao deveria plantar muda", "framework": "contrarian", "estimate": "alto" }
+      ]
+    }
+  ],
+  "anti_examples": [
+    "Jardim que abraca voce todo dia — inspiracional vazio",
+    "Natureza que floresce em cada detalhe — frase de efeito",
+    "Transforme sua area externa em um refugio — generico",
+    "Paisagismo incrivel pra sua casa — clickbait vazio",
+    "Seu jardim reflete sua alma — inspiracional"
+  ],
+  "frameworks_referencia": {
+    "pattern_interrupt": "Frase afirmativa que quebra expectativa em 2s",
+    "information_gap": "Abre loop que so o carrossel fecha",
+    "contrarian": "Vai contra senso comum — gera debate",
+    "specific_number": "R$X mil, Y%, Z vezes — credibilidade imediata",
+    "status_prize_frame": "Ativa pertencimento a clube alto padrao",
+    "timing": "Urgencia especifica ao momento do publico"
+  }
+}

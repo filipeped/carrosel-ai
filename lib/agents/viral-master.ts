@@ -14,6 +14,7 @@ import {
   HOOK_FRAMEWORKS_2026,
   type HookFrameworkKey,
 } from "../brand-context";
+import { competitorInspirationBlock } from "./competitor-research";
 
 export type ViralOutput = {
   legenda_viral: string;
@@ -62,6 +63,8 @@ function detectGatilho(texto: string): HookFrameworkKey | "outro" {
 const SYSTEM = `${brandBlockFull()}
 
 ${viralFrameworksBlock()}
+
+${competitorInspirationBlock({ limit: 6 })}
 
 ---
 
