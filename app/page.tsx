@@ -23,7 +23,7 @@ export default function Home() {
   const [allImages, setAllImages] = useState<ImageRow[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [autoGenCaption, setAutoGenCaption] = useState<number>(0);
-  const [carrosselId, setCarrosselId] = useState<number | null>(null);
+  const [carrosselId, setCarrosselId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -35,7 +35,7 @@ export default function Home() {
         if (Array.isArray(s.slides)) setSlides(s.slides);
         if (Array.isArray(s.allImages)) setAllImages(s.allImages);
         if (s.step === 2 || s.step === 3) setStep(s.step);
-        if (typeof s.carrosselId === "number") setCarrosselId(s.carrosselId);
+        if (typeof s.carrosselId === "string") setCarrosselId(s.carrosselId);
       }
     } catch {}
     setHydrated(true);

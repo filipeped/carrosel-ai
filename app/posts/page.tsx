@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 type Post = {
-  id: number;
+  id: string;
   prompt: string;
   tema?: string;
   thumb_url?: string | null;

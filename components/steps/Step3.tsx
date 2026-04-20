@@ -24,7 +24,7 @@ export function Step3({
   prompt: string;
   onBack: () => void;
   autoGenTrigger?: number;
-  carrosselId?: number | null;
+  carrosselId?: string | null;
 }) {
   function update(i: number, patch: Partial<SlideData>) {
     const next = [...slides];
