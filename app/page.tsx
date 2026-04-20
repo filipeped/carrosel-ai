@@ -711,6 +711,7 @@ async function captureSlideAsBlob(index: number): Promise<Blob | null> {
       height: 1350,
       pixelRatio: 1,
       cacheBust: true,
+      skipFonts: true,
     });
     const res = await fetch(dataUrl);
     return await res.blob();
@@ -731,6 +732,7 @@ async function downloadSlideFromDom(index: number) {
       height: 1350,
       pixelRatio: 1,
       cacheBust: true,
+      skipFonts: true,
     });
     const a = document.createElement("a");
     a.href = dataUrl;
