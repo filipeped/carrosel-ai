@@ -11,45 +11,50 @@ import { Step3 } from "@/components/steps/Step3";
 
 const STORAGE_KEY = "carrosel:state:v1";
 
+function loadStoredState() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export default function Home() {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [prompt, setPrompt] = useState("");
+  // Lazy init — lê localStorage ANTES do primeiro render (evita flash pra step 1)
+  const stored = typeof window !== "undefined" ? loadStoredState() : null;
+
+  const [step, setStep] = useState<1 | 2 | 3>(() =>
+    stored?.step === 2 || stored?.step === 3 ? stored.step : 1,
+  );
+  const [prompt, setPrompt] = useState<string>(() => stored?.prompt || "");
   const [loading, setLoading] = useState(false);
   const [currentFlow, setCurrentFlow] = useState<"search" | "copy" | null>(null);
   const [error, setError] = useState("");
 
-  const [selection, setSelection] = useState<Selection | null>(null);
-  const [slides, setSlides] = useState<SlideData[]>([]);
-  const [allImages, setAllImages] = useState<ImageRow[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [selection, setSelection] = useState<Selection | null>(() => stored?.selection || null);
+  const [slides, setSlides] = useState<SlideData[]>(() =>
+    Array.isArray(stored?.slides) ? stored.slides : [],
+  );
+  const [allImages, setAllImages] = useState<ImageRow[]>(() =>
+    Array.isArray(stored?.allImages) ? stored.allImages : [],
+  );
   const [autoGenCaption, setAutoGenCaption] = useState<number>(0);
-  const [carrosselId, setCarrosselId] = useState<string | null>(null);
+  const [carrosselId, setCarrosselId] = useState<string | null>(() =>
+    typeof stored?.carrosselId === "string" ? stored.carrosselId : null,
+  );
 
+  // Salva state a cada mudanca
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const s = JSON.parse(raw);
-        if (s.prompt) setPrompt(s.prompt);
-        if (s.selection) setSelection(s.selection);
-        if (Array.isArray(s.slides)) setSlides(s.slides);
-        if (Array.isArray(s.allImages)) setAllImages(s.allImages);
-        if (s.step === 2 || s.step === 3) setStep(s.step);
-        if (typeof s.carrosselId === "string") setCarrosselId(s.carrosselId);
-      }
-    } catch {}
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
     try {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ step, prompt, selection, slides, allImages, carrosselId }),
       );
     } catch {}
-  }, [hydrated, step, prompt, selection, slides, allImages, carrosselId]);
+  }, [step, prompt, selection, slides, allImages, carrosselId]);
 
   function resetToStart() {
     setStep(1);
