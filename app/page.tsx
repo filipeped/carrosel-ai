@@ -116,6 +116,8 @@ export default function Home() {
   const [slides, setSlides] = useState<SlideData[]>([]);
   const [allImages, setAllImages] = useState<ImageRow[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  // Timestamp pra sinalizar pro Step3 que pode auto-gerar legendas (muda a cada novo "Gerar copy")
+  const [autoGenCaption, setAutoGenCaption] = useState<number>(0);
 
   // Restaura estado salvo no mount
   useEffect(() => {
@@ -216,6 +218,27 @@ export default function Home() {
       }
       setSlides(sl);
       setStep(3);
+      setAutoGenCaption(Date.now()); // dispara geracao automatica de legenda em Step3
+      // Fire-and-forget: gera legendas em background e salva no Supabase
+      const imageUrls = Array.from(
+        new Set(ordered.map((im) => im.url).filter(Boolean)),
+      ).slice(0, 6);
+      fetch("/api/caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, slides: sl, imageUrls }),
+      })
+        .then((res) => res.json())
+        .then((cap) => {
+          if (cap.options?.length) {
+            fetch("/api/captions-history", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt, options: cap.options }),
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {});
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -304,6 +327,7 @@ export default function Home() {
           selection={selection}
           prompt={prompt}
           onBack={() => setStep(2)}
+          autoGenTrigger={autoGenCaption}
         />
       )}
     </main>
@@ -601,6 +625,7 @@ function Step3({
   selection,
   prompt,
   onBack,
+  autoGenTrigger,
 }: {
   slides: SlideData[];
   setSlides: (s: SlideData[]) => void;
@@ -608,6 +633,7 @@ function Step3({
   selection: Selection;
   prompt: string;
   onBack: () => void;
+  autoGenTrigger?: number;
 }) {
   function update(i: number, patch: Partial<SlideData>) {
     const next = [...slides];
@@ -798,6 +824,7 @@ function Step3({
         onPublish={openPreview}
         publishing={busyPost || capturingPreview}
         publishProgress={publishProgress}
+        autoGenTrigger={autoGenTrigger}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -1120,6 +1147,7 @@ function CaptionPanel({
   onPublish,
   publishing,
   publishProgress,
+  autoGenTrigger,
 }: {
   slides: SlideData[];
   prompt: string;
@@ -1129,6 +1157,7 @@ function CaptionPanel({
   onPublish?: () => void;
   publishing?: boolean;
   publishProgress?: ProgressState;
+  autoGenTrigger?: number;
 }) {
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<CaptionOption[] | null>(null);
@@ -1139,7 +1168,8 @@ function CaptionPanel({
   const [stale, setStale] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [historyId, setHistoryId] = useState<number | null>(null);
-  const captionProgress = useProgressSim(loading, [
+  const [autoBgPolling, setAutoBgPolling] = useState(false);
+  const captionProgress = useProgressSim(loading || autoBgPolling, [
     { name: "Claude lendo as 6 fotos do carrossel", seconds: 12 },
     { name: "Escrevendo 3 legendas no seu tom real", seconds: 20 },
     { name: "Limpando hashtags e emojis", seconds: 3 },
@@ -1181,6 +1211,39 @@ function CaptionPanel({
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompt]);
+
+  // Polling quando geracao de legendas foi disparada em background (Step2 "Gerar copy")
+  useEffect(() => {
+    if (!autoGenTrigger || !prompt?.trim() || options) return;
+    let cancelled = false;
+    setAutoBgPolling(true);
+    const start = Date.now();
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const r = await fetch(`/api/captions-history?prompt=${encodeURIComponent(prompt)}`);
+        const d = await r.json();
+        if (d.data?.options?.length) {
+          setOptions(d.data.options);
+          setHistoryId(d.data.id ?? null);
+          lastKeyRef.current = imagesKey;
+          setAutoBgPolling(false);
+          return;
+        }
+      } catch {}
+      if (Date.now() - start > 120000) {
+        setAutoBgPolling(false);
+        return;
+      }
+      setTimeout(poll, 3000);
+    };
+    poll();
+    return () => {
+      cancelled = true;
+      setAutoBgPolling(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoGenTrigger, prompt]);
 
   useEffect(() => {
     if (!hydrated) return;
