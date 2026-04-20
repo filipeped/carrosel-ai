@@ -120,24 +120,34 @@ async function inlineRemoteImages(html: string): Promise<string> {
  * satori-html doesn't create null text-node children that crash Satori.
  */
 function sanitizeForSatori(html: string): string {
-  // 1. Extract body content only (if <body> exists)
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  let content = bodyMatch ? bodyMatch[1] : html;
+  // satori-html converts whitespace between HTML tags into null children,
+  // which crashes Satori with "object null is not iterable".
+  // Fix: collapse whitespace between tags, but preserve <style> content.
 
-  // 2. Remove any remaining <style>, <script>, <head> blocks
-  content = content.replace(/<style[\s\S]*?<\/style>/gi, "");
-  content = content.replace(/<script[\s\S]*?<\/script>/gi, "");
-  content = content.replace(/<head[\s\S]*?<\/head>/gi, "");
+  // 1. Extract and preserve <style> blocks
+  const styles: string[] = [];
+  let cleaned = html.replace(/<style[\s\S]*?<\/style>/gi, (m) => {
+    styles.push(m);
+    return "__STYLE_" + (styles.length - 1) + "__";
+  });
 
-  // 3. Remove <!doctype>, <html>, <body> tags
-  content = content.replace(/<!doctype[^>]*>/gi, "");
-  content = content.replace(/<\/?html[^>]*>/gi, "");
-  content = content.replace(/<\/?body[^>]*>/gi, "");
+  // 2. Remove doctype/html/head wrappers (keep body content)
+  const bodyMatch = cleaned.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  if (bodyMatch) cleaned = bodyMatch[1];
+  cleaned = cleaned.replace(/<!doctype[^>]*>/gi, "");
+  cleaned = cleaned.replace(/<\/?html[^>]*>/gi, "");
+  cleaned = cleaned.replace(/<\/?body[^>]*>/gi, "");
+  cleaned = cleaned.replace(/<head[\s\S]*?<\/head>/gi, "");
 
-  // 4. Collapse whitespace between tags to prevent null children
-  content = content.replace(/>\s+</g, "><");
+  // 3. Collapse whitespace between tags
+  cleaned = cleaned.replace(/>\s+</g, "><");
 
-  return content.trim();
+  // 4. Restore <style> blocks (minified)
+  styles.forEach((s, i) => {
+    cleaned = cleaned.replace("__STYLE_" + i + "__", s.replace(/\n\s*/g, " "));
+  });
+
+  return cleaned.trim();
 }
 
 async function renderViaSatori(html: string): Promise<Buffer> {
