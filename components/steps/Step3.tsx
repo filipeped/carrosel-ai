@@ -99,8 +99,8 @@ export function Step3({
 
   const regenCopyProgress = useProgressSim(regenCopy, [
     { name: "Lendo descrição visual de cada foto", seconds: 3 },
-    { name: "Escrevendo copy dos slides", seconds: 10 },
-    { name: "Regenerando legendas em background", seconds: 15 },
+    { name: "Escrevendo texto dentro dos slides (cards)", seconds: 10 },
+    { name: "Gerando legendas do post em background", seconds: 15 },
   ]);
 
   async function downloadAll() {
@@ -331,7 +331,7 @@ export function Step3({
         <div className="mb-4 border border-[#d6e7c4]/30 bg-[#d6e7c4]/5 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] tracking-widest uppercase opacity-80">
-              Briefing extra (opcional)
+              Briefing extra — só afeta texto dentro dos cards (não a legenda do post)
             </div>
             {customBrief && (
               <button
@@ -346,11 +346,11 @@ export function Step3({
             value={customBrief}
             onChange={(e) => setCustomBrief(e.target.value)}
             rows={3}
-            placeholder="Ex: foque mais na Strelitzia, quero tom menos técnico, adicione senso de urgência, não fale de 'alto padrão'..."
+            placeholder="Ex: foque mais na Strelitzia, quero tom menos técnico, não fale de 'alto padrão'..."
             className="w-full bg-black/30 border border-white/10 rounded p-3 text-sm"
           />
           <div className="text-[10px] opacity-50 mt-2">
-            Clica "↻ Gerar copy" pra usar esse briefing.
+            Clica "↻ Gerar copy" pra usar esse briefing nos slides. A legenda do post continua sendo gerada separada, complementar aos slides.
           </div>
         </div>
       )}

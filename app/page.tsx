@@ -78,7 +78,7 @@ export default function Home() {
 
   const copyProgress = useProgressSim(currentFlow === "copy", [
     { name: "Lendo descrição visual de cada foto", seconds: 3 },
-    { name: "Escrevendo copy dos slides (imitando seu tom)", seconds: 10 },
+    { name: "Escrevendo texto dentro dos slides (cards)", seconds: 10 },
   ]);
 
   async function doSmartSearch(overridePrompt?: string) {

@@ -112,6 +112,13 @@ VOCE RECEBE ATE 6 IMAGENS REAIS DO CARROSSEL. Antes de escrever:
 
 Na legenda, cite pelo menos 1 detalhe visual concreto que so quem olhou a foto saberia (ex: "o caminho em pedra que desvia entre os maciços", "o reflexo da palmeira na agua parada", "o travertino que pega luz no final da tarde").
 
+REGRA DE COMPLEMENTARIDADE (critica):
+- A legenda NAO EH repeticao do texto dos slides. Eh complementar.
+- Se o slide da capa ja diz "A tomada de area externa eh o detalhe que...", a legenda NAO comeca repetindo "A tomada...". Abre outra entrada: uma observacao, uma historia, um detalhe lateral que enriquece.
+- Pensa nisso como jornal: manchete (slide) vs lead da materia (legenda). Manchete chama, lead aprofunda DE OUTRO ANGULO.
+- Palavras-chave do slide NAO podem ser as mesmas da primeira linha da legenda.
+- Se detectar redundancia, reescreva a abertura.
+
 REGRA DURA DE HONESTIDADE VISUAL:
 - Tema nao bate com foto? Use tema como conceito, nao descricao literal.
 - Fotos difusas/nubladas NAO tem "luz dourada" nem "luz rasante". Nao minta sobre luz.
