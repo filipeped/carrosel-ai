@@ -77,21 +77,33 @@ export function CaptionPanel({
   }, [prompt]);
 
   useEffect(() => {
-    if (!autoGenTrigger || !prompt?.trim() || options) return;
+    if (!autoGenTrigger || !prompt?.trim()) return;
+    // Limpa options antigas — sinaliza "regerando, aguarde as novas"
+    setOptions(null);
+    setPickedIdx(null);
+    setHistoryId(null);
+    if (onCaptionPicked) onCaptionPicked("");
     let cancelled = false;
     setAutoBgPolling(true);
     const start = Date.now();
+    // O background-save pos-copy cria nova linha em captions_history;
+    // guardamos esse trigger pra so aceitar id > que o antigo conhecido.
+    const triggerAt = autoGenTrigger;
     const poll = async () => {
       if (cancelled) return;
       try {
         const r = await fetch(`/api/captions-history?prompt=${encodeURIComponent(prompt)}`);
         const d = await r.json();
         if (d.data?.options?.length) {
-          setOptions(d.data.options);
-          setHistoryId(d.data.id ?? null);
-          lastKeyRef.current = imagesKey;
-          setAutoBgPolling(false);
-          return;
+          // So aceita se o registro foi criado APOS o trigger (evita pegar cache antigo)
+          const createdAt = d.data.created_at ? new Date(d.data.created_at).getTime() : 0;
+          if (createdAt >= triggerAt - 5000) {
+            setOptions(d.data.options);
+            setHistoryId(d.data.id ?? null);
+            lastKeyRef.current = imagesKey;
+            setAutoBgPolling(false);
+            return;
+          }
         }
       } catch {}
       if (Date.now() - start > 120000) {
