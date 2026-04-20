@@ -9,13 +9,13 @@ export type CtaData = {
 };
 
 function highlightItalic(title: string, italicWords: string[] = []): string {
-  if (!italicWords.length) return escapeHtml(title);
+  if (!italicWords || !italicWords.length) return escapeHtml(title);
   let out = escapeHtml(title);
   italicWords.forEach((w) => {
     const safe = escapeHtml(w);
     out = out.replace(
       new RegExp(`\\b${safe.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\b`, "gi"),
-      `<em>${safe}</em>`,
+      `<span style="font-style:italic;color:#d6e7c4">${safe}</span>`,
     );
   });
   return out;
@@ -23,18 +23,15 @@ function highlightItalic(title: string, italicWords: string[] = []): string {
 
 export function renderCta(d: CtaData, fontsBaseUrl = ""): string {
   const handleUpper = (BRAND_HANDLE || "").replace(/^@/, "").toUpperCase();
-  const chips = d.chips && d.chips.length ? d.chips : ["SALVAR", "COMPARTILHAR"];
+  const chips = (d.chips && d.chips.length) ? d.chips : ["SALVAR", "COMPARTILHAR"];
   return `<!doctype html><html><head><meta charset="utf-8"/><style>
 ${baseStyle(fontsBaseUrl)}
 .cta-big {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
   font-family: 'Fraunces', serif; font-weight: 300;
   font-size: 68px; line-height: 1.04; letter-spacing: -1.4px;
   color: #fff;
-}
-.cta-big em {
-  font-style: italic; font-weight: 300; color: #d6e7c4;
-  margin-left: 0.12em; margin-right: 0.05em;
 }
 .cta-row {
   display: flex; gap: 10px; margin-top: 28px; flex-wrap: wrap;
