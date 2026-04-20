@@ -39,6 +39,8 @@ export function Step3({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImages, setPreviewImages] = useState<string[] | null>(null);
   const [capturingPreview, setCapturingPreview] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
 
   useEffect(() => {
     try {
@@ -70,6 +72,28 @@ export function Step3({
       }
     } finally {
       setBusyAll(false);
+    }
+  }
+
+  async function saveDraft() {
+    if (!carrosselId) {
+      alert("Carrossel ainda nao foi salvo. Aguarde alguns segundos.");
+      return;
+    }
+    setSavingDraft(true);
+    try {
+      const r = await fetch("/api/drafts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: carrosselId, caption: selectedCaption }),
+      });
+      if (!r.ok) throw new Error("falha ao salvar");
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 2500);
+    } catch (e) {
+      alert(`Erro: ${(e as Error).message}`);
+    } finally {
+      setSavingDraft(false);
     }
   }
 
@@ -165,6 +189,14 @@ export function Step3({
             className="flex-1 sm:flex-none px-3 sm:px-4 py-2 min-h-[44px] text-xs tracking-wider uppercase opacity-60 hover:opacity-100 transition-opacity"
           >
             ← Voltar
+          </button>
+          <button
+            disabled={savingDraft || !carrosselId}
+            onClick={saveDraft}
+            className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
+            title={!carrosselId ? "Aguarde o carrossel ser salvo" : "Salva como rascunho pra postar depois"}
+          >
+            {savingDraft ? "Salvando..." : draftSaved ? "✓ Salvo" : "Salvar rascunho"}
           </button>
           <button
             disabled={busyAll}

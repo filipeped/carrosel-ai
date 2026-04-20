@@ -151,3 +151,49 @@ export async function analyzeAndCache(
 
   return result;
 }
+
+/**
+ * Enriquece imagens com identificação profissional de plantas (RAG + Vision focado).
+ * Usa lib/plant-identifier. Cacheia em image_bank.plantas (nome cientifico) e
+ * image_bank.analise_visual.plantas_identificadas (confidence + id).
+ *
+ * Roda só nas imagens selecionadas finais (nao em todas 24 candidatas) —
+ * evita custo O(N) desnecessario.
+ */
+export async function enrichImagesWithPlantId(
+  images: Array<{ id: number; url: string; plantas?: string[]; analise_visual?: any }>,
+  force = false,
+): Promise<void> {
+  const { identifyPlants } = await import("./plant-identifier");
+  const supabase = getSupabase();
+  for (const img of images) {
+    try {
+      const av = img.analise_visual || {};
+      // Skip se ja tem plantas identificadas com confidence e nao eh force
+      if (!force && Array.isArray(av.plantas_identificadas) && av.plantas_identificadas.length > 0) {
+        continue;
+      }
+      const identified = await identifyPlants(img.url, {
+        descricaoVisual: av.descricao_visual,
+        heroElement: av.hero_element,
+        elementos: av.palavras_chave,
+      });
+      if (!identified.length) continue;
+
+      // Atualiza cache: plantas[] (nomes cientificos) + plantas_identificadas (detalhe)
+      const nomesCient = identified.map((p) => p.nome_cientifico).filter(Boolean);
+      const newAV = { ...av, plantas_identificadas: identified };
+      const newPlantas = Array.from(new Set([...(img.plantas || []), ...nomesCient]));
+
+      await supabase
+        .from("image_bank")
+        .update({ plantas: newPlantas, analise_visual: newAV })
+        .eq("id", img.id);
+
+      img.plantas = newPlantas;
+      img.analise_visual = newAV;
+    } catch (e) {
+      console.warn(`[plant-id] img ${img.id}:`, (e as Error).message);
+    }
+  }
+}

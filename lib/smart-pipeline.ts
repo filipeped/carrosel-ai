@@ -1,7 +1,7 @@
 // Pipeline "smart" — busca + analise visual + rank + selecao por role + copy casada.
 import { getAi, MODEL, BRAND_VOICE } from "./claude";
 import { searchImages as _searchImages } from "./pipeline";
-import { analyzeAndCache, AnaliseVisual } from "./image-analysis";
+import { analyzeAndCache, enrichImagesWithPlantId, AnaliseVisual } from "./image-analysis";
 import { extractJson } from "./utils";
 import { getSupabase, ImageBankRow } from "./supabase";
 import type { SlideSpec } from "./pipeline";
@@ -376,6 +376,17 @@ export async function searchAndSelect(
   const enriched = await enrichFromImageBank(imagens);
   const analyzed = await analyzeAndCache(enriched);
   const selection = await rankAndSelect(prompt, analyzed);
+
+  // Enriquece só as 6 selecionadas (cover + 4 inner + cta) com identificacao
+  // profissional de plantas. RAG + Vision focado + validacao cruzada.
+  // Fire-and-forget: nao bloqueia retorno, mas atualiza cache pra proximo uso.
+  const toEnrich = [selection.cover, ...selection.inner, selection.cta].filter(
+    (img) => img && img.id,
+  );
+  enrichImagesWithPlantId(toEnrich as any).catch((e) =>
+    console.warn("[plant-id] enrich falhou:", e.message),
+  );
+
   return { selection, allAnalyzed: analyzed };
 }
 
