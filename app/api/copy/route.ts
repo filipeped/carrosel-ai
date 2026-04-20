@@ -5,13 +5,15 @@ import { extractJson } from "@/lib/utils";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const SCHEMA = `Retorne JSON valido com EXATAMENTE 6 slides NESSA ORDEM:
+function buildSchema(slideCount: number): string {
+  const lastIdx = slideCount - 1;
+  return `Retorne JSON valido com EXATAMENTE ${slideCount} slides NESSA ORDEM:
 
-IMPORTANTE: retorne um OBJETO JSON com a chave "slides" contendo array de 6 items. NAO retorne array direto. SEM texto explicativo antes ou depois. SEM code-fence markdown.
+IMPORTANTE: retorne um OBJETO JSON com a chave "slides" contendo array de ${slideCount} items. NAO retorne array direto. SEM texto explicativo antes ou depois. SEM code-fence markdown.
 
 Formato:
 {
-  "slides": [ ...6 slides aqui... ]
+  "slides": [ ...${slideCount} slides aqui... ]
 }
 
 Onde cada slide segue:
@@ -19,26 +21,30 @@ Onde cada slide segue:
 [0] CAPA (obrigatorio type="cover"):
     { "type": "cover", "imageIdx": 0, "topLabel": string, "numeral": string|null, "title": string, "italicWords": string[] }
 
-[1..4] MIOLO — 4 slides (obrigatorio type="plantDetail" ou "inspiration"):
+[1..${lastIdx - 1}] MIOLO — ${slideCount - 2} slides (obrigatorio type="plantDetail" ou "inspiration"):
     { "type": "plantDetail", "imageIdx": number, "nomePopular": string, "nomeCientifico": string, "title": null, "subtitle": null, "topLabel": null }
     OU
     { "type": "inspiration", "imageIdx": number, "title": string, "subtitle": string, "topLabel": string, "nomePopular": null, "nomeCientifico": null }
 
-[5] CTA FINAL (obrigatorio type="cta"):
-    { "type": "cta", "imageIdx": 5, "pergunta": string, "italicWords": string[] }
+[${lastIdx}] CTA FINAL (obrigatorio type="cta"):
+    { "type": "cta", "imageIdx": ${lastIdx}, "pergunta": string, "italicWords": string[] }
 
 REGRAS DURAS:
 - slides[0].type DEVE ser "cover"
-- slides[5].type DEVE ser "cta" (pergunta aberta pro leitor, ex: "Qual delas entra na sua casa?")
-- slides[1..4] podem misturar "plantDetail" e "inspiration" conforme fizer sentido pra cada foto
+- slides[${lastIdx}].type DEVE ser "cta" (pergunta aberta pro leitor, ex: "Qual delas entra na sua casa?")
+- slides[1..${lastIdx - 1}] podem misturar "plantDetail" e "inspiration" conforme fizer sentido pra cada foto
 - imageIdx: use indices 0..N-1 das imagens; distribua bem, evite repetir
 - italicWords: 1-3 palavras do title/pergunta pra renderizar em italico decorativo
 - pra plantDetail, tire o nome cientifico da lista de plantas da imagem; nomePopular curto e poetico`;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, images, userBrief } = await req.json();
+    const { prompt, images, userBrief, slideCount: rawSlideCount } = await req.json();
     if (!images?.length) return NextResponse.json({ error: "images required" }, { status: 400 });
+    // Slide count: respeita request OU usa count das imagens (clamped 6-10)
+    const slideCount = Math.max(6, Math.min(10, rawSlideCount || images.length));
+    const SCHEMA = buildSchema(slideCount);
 
     // Prioriza descricao_visual do Vision (analise_visual.descricao_visual) — e o que
     // realmente aparece na foto. So cai pra 'descricao' generica se nao tiver cache Vision.

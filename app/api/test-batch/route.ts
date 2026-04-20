@@ -6,6 +6,7 @@ import { optimizeCaption } from "@/lib/agents/caption-optimizer";
 import { viralMaster } from "@/lib/agents/viral-master";
 import { rankCaptionVariants } from "@/lib/agents/variant-ranker";
 import { critiqueCarousel } from "@/lib/agents/carousel-critic";
+import { ensembleCritique } from "@/lib/agents/ensemble-critic";
 import { getAi, MODEL, BRAND_VOICE } from "@/lib/claude";
 import { extractJson } from "@/lib/utils";
 
@@ -110,31 +111,44 @@ export async function POST(req: NextRequest) {
 
     const selected = VARIANTS_10.slice(0, variants);
 
-    // Gera UM carrossel base e reusa as imagens pras variantes (economiza custo)
+    // 1. Gera UM carrossel base — serve pra popular imagens analisadas + seleccao inicial.
+    //    Cada variante vai REUSAR selection/analysis mas gerar SLIDES PROPRIOS.
     const baseRun = await runSmartCarousel(prompt, {
       persist: false,
       userBrief,
-      skipAgents: false,
+      skipAgents: true,   // skip critic no base — cada variante tem o seu
     });
 
-    const imageUrls = baseRun.imagens.map((i) => i.url).filter(Boolean).slice(0, 6);
+    const imageUrls = baseRun.imagens.map((i) => i.url).filter(Boolean).slice(0, 10);
 
-    // Gera variantes em paralelo — cada uma com CAPA propria + legenda propria + critic propria
+    // 2. Gera variantes em paralelo — cada uma roda runSmartCarousel PROPRIO
+    //    com approachFocus diferente, resultando em SLIDES internos diferentes.
     const results = await Promise.all(
       selected.map(async (v) => {
         try {
-          // 1. Regenera CAPA com hookStrategy especifica
+          // Gera carrossel COMPLETO proprio dessa variante (slides + capa diferentes)
+          const variantRun = await runSmartCarousel(prompt, {
+            persist: false,
+            userBrief,
+            skipAgents: true,  // critic roda depois (ensemble)
+            approachFocus: v.approach,
+            presetSelection: baseRun.selection,
+            presetAnalysis: baseRun.analysis,
+            presetAllAnalyzed: baseRun.allAnalyzed,
+          });
+          const slidesForVariant = [...variantRun.slides];
+
+          // Regenera CAPA com hookStrategy especifica (em cima dos slides proprios)
           const coverSlide = await regenerateCover(
             prompt,
             userBrief,
             v.hookStrategy,
-            baseRun.imagens[0],
-            baseRun.slides,
+            variantRun.imagens[0],
+            slidesForVariant,
           );
-          const slidesForVariant = [...baseRun.slides];
           if (coverSlide) slidesForVariant[0] = { ...slidesForVariant[0], ...coverSlide };
 
-          // 2. Gera legenda, filtra approach alvo
+          // Gera legenda, filtra approach alvo
           const r = await generateCaption(prompt, slidesForVariant, imageUrls);
           let options = r.options || [];
           if (v.approach !== "mix") {
@@ -193,18 +207,40 @@ export async function POST(req: NextRequest) {
               : afterOptimizer;
           }
 
-          // 4. Critic avalia os slides DESSA variante (com capa nova)
+          // 4. Ensemble Critic — 3 critics independentes paralelos (viral/brand/tech)
           let variantCriticScore: number | null = null;
+          let variantCriticBreakdown: Record<string, number> | null = null;
+          let variantCriticControverso: boolean | null = null;
           if (v.useAgents) {
             try {
-              const crit = await critiqueCarousel({
+              const crit = await ensembleCritique({
                 slides: slidesForVariant,
                 prompt,
                 persona: baseRun.analysis?.persona,
               });
               variantCriticScore = crit.score;
+              variantCriticBreakdown = {
+                hook: crit.breakdown_median.hook,
+                narrativa: crit.breakdown_median.narrativa,
+                persona: crit.breakdown_median.persona,
+                vocab: crit.breakdown_median.vocab,
+                cta: crit.breakdown_median.cta,
+                viral_score: crit.critics.viral.score,
+                brand_score: crit.critics.brand.score,
+                technical_score: crit.critics.technical.score,
+              };
+              variantCriticControverso = crit.controverso;
             } catch (e) {
-              console.error(`[test-batch] critic falhou na variante ${v.label}:`, (e as Error).message);
+              console.error(`[test-batch] ensemble critic falhou na variante ${v.label}:`, (e as Error).message);
+              // Fallback pro critic padrao
+              try {
+                const fallback = await critiqueCarousel({
+                  slides: slidesForVariant,
+                  prompt,
+                  persona: baseRun.analysis?.persona,
+                });
+                variantCriticScore = fallback.score;
+              } catch {}
             }
           }
 
@@ -214,8 +250,10 @@ export async function POST(req: NextRequest) {
             hook_strategy: v.hookStrategy,
             slides: slidesForVariant,
             caption_options: [finalCaption],
-            agents_used: v.useAgents ? ["prompt-analyst", "critic", "optimizer", "viral-master"] : [],
+            agents_used: v.useAgents ? ["prompt-analyst", "ensemble-critic", "optimizer", "viral-master"] : [],
             critic_score: variantCriticScore,
+            critic_breakdown: variantCriticBreakdown,
+            critic_controverso: variantCriticControverso,
           };
         } catch (e) {
           const err = e as Error;

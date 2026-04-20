@@ -78,7 +78,7 @@ export default function Home() {
 
   const copyProgress = useProgressSim(currentFlow === "copy", [
     { name: "Lendo descrição visual de cada foto", seconds: 3 },
-    { name: "Escrevendo copy dos 6 slides (imitando seu tom)", seconds: 10 },
+    { name: "Escrevendo copy dos slides (imitando seu tom)", seconds: 10 },
   ]);
 
   async function doSmartSearch(overridePrompt?: string) {
@@ -123,7 +123,8 @@ export default function Home() {
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
-      const sl: SlideData[] = (d.slides || []).slice(0, 6);
+      // Aceita 6-10 slides (architect decide dinamicamente)
+      const sl: SlideData[] = (d.slides || []).slice(0, 10);
       while (sl.length < 6) {
         sl.push({ type: "inspiration", imageIdx: sl.length, title: "", subtitle: "" });
       }
@@ -150,7 +151,7 @@ export default function Home() {
       // Gera legendas em background e salva no Supabase
       const imageUrls = Array.from(
         new Set(ordered.map((im) => im.url).filter(Boolean)),
-      ).slice(0, 6);
+      ).slice(0, 10);
       fetch("/api/caption", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

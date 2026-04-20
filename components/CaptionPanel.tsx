@@ -147,7 +147,7 @@ export function CaptionPanel({
     if (onCaptionPicked) onCaptionPicked("");
     try {
       const imageUrls = readImages
-        ? Array.from(new Set(orderedImages.map((im) => im.url).filter(Boolean))).slice(0, 6)
+        ? Array.from(new Set(orderedImages.map((im) => im.url).filter(Boolean))).slice(0, 10)
         : undefined;
       const r = await fetch("/api/caption", {
         method: "POST",

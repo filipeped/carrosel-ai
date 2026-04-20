@@ -90,7 +90,7 @@ export function Step3({
   }, [selectedCaption]);
 
   const publishProgress = useProgressSim(busyPost, [
-    { name: "Capturando os 6 slides do preview", seconds: 8 },
+    { name: "Capturando os slides do preview", seconds: 8 },
     { name: "Subindo PNGs pro Supabase Storage", seconds: 10 },
     { name: "Instagram: criando containers de mídia", seconds: 12 },
     { name: "Instagram: aguardando processamento", seconds: 15 },
@@ -99,7 +99,7 @@ export function Step3({
 
   const regenCopyProgress = useProgressSim(regenCopy, [
     { name: "Lendo descrição visual de cada foto", seconds: 3 },
-    { name: "Escrevendo copy dos 6 slides", seconds: 10 },
+    { name: "Escrevendo copy dos slides", seconds: 10 },
     { name: "Regenerando legendas em background", seconds: 15 },
   ]);
 
@@ -127,7 +127,7 @@ export function Step3({
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
-      const sl = (d.slides || []).slice(0, 6);
+      const sl = (d.slides || []).slice(0, 10);
       while (sl.length < 6) {
         sl.push({ type: "inspiration", imageIdx: sl.length, title: "", subtitle: "" });
       }
@@ -136,7 +136,7 @@ export function Step3({
       // Regenera legendas em background com prompt + slides novos
       const imageUrls = Array.from(
         new Set(ordered.map((im) => im?.url).filter(Boolean)),
-      ).slice(0, 6);
+      ).slice(0, 10);
       fetch("/api/caption", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

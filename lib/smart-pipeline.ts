@@ -234,16 +234,18 @@ export async function rankAndSelect(
   };
 }
 
-const COPY_FROM_ANALYSIS_SCHEMA = `Retorne JSON: { "slides": [6 items] } sem markdown.
-Ordem: [0]cover, [1..4]plantDetail|inspiration, [5]cta.
+function buildCopyFromAnalysisSchema(slideCount: number): string {
+  const lastIdx = slideCount - 1;
+  return `Retorne JSON: { "slides": [${slideCount} items] } sem markdown.
+Ordem: [0]cover, [1..${lastIdx - 1}]plantDetail|inspiration, [${lastIdx}]cta.
 
 cover: { type:"cover", imageIdx:0, topLabel, numeral|null, title, italicWords:[] }
 plantDetail: { type:"plantDetail", imageIdx, nomePopular, nomeCientifico, title:null, subtitle:null, topLabel:null }
 inspiration: { type:"inspiration", imageIdx, title, subtitle, topLabel, nomePopular:null, nomeCientifico:null }
-cta: { type:"cta", imageIdx:5, pergunta, italicWords:[] }
+cta: { type:"cta", imageIdx:${lastIdx}, pergunta, italicWords:[] }
 
 REGRAS ESTRUTURAIS:
-- slides[0].type DEVE ser "cover"; slides[5].type DEVE ser "cta"
+- slides[0].type DEVE ser "cover"; slides[${lastIdx}].type DEVE ser "cta"
 - numeral: 1-2 digitos numericos puros ou null
 - Numeros em titulos: 3, 4 ou 5 apenas (nunca 6+)
 
@@ -259,13 +261,19 @@ REGRAS DE COERENCIA (CRITICAS):
   da imagem aquela imageIdx. Se nao tiver planta identificada na foto, use inspiration em vez de plantDetail.
 
 Copy deve ser sofisticado, sem clichê. Citar luz, textura, materiais quando presentes.`;
+}
 
 export async function generateCopyFromAnalysis(
   prompt: string,
   selection: SmartSelection,
+  opts: { slideCount?: number; approachFocus?: string } = {},
 ): Promise<{ slides: SlideSpec[] }> {
   const ordered = [selection.cover, ...selection.inner, selection.cta];
+  const slideCount = Math.max(6, Math.min(10, opts.slideCount ?? ordered.length));
+  const schema = buildCopyFromAnalysisSchema(slideCount);
+
   const imgSummary = ordered
+    .slice(0, slideCount)
     .map((im, i) => {
       const a = im.analise_visual;
       const plantas = (im.plantas || []).slice(0, 6).join(", ");
@@ -278,26 +286,30 @@ export async function generateCopyFromAnalysis(
     })
     .join("\n\n");
 
-  const userMsg = `Tema pedido pelo usuario: "${prompt}"
+  const approachBlock = opts.approachFocus
+    ? `\n\nFOCO DE ABORDAGEM: "${opts.approachFocus}" — tempera o tom dos slides de acordo.`
+    : "";
+
+  const userMsg = `Tema pedido pelo usuario: "${prompt}"${approachBlock}
 
 Imagens disponiveis e o que cada uma MOSTRA (fonte de verdade):
 ${imgSummary}
 
 Hints de curadoria: ${selection.rationale || "-"}
 
-${COPY_FROM_ANALYSIS_SCHEMA}
+${schema}
 
 Verifique: cada elemento que voce citar no copy TEM que estar na descricao/plantas/materiais da imagem correspondente. Alucinacao = falha grave.`;
 
   // Injeta tom real do perfil (top-20 posts) pra copy dos slides tb imitar ritmo
   const voiceRefs = await getBrandVoiceReferences();
   const systemComVoice = voiceRefs
-    ? `${BRAND_VOICE}\n\n${voiceRefs}\n\nNO TEXTO DO SLIDE (diferente da legenda): sem emoji, sem hashtag. Mas o RITMO/tom/vocabulario dos exemplos acima serve como referencia.\n\n${COPY_FROM_ANALYSIS_SCHEMA}`
-    : BRAND_VOICE + "\n\n" + COPY_FROM_ANALYSIS_SCHEMA;
+    ? `${BRAND_VOICE}\n\n${voiceRefs}\n\nNO TEXTO DO SLIDE (diferente da legenda): sem emoji, sem hashtag. Mas o RITMO/tom/vocabulario dos exemplos acima serve como referencia.\n\n${schema}`
+    : BRAND_VOICE + "\n\n" + schema;
 
   const r = await getAi().chat.completions.create({
     model: MODEL,
-    max_tokens: 1800,
+    max_tokens: 2400,
     messages: [
       { role: "system", content: systemComVoice },
       { role: "user", content: userMsg },
@@ -426,11 +438,35 @@ export async function runSmartCarousel(
     persist?: boolean;
     userBrief?: string;
     skipAgents?: boolean;
+    slideCount?: number;        // 7-10 quando dinamico; default 8
+    approachFocus?: string;     // per-variant: direta_emocional, contrarian_forte, etc
+    presetSelection?: SmartSelection;       // reusa selecao de imagens ja analisadas
+    presetAnalysis?: { persona?: string; enrichedPrompt?: string; mainDor?: string };
+    presetAllAnalyzed?: AnalyzedImage[];
   } = {},
 ) {
-  const { selection, allAnalyzed, analysis } = await searchAndSelect(prompt, opts);
-  const { slides: rawSlides } = await generateCopyFromAnalysis(prompt, selection);
-  const ordered = [selection.cover, ...selection.inner, selection.cta];
+  const slideCount = Math.max(6, Math.min(10, opts.slideCount ?? 8));
+  let selection: SmartSelection;
+  let allAnalyzed: AnalyzedImage[];
+  let analysis: { persona?: string; enrichedPrompt?: string; mainDor?: string } | undefined;
+  if (opts.presetSelection) {
+    selection = opts.presetSelection;
+    allAnalyzed = opts.presetAllAnalyzed ?? [];
+    analysis = opts.presetAnalysis;
+  } else {
+    const searched = await searchAndSelect(prompt, {
+      ...opts,
+      candidateCount: opts.candidateCount ?? Math.max(16, slideCount * 3),
+    });
+    selection = searched.selection;
+    allAnalyzed = searched.allAnalyzed;
+    analysis = searched.analysis;
+  }
+  const { slides: rawSlides } = await generateCopyFromAnalysis(prompt, selection, {
+    slideCount,
+    approachFocus: opts.approachFocus,
+  });
+  const ordered = [selection.cover, ...selection.inner, selection.cta].slice(0, slideCount);
   let slides = validateSlidesAgainstImages(rawSlides, ordered);
 
   // AGENTE 2: Carousel Critic — avalia e opcionalmente regenera se score baixo
@@ -444,7 +480,10 @@ export async function runSmartCarousel(
       });
       // Se score < 65, faz 1 regen com feedback
       if (critique.score < 65 && critique.issues.length) {
-        const retry = await generateCopyFromAnalysis(prompt, selection);
+        const retry = await generateCopyFromAnalysis(prompt, selection, {
+          slideCount,
+          approachFocus: opts.approachFocus,
+        });
         slides = validateSlidesAgainstImages(retry.slides, ordered);
       }
     } catch {
