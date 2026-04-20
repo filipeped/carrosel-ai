@@ -11,6 +11,7 @@ export function Step3({
   slides,
   setSlides,
   allImages,
+  setAllImages,
   selection,
   prompt,
   onBack,
@@ -20,6 +21,7 @@ export function Step3({
   slides: SlideData[];
   setSlides: (s: SlideData[]) => void;
   allImages: ImageRow[];
+  setAllImages?: (imgs: ImageRow[]) => void;
   selection: Selection;
   prompt: string;
   onBack: () => void;
@@ -42,6 +44,34 @@ export function Step3({
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
   const [regenCopy, setRegenCopy] = useState(false);
+  const [fetchingMore, setFetchingMore] = useState(false);
+
+  async function fetchMoreImages() {
+    if (!setAllImages) return;
+    setFetchingMore(true);
+    try {
+      const r = await fetch("/api/search-more", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          excludeIds: allImages.map((i) => i.id),
+          limit: 18,
+        }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      if (!d.images?.length) {
+        alert("Sem mais imagens no banco pra esse tema.");
+        return;
+      }
+      setAllImages([...allImages, ...d.images]);
+    } catch (e) {
+      alert(`Erro: ${(e as Error).message}`);
+    } finally {
+      setFetchingMore(false);
+    }
+  }
 
   useEffect(() => {
     try {
@@ -131,7 +161,12 @@ export function Step3({
       const r = await fetch("/api/drafts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: carrosselId, caption: selectedCaption }),
+        body: JSON.stringify({
+          id: carrosselId,
+          caption: selectedCaption,
+          slides, // persiste edicoes dos slides
+          imagens_ids: allImages.map((i) => i.id),
+        }),
       });
       if (!r.ok) throw new Error("falha ao salvar");
       setDraftSaved(true);
@@ -235,6 +270,14 @@ export function Step3({
             className="flex-1 sm:flex-none px-3 sm:px-4 py-2 min-h-[44px] text-xs tracking-wider uppercase opacity-60 hover:opacity-100 transition-opacity"
           >
             ← Voltar
+          </button>
+          <button
+            disabled={fetchingMore || !setAllImages}
+            onClick={fetchMoreImages}
+            className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
+            title="Busca mais imagens do banco pra esse tema"
+          >
+            {fetchingMore ? "Buscando..." : `+ Mais imagens (${allImages.length})`}
           </button>
           <button
             disabled={regenCopy}

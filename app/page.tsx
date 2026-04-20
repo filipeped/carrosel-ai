@@ -270,6 +270,7 @@ export default function Home() {
           slides={slides}
           setSlides={setSlides}
           allImages={allImages}
+          setAllImages={setAllImages}
           selection={selection}
           prompt={prompt}
           onBack={() => setStep(2)}

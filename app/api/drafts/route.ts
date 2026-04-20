@@ -33,7 +33,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { id, caption, scheduled_for } = await req.json();
+    const { id, caption, scheduled_for, slides, imagens_ids } = await req.json();
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
     const sb = getSupabase();
     const update: Record<string, unknown> = {
@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
     };
     if (caption !== undefined) update.draft_caption = caption;
     if (scheduled_for !== undefined) update.scheduled_for = scheduled_for;
+    if (Array.isArray(slides)) update.slides = slides;
+    if (Array.isArray(imagens_ids)) update.imagens_ids = imagens_ids;
     const { error } = await sb.from("carrosseis_gerados").update(update).eq("id", id);
     if (error) throw new Error(error.message);
     return NextResponse.json({ ok: true });
