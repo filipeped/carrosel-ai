@@ -120,6 +120,19 @@ export default function PostsPage() {
     }
   }
 
+  async function republish(id: string) {
+    if (!confirm("Reabrir esse post como rascunho pra repostar no Instagram?")) return;
+    try {
+      const r = await fetch(`/api/posts/${id}/republish`, { method: "POST" });
+      if (!r.ok) throw new Error("falha");
+      setSelected(null);
+      // Recarrega no editor
+      await openInEditor(id);
+    } catch (e) {
+      alert(`Erro: ${(e as Error).message}`);
+    }
+  }
+
   const list = tab === "posted" ? posted : drafts;
   const total = list?.length ?? 0;
 
@@ -277,23 +290,32 @@ export default function PostsPage() {
                   {selected.caption_options[0].legenda}
                 </div>
               )}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSelected(null)}
-                  className="flex-1 min-h-[44px] border border-white/20 rounded px-4 py-2 text-xs tracking-wider uppercase hover:bg-white/5"
-                >
-                  Fechar
-                </button>
-                {selected.instagram_permalink && (
-                  <a
-                    href={selected.instagram_permalink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 min-h-[44px] bg-[#d6e7c4] text-black rounded px-4 py-2 text-xs tracking-wider uppercase text-center flex items-center justify-center hover:bg-[#c9dbb4]"
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelected(null)}
+                    className="flex-1 min-h-[44px] border border-white/20 rounded px-4 py-2 text-xs tracking-wider uppercase hover:bg-white/5"
                   >
-                    Ver no Instagram ↗
-                  </a>
-                )}
+                    Fechar
+                  </button>
+                  {selected.instagram_permalink && (
+                    <a
+                      href={selected.instagram_permalink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 min-h-[44px] bg-[#d6e7c4] text-black rounded px-4 py-2 text-xs tracking-wider uppercase text-center flex items-center justify-center hover:bg-[#c9dbb4]"
+                    >
+                      Ver no Instagram ↗
+                    </a>
+                  )}
+                </div>
+                <button
+                  onClick={() => republish(selected.id)}
+                  className="w-full min-h-[44px] border border-amber-400/40 text-amber-200 rounded px-4 py-2 text-xs tracking-wider uppercase hover:bg-amber-400/10"
+                  title="Se apagou o post no IG e quer repostar"
+                >
+                  ↻ Repostar (usar se apagou no IG)
+                </button>
               </div>
             </div>
           </div>

@@ -18,7 +18,7 @@ create or replace function match_vegetacoes(
   query_embedding vector(1536),
   match_count int default 15
 ) returns table (
-  id text,
+  id uuid,
   nome_popular text,
   nome_cientifico text,
   descricao text,
@@ -53,7 +53,7 @@ create table if not exists plant_corrections (
   id bigserial primary key,
   image_id integer references image_bank(id) on delete cascade,
   plant_id_wrong text,
-  plant_id_correct text references vegetacoes(id) on delete set null,
+  plant_id_correct uuid references vegetacoes(id) on delete set null,
   visual_clue text,
   created_at timestamptz default now()
 );
