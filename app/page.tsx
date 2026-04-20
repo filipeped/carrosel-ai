@@ -1594,21 +1594,24 @@ function InstagramPreviewModal({
             </svg>
           </div>
           <div className="text-sm font-semibold mb-1">1.248 curtidas</div>
-          <div className="text-sm leading-snug break-words">
+          <div className="text-sm leading-snug break-words whitespace-pre-wrap">
             <span className="font-semibold mr-1.5">{handle}</span>
             <span>{displayCaption}</span>
             {needsTruncation && !captionExpanded && (
-              <button
-                onClick={() => setCaptionExpanded(true)}
-                className="text-gray-500 ml-1 hover:text-gray-700"
-              >
-                ... mais
-              </button>
+              <>
+                <span className="text-gray-500">...</span>{" "}
+                <button
+                  onClick={() => setCaptionExpanded(true)}
+                  className="text-gray-500 hover:text-gray-700 font-normal"
+                >
+                  mais
+                </button>
+              </>
             )}
             {needsTruncation && captionExpanded && (
               <button
                 onClick={() => setCaptionExpanded(false)}
-                className="text-gray-500 ml-1 hover:text-gray-700 block mt-1"
+                className="text-gray-500 hover:text-gray-700 font-normal block mt-2"
               >
                 menos
               </button>

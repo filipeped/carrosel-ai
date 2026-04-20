@@ -109,9 +109,16 @@ REGRA DURA DE HONESTIDADE VISUAL:
 - **tecnico_relacional** — explica o porque tecnico sem jargao, sempre conectando ao USO do espaco ("Um bom paisagismo nao e so sobre plantas. E sobre criar espacos que fazem sentido com a sua rotina.").
 
 REGRAS DURAS:
-- TAMANHO: 35-60 palavras por legenda. PUNCHY, CURTA, DIRETA. Nunca exceda 60 palavras.
-  Instagram corta em ~125 caracteres no feed — as primeiras 2 frases fazem tudo. Legenda longa perde engajamento.
-  Estrutura ideal: 1 hook (1 linha) + 1 frase de desenvolvimento + 1 frase de fechamento/CTA sutil. Sem paragrafos longos, sem enumeracao.
+- TAMANHO: MAXIMO 50 PALAVRAS. Nao eh sugestao, eh limite duro — contar cada palavra. Ideal 30-45.
+  Instagram corta em ~125 caracteres no feed — as 2 primeiras frases fazem tudo.
+  Estrutura OBRIGATORIA: (1) hook de 1 linha + (2) 1-2 frases curtas + (3) pergunta/fecho de 1 linha. 3 paragrafos MAXIMO, separados por linha em branco (\\n\\n).
+  Nao enumerar, nao explicar tecnica em detalhe, nao fazer 4 paragrafos, nao usar "—" pra listar. Cortar ate doer. Se tiver 60 palavras, CORTA.
+  EXEMPLO do tamanho certo (47 palavras):
+  "Jardim que envelhece bem nao eh sorte.
+
+  Eh projeto pensado antes da primeira muda — densidade, ritmo e plantas-ancora que seguram volume nos 2 primeiros anos.
+
+  Sem isso, qualquer jardim vira mato em 6 meses. E onde seu jardim comeca a falhar?"
 - HASHTAGS: 10-14 por legenda. TODAS minusculas, SEM acento, SEM camelCase, SEM char especial. Ex correto: #paisagismoaltopadrao. Errado: #paisagismoAltoPadrao.
 - EMOJI: permitido moderadamente (maximo 3 por legenda) APENAS os que o perfil ja usa: 🌿 ✨ 🌴 📐 👇 📍. PROIBIDO: 😍 🔥 💯 🤩 ❤️ 🙌 💪 🚀 (cringe, fora do tom).
 - Proibido: arrow-chars (→↓↑), "ola pessoal", "confira", "top", "incrivel", "imperdivel", "voce nao vai acreditar", clickbait vazio.
