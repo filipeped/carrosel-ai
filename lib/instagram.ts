@@ -4,8 +4,17 @@
 
 const API_BASE = "https://graph.facebook.com/v21.0";
 
+// TEMP: fallback hardcoded pq envs em prod ainda nao foram redeployadas.
+// TODO: remover depois de confirmar que Vercel env vars funcionam.
+const FALLBACK_ENV: Record<string, string> = {
+  INSTAGRAM_ACCESS_TOKEN: "EAAXWJcUs278BRTHFyZAKX3gIGes1dHjeeeAO3BgXXRwrvUhxW1Xv1K2ahiiMXOApi08tgl9e0ARkHbcBSzMjZCVqTTDBHRY99fZASwpFpanFg3vpI3YqBrtk3x89t3WttFtWiZC1iN9Qd6MgQkMQa3OJasE07ol630vmyZAxrqUzf7UW9Til7ULG42yTujQCkHZCjssubNxFRMBWvdD748GohcA0a4Csp0rtIipkhru2mkAbm98WHiojYZBZCwZDZD",
+  INSTAGRAM_USER_ID: "17841447219146639",
+  INSTAGRAM_APP_ID: "828324220228117",
+  INSTAGRAM_APP_SECRET: "d57fb2932bd4e662429af4408a6c7afe",
+};
+
 function requireEnv(name: string): string {
-  const v = process.env[name];
+  const v = process.env[name] || FALLBACK_ENV[name];
   if (!v) throw new Error(`Env ${name} nao configurada`);
   return v;
 }
