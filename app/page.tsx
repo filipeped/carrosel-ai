@@ -153,6 +153,7 @@ export default function Home() {
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("carrosel:caption:v1");
+      localStorage.removeItem("carrosel:captions:v1");
     } catch {}
   }
 
@@ -1105,6 +1106,7 @@ function CaptionPanel({
   const [readImages, setReadImages] = useState(true);
   const [pickedIdx, setPickedIdx] = useState<number | null>(null);
   const [stale, setStale] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const captionProgress = useProgressSim(loading, [
     { name: "Claude lendo as 6 fotos do carrossel", seconds: 12 },
     { name: "Escrevendo 3 legendas no seu tom real", seconds: 20 },
@@ -1118,7 +1120,36 @@ function CaptionPanel({
   );
   const lastKeyRef = useRef<string | null>(null);
   const regenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Restaura opcoes geradas do localStorage (persiste entre refreshes)
   useEffect(() => {
+    try {
+      const raw = localStorage.getItem("carrosel:captions:v1");
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (Array.isArray(s.options)) setOptions(s.options);
+        if (typeof s.pickedIdx === "number") setPickedIdx(s.pickedIdx);
+        if (typeof s.imagesKey === "string") lastKeyRef.current = s.imagesKey;
+      }
+    } catch {}
+    setHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      if (options) {
+        localStorage.setItem(
+          "carrosel:captions:v1",
+          JSON.stringify({ options, pickedIdx, imagesKey: lastKeyRef.current }),
+        );
+      } else {
+        localStorage.removeItem("carrosel:captions:v1");
+      }
+    } catch {}
+  }, [hydrated, options, pickedIdx]);
+
+  useEffect(() => {
+    if (!hydrated) return;
     if (options && lastKeyRef.current && lastKeyRef.current !== imagesKey) {
       setStale(true);
       if (onCaptionPicked) onCaptionPicked("");
@@ -1133,7 +1164,7 @@ function CaptionPanel({
       if (regenTimerRef.current) clearTimeout(regenTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imagesKey, options]);
+  }, [imagesKey, options, hydrated]);
 
   async function generate() {
     setLoading(true);
