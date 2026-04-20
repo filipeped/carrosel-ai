@@ -646,8 +646,10 @@ function Step3({
     setPostResult(null);
     try {
       // render client-side via html-to-image (mesmo flow do botao "Baixar PNG")
-      // — 100% fiel ao preview, zero servidor, sem Satori/Puppeteer
-      const pngs: string[] = [];
+      // — e uploada um slide por vez pro Supabase Storage (evita estourar
+      // body limit do Vercel de 4.5MB). Server recebe so as URLs.
+      const batchId = String(Date.now());
+      const imageUrls: string[] = [];
       for (let i = 0; i < slides.length; i++) {
         const blob = await captureSlideAsBlob(i);
         if (!blob) throw new Error(`falha ao capturar slide ${i + 1}`);
@@ -655,12 +657,23 @@ function Step3({
         const bytes = new Uint8Array(buf);
         let binary = "";
         for (let j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
-        pngs.push(btoa(binary));
+        const png = btoa(binary);
+        const up = await fetch("/api/upload-slide", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ png, batchId, index: i }),
+        });
+        if (!up.ok) {
+          const err = await up.json().catch(() => ({ error: `status ${up.status}` }));
+          throw new Error(`upload slide ${i + 1}: ${err.error}`);
+        }
+        const { url } = await up.json();
+        imageUrls.push(url);
       }
       const r = await fetch("/api/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pngs, caption: selectedCaption }),
+        body: JSON.stringify({ imageUrls, caption: selectedCaption }),
       });
       const d = await r.json();
       if (!r.ok || d.error) throw new Error(d.error || "falha");
