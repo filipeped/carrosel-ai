@@ -304,8 +304,8 @@ export async function renderHtmlToPng(html: string): Promise<Buffer> {
   } catch (e: any) {
     console.warn(`[renderer] ${usePuppet ? "puppeteer" : "satori"} falhou:`, e.message);
     if (usePuppet) {
-      console.warn("[renderer] tentando satori como fallback");
-      return renderViaSatori(html);
+      // expõe erro do Puppeteer no stack pra debug — se quebrar, nao mascarar com Satori
+      throw new Error(`puppeteer: ${e.message}`);
     }
     throw e;
   }
