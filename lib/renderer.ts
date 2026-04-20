@@ -41,9 +41,7 @@ async function renderViaPuppeteer(html: string): Promise<Buffer> {
   const page = await browser.newPage();
   try {
     await page.setViewport({ width: 1080, height: 1350, deviceScaleFactor: 1 });
-    // 'load' em vez de 'networkidle0' — nao espera Google Fonts/Supabase ficarem totalmente idle
     await page.setContent(html, { waitUntil: "load", timeout: 15000 });
-    // pequeno delay pra fontes aplicarem
     await new Promise((r) => setTimeout(r, 400));
     const buf = (await page.screenshot({
       type: "png",
@@ -116,13 +114,37 @@ async function inlineRemoteImages(html: string): Promise<string> {
   return result;
 }
 
+/**
+ * Sanitize HTML for satori-html: strip everything outside <body>, remove
+ * <style>/<script>/<head> blocks, and collapse inter-tag whitespace so
+ * satori-html doesn't create null text-node children that crash Satori.
+ */
+function sanitizeForSatori(html: string): string {
+  // 1. Extract body content only (if <body> exists)
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  let content = bodyMatch ? bodyMatch[1] : html;
+
+  // 2. Remove any remaining <style>, <script>, <head> blocks
+  content = content.replace(/<style[\s\S]*?<\/style>/gi, "");
+  content = content.replace(/<script[\s\S]*?<\/script>/gi, "");
+  content = content.replace(/<head[\s\S]*?<\/head>/gi, "");
+
+  // 3. Remove <!doctype>, <html>, <body> tags
+  content = content.replace(/<!doctype[^>]*>/gi, "");
+  content = content.replace(/<\/?html[^>]*>/gi, "");
+  content = content.replace(/<\/?body[^>]*>/gi, "");
+
+  // 4. Collapse whitespace between tags to prevent null children
+  content = content.replace(/>\s+</g, "><");
+
+  return content.trim();
+}
+
 async function renderViaSatori(html: string): Promise<Buffer> {
   const fonts = await loadFonts();
   const htmlWithInlinedImages = await inlineRemoteImages(html);
-  // Remove whitespace between tags — satori-html converts it to null children
-  // which causes "object null is not iterable" in Satori
-  const minified = htmlWithInlinedImages.replace(/>\s+</g, "><").trim();
-  const markup = htmlToReact(minified);
+  const sanitized = sanitizeForSatori(htmlWithInlinedImages);
+  const markup = htmlToReact(sanitized);
   if (!markup) throw new Error("satori-html retornou markup vazio");
   const svg = await satori(markup as any, {
     width: 1080,
@@ -142,10 +164,8 @@ async function renderViaSatori(html: string): Promise<Buffer> {
 // API publica: decide qual usar
 // ============================================================
 function shouldUsePuppeteer(): boolean {
-  // Se explicitamente setado, obedece
   if (process.env.USE_PUPPETEER === "1") return true;
   if (process.env.USE_SATORI === "1") return false;
-  // Default: puppeteer em dev (NODE_ENV !== production), satori em prod
   return process.env.NODE_ENV !== "production";
 }
 
@@ -155,7 +175,6 @@ export async function renderHtmlToPng(html: string): Promise<Buffer> {
     return usePuppet ? await renderViaPuppeteer(html) : await renderViaSatori(html);
   } catch (e: any) {
     console.warn(`[renderer] ${usePuppet ? "puppeteer" : "satori"} falhou:`, e.message);
-    // Fallback pro outro engine se o primario falhar
     if (usePuppet) {
       console.warn("[renderer] tentando satori como fallback");
       return renderViaSatori(html);
