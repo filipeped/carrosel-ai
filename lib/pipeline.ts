@@ -191,10 +191,22 @@ async function _runCaption(
         .replace(EMOJI_RE, (m) => (ALLOWED_EMOJI.has(m) ? m : ""))
         .replace(ARROWS, "")
         .trim();
+    // Algoritmo 2026: IG corta a primeira linha em ~125 chars no feed mobile.
+    // Se a primeira quebra ficar >120, reinsere um \n no limite natural mais proximo.
+    const enforceFirstLine = (s: string): string => {
+      if (!s) return s;
+      const firstBreak = s.indexOf("\n");
+      const firstLine = firstBreak === -1 ? s : s.slice(0, firstBreak);
+      if (firstLine.length <= 120) return s;
+      const cut = firstLine.slice(0, 120);
+      const breakIdx = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(", "), cut.lastIndexOf(" — "), cut.lastIndexOf(" "));
+      const splitAt = breakIdx > 60 ? breakIdx + 1 : 118;
+      return s.slice(0, splitAt).trim() + "\n\n" + s.slice(splitAt).trim();
+    };
     parsed.options = parsed.options.map((o: any) => ({
       ...o,
       hook: cleanString(String(o.hook || "")),
-      legenda: cleanString(String(o.legenda || "")),
+      legenda: enforceFirstLine(cleanString(String(o.legenda || ""))),
       hashtags: Array.isArray(o.hashtags)
         ? o.hashtags
             .map((t: any) => String(t).trim())

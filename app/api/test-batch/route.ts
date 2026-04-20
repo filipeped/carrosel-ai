@@ -191,6 +191,45 @@ export async function POST(req: NextRequest) {
       }),
     );
 
+    // Dedup de capas: se 2+ variantes geraram o MESMO title na capa,
+    // regenera as duplicatas com tweak no hookStrategy pra diversificar.
+    const seenTitles = new Map<string, number>();
+    for (const r of results) {
+      if ("error" in r) continue;
+      const slide0 = (r as { slides?: Array<{ title?: string }> }).slides?.[0];
+      const title = (slide0?.title || "").trim().toLowerCase();
+      if (!title) continue;
+      seenTitles.set(title, (seenTitles.get(title) || 0) + 1);
+    }
+    const dupTitles = new Set(
+      [...seenTitles.entries()].filter(([, n]) => n > 1).map(([t]) => t),
+    );
+    if (dupTitles.size > 0) {
+      console.log(`[test-batch] ${dupTitles.size} capa(s) duplicada(s), diferenciando...`);
+      let dupCount = 0;
+      for (const r of results) {
+        if ("error" in r) continue;
+        const slides = (r as { slides?: Array<{ type: string; title?: string; [k: string]: unknown }> }).slides;
+        if (!slides?.[0]) continue;
+        const title = (slides[0].title || "").toString().trim().toLowerCase();
+        if (!dupTitles.has(title)) continue;
+        dupCount++;
+        if (dupCount === 1) continue; // mantem a primeira ocorrencia
+        // regenera com hook alternativo
+        const altHooks = ["pergunta", "contraste", "promessa"];
+        const currentHook = (r as { hook_strategy?: string }).hook_strategy || "auto";
+        const nextHook = altHooks.find((h) => h !== currentHook) || "contraste";
+        const fresh = await regenerateCover(
+          prompt,
+          userBrief,
+          nextHook,
+          baseRun.imagens[0],
+          slides,
+        );
+        if (fresh) slides[0] = { ...slides[0], ...fresh };
+      }
+    }
+
     // Salva todas no DB
     const rows = results
       .filter((r) => !("error" in r))

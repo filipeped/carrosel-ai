@@ -31,6 +31,24 @@ type CaptionInput = {
  * Limpeza determinística (sem LLM) — mais rápida e 100% confiável.
  * Usada como primeiro passe antes de chamar Claude pra ajuste semântico.
  */
+/**
+ * Enforce primeira linha <=120 chars (regra IG 2026 — corta em 125).
+ */
+function enforceFirstLine(s: string): string {
+  if (!s) return s;
+  const firstBreak = s.indexOf("\n");
+  const firstLine = firstBreak === -1 ? s : s.slice(0, firstBreak);
+  if (firstLine.length <= 120) return s;
+  const cut = firstLine.slice(0, 120);
+  const breakIdx = Math.max(
+    cut.lastIndexOf(". "),
+    cut.lastIndexOf(", "),
+    cut.lastIndexOf(" "),
+  );
+  const splitAt = breakIdx > 60 ? breakIdx + 1 : 118;
+  return s.slice(0, splitAt).trim() + "\n\n" + s.slice(splitAt).trim();
+}
+
 export function deterministicClean(caption: string): {
   cleaned: string;
   changes: Array<{ from: string; to: string; reason: string }>;
@@ -73,8 +91,13 @@ export function deterministicClean(caption: string): {
     }
   }
 
-  // Limpa espaços duplos e vírgulas duplas
-  c = c.replace(/\s{2,}/g, " ").replace(/,{2,}/g, ",").replace(/,\s*,/g, ",").trim();
+  // Limpa espaços duplos e vírgulas duplas (preserva \n que o enforceFirstLine vai inserir)
+  c = c.replace(/[ \t]{2,}/g, " ").replace(/,{2,}/g, ",").replace(/,\s*,/g, ",").trim();
+
+  // Garante primeira linha <=120 chars (IG 2026)
+  const before = c;
+  c = enforceFirstLine(c);
+  if (c !== before) changes.push({ from: "primeira linha longa", to: "quebrada", reason: "IG 2026: >120 chars" });
 
   return { cleaned: c, changes };
 }
@@ -171,7 +194,8 @@ Retorne JSON puro.`;
     });
     const raw = resp.choices[0]?.message?.content || "";
     const parsed = extractJson(raw) as Partial<OptimizedCaption>;
-    const finalCaption = parsed.legenda || cleaned;
+    // Enforça novamente apos LLM (o Claude as vezes junta tudo numa linha só)
+    const finalCaption = enforceFirstLine(parsed.legenda || cleaned);
     // Re-aplica hashtag cleanup em cima do retorno do Claude (garante max 5)
     const { final: finalTags } = cleanHashtags(
       Array.isArray(parsed.hashtags) && parsed.hashtags.length ? parsed.hashtags : cleanTags,

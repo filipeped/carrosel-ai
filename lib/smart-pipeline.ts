@@ -32,7 +32,11 @@ async function enrichFromImageBank(rows: ImageBankRow[]): Promise<ImageBankRow[]
   });
 }
 
-export type AnalyzedImage = ImageBankRow & { analise_visual: AnaliseVisual };
+export type AnalyzedImage = ImageBankRow & {
+  analise_visual: AnaliseVisual;
+  score_composto?: number;
+  aderencia_tema?: number;
+};
 
 export type SmartSelection = {
   cover: AnalyzedImage;
@@ -213,11 +217,19 @@ export async function rankAndSelect(
   const allIds = new Set<number>([finalCover.id, finalCta.id, ...finalInner.map((i) => i.id)]);
   const alternatives = ranked.filter((a) => !allIds.has(a.id));
 
+  // anexa score_composto + aderencia_tema em cada imagem (antes null no payload)
+  const scoreById = new Map(withAder.map((x) => [x.img.id, { score: x.score, ader: x.ader }]));
+  const attach = <T extends AnalyzedImage>(im: T): T => {
+    const s = scoreById.get(im.id);
+    if (!s) return im;
+    return { ...im, score_composto: Number(s.score.toFixed(2)), aderencia_tema: Number((s.ader * 100).toFixed(0)) } as T;
+  };
+
   return {
-    cover: finalCover,
-    inner: finalInner,
-    cta: finalCta,
-    alternatives,
+    cover: attach(finalCover),
+    inner: finalInner.map(attach),
+    cta: attach(finalCta),
+    alternatives: alternatives.map(attach),
     rationale: picked.rationale || "fallback determinstico",
   };
 }
