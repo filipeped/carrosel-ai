@@ -149,20 +149,51 @@ export function CaptionPanel({
       const imageUrls = readImages
         ? Array.from(new Set(orderedImages.map((im) => im.url).filter(Boolean))).slice(0, 10)
         : undefined;
-      const r = await fetch("/api/caption", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, slides, imageUrls }),
-      });
-      const d = await r.json();
-      if (d.error) throw new Error(d.error);
-      setOptions(d.options || []);
+      // Tenta com agents completos primeiro. Se der 504/timeout, fallback pra baseline.
+      let d: { options?: CaptionOption[]; error?: string } | null = null;
+      try {
+        const r = await fetch("/api/caption", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, slides, imageUrls }),
+        });
+        if (r.ok) {
+          d = await r.json();
+        } else if (r.status === 504 || r.status === 408) {
+          console.warn("[caption] timeout, tentando baseline rapido");
+        } else {
+          const t = await r.text();
+          let msg = `HTTP ${r.status}`;
+          if (t.startsWith("{")) {
+            try { msg = JSON.parse(t).error || msg; } catch {}
+          }
+          throw new Error(msg);
+        }
+      } catch (netErr) {
+        console.warn("[caption] 1a tentativa falhou:", (netErr as Error).message);
+      }
+
+      // Fallback: baseline rapido (skipAgents=true) — cabe em ~20s sempre
+      if (!d?.options?.length) {
+        const rFallback = await fetch("/api/caption", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, slides, imageUrls, skipAgents: true }),
+        });
+        if (!rFallback.ok) {
+          const t = await rFallback.text();
+          throw new Error(`Geracao de legenda falhou: ${t.slice(0, 120)}`);
+        }
+        d = await rFallback.json();
+      }
+      if (d?.error) throw new Error(d.error);
+      setOptions(d?.options || []);
       lastKeyRef.current = imagesKey;
       try {
         const save = await fetch("/api/captions-history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, options: d.options || [] }),
+          body: JSON.stringify({ prompt, options: d?.options || [] }),
         });
         const saved = await save.json();
         if (saved.id) setHistoryId(saved.id);
