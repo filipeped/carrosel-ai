@@ -25,9 +25,12 @@ const BASE_OPTS = {
   imagePlaceholder: undefined,
 } as const;
 
-// 4MB = limite pratico (Vercel 4.5MB). Server tem sharp pra otimizar -20~40%,
-// mas aqui no cliente preferimos tentar ratio maior se couber.
-const MAX_CLIENT_BYTES = 4 * 1024 * 1024;
+// Vercel rejeita body > 4.5MB com 413. Quando enviamos o PNG como base64
+// em JSON ({png: "...", batchId, index}), o base64 infla 33% + overhead JSON.
+// Exemplo: PNG 4MB raw → base64 5.3MB → body > 4.5MB → 413.
+// Entao o limite RAW do client precisa ser ~3MB pra caber depois de base64.
+// Sharp no server otimiza mais 20-40% depois, mantendo qualidade lossless.
+const MAX_CLIENT_BYTES = 3 * 1024 * 1024;
 
 /** Estima bytes do PNG sem criar blob (rapido: len do base64 * 0.75). */
 function estimateBytes(dataUrl: string): number {
@@ -100,10 +103,10 @@ async function captureDataUrl(inner: HTMLElement, attempt = 1): Promise<string |
         }
         return dataUrl;
       }
-      // SMART SKIP: se excedeu o dobro do limite, pula direto pra 1x.
+      // SMART SKIP: se excedeu MUITO o limite, pula direto pra 1x.
       // Nao faz sentido testar 2x e 1.5x quando 2.5x deu 13MB (todos vao estourar).
       // Ratio 1x ~= 16% dos bytes de 2.5x (area), entao 13MB -> ~2MB em 1x.
-      const hugelyOver = bytes > MAX_CLIENT_BYTES * 2;
+      const hugelyOver = bytes > MAX_CLIENT_BYTES * 3;
       if (hugelyOver && idx < ratios.length - 1) {
         console.warn(
           `[capture] ratio ${ratio}x gerou ${(bytes / 1024 / 1024).toFixed(2)}MB (>2x limit), pulando direto pra 1x`,

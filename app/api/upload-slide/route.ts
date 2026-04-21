@@ -48,8 +48,10 @@ function readPngDimensions(buf: Buffer): { width: number; height: number } | nul
   return { width, height };
 }
 
-// 4.5MB limite Vercel — 4MB pra ter folga
-const MAX_BYTES = 4 * 1024 * 1024;
+// Vercel limita body a 4.5MB. Com base64 (+33%) + JSON overhead, o PNG raw
+// precisa estar em ~3MB pra garantir que o body final fique abaixo.
+// Se passar disso, base64 estoura e Vercel rejeita com 413 ANTES de chegar aqui.
+const MAX_BYTES = 3 * 1024 * 1024;
 // 1080 eh o tamanho NATIVO do Instagram (4:5). Abaixo disso eh captura quebrada.
 // Supersampling 2x (2160) ou 2.5x (2700) eh bonus pra telas retina.
 const EXPECTED_NATIVE_WIDTH = 1080;
