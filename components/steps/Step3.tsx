@@ -131,8 +131,8 @@ export function Step3({
   const renderProgress = useProgressSim(
     capturingPreview || busyAll,
     [
-      { name: "Renderizando slides em alta qualidade (server)", seconds: 15 },
-      { name: "Otimizando PNGs e subindo", seconds: 8 },
+      { name: "Renderizando em alta qualidade", seconds: 15 },
+      { name: "Otimizando e subindo", seconds: 8 },
     ],
     "render",
   );
