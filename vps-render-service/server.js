@@ -191,12 +191,17 @@ async function renderHtmlToPng(html) {
 
 async function optimizePng(buf) {
   try {
+    // Unsharp mask: compensa o soft que o Instagram introduz quando faz
+    // downsample do 2160x2700 -> 1080x1350. Aplicamos sigma baixo + amount
+    // moderado pra afiar bordas de texto sem ringing artifacts visiveis.
+    // Resultado: texto Fraunces/JetBrains Mono fica mais nitido no feed IG.
     return await sharp(buf, { limitInputPixels: false })
+      .sharpen({ sigma: 0.6, m1: 0.4, m2: 1.8 })
       .png({
         compressionLevel: 9,
         adaptiveFiltering: true,
         palette: false,
-        effort: 3,  // 90% da compressao em 30% do tempo
+        effort: 3,
       })
       .toBuffer();
   } catch {
