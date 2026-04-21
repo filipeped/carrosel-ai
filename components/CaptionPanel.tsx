@@ -222,41 +222,42 @@ export function CaptionPanel({
   }
 
   return (
-    <div className="mb-6 sm:mb-8 border border-white/10 rounded-xl bg-gradient-to-br from-white/[0.03] to-transparent p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-4">
-        <div className="flex-1">
-          <div className="text-[10px] tracking-[4px] uppercase opacity-50 mb-1">
+    <div className="mb-5 sm:mb-8 border border-white/10 rounded-xl bg-gradient-to-br from-white/[0.03] to-transparent p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4 gap-3 sm:gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] tracking-[4px] uppercase opacity-50 mb-0.5">
             Legendas
           </div>
-          <h3 className="text-base sm:text-lg mb-1 leading-snug" style={{ fontFamily: "Georgia, serif" }}>
-            Gere 3 versões no <i>seu tom real</i> e poste.
+          <h3 className="text-base sm:text-lg leading-snug" style={{ fontFamily: "Georgia, serif" }}>
+            Gere 3 versões no <i>seu tom real</i>
           </h3>
-          <div className="text-xs opacity-70 leading-relaxed">
+          <div className="text-xs opacity-60 leading-relaxed hidden sm:block mt-1">
             IA lê seus 20 posts top e imita seu ritmo, hashtags e emojis.
           </div>
-          <label className="mt-3 inline-flex items-center gap-2 text-xs opacity-75 cursor-pointer select-none">
+          <label className="mt-2 sm:mt-3 inline-flex items-center gap-2 text-xs opacity-75 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={readImages}
               onChange={(e) => setReadImages(e.target.checked)}
               className="accent-[#d6e7c4]"
             />
-            Ler também as fotos com Claude Vision antes
+            <span className="hidden sm:inline">Ler também as fotos com Claude Vision antes</span>
+            <span className="sm:hidden">Ler fotos com Vision</span>
           </label>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-row gap-2 w-full sm:w-auto">
           <button
             onClick={generate}
             disabled={loading}
-            className="w-full sm:w-auto bg-white text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-40 transition-colors hover:bg-white/90"
+            className="flex-1 sm:flex-none bg-white text-black px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 transition-colors hover:bg-white/90"
           >
-            {loading ? "Gerando..." : options ? "Gerar de novo" : "Gerar legendas"}
+            {loading ? "Gerando..." : options ? "Gerar de novo" : "Gerar"}
           </button>
           {onPublish && (
             <button
               onClick={onPublish}
               disabled={publishing || !selectedCaption || !options}
-              className="w-full sm:w-auto bg-[#d6e7c4] text-black px-5 py-2.5 rounded tracking-wider uppercase text-xs disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-[0_4px_20px_rgba(214,231,196,0.4)]"
+              className="flex-1 sm:flex-none bg-[#d6e7c4] text-black px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-[0_4px_20px_rgba(214,231,196,0.4)]"
               title={
                 !options
                   ? "Gere as legendas primeiro"

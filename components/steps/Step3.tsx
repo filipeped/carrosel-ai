@@ -351,17 +351,27 @@ export function Step3({
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-3 mb-6 sm:mb-8">
-        <div className="min-w-0 flex-1">
+      <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <button
             onClick={onBack}
-            className="text-[10px] tracking-[4px] uppercase opacity-50 hover:opacity-80 transition-opacity mb-1 flex items-center gap-1"
+            className="w-10 h-10 shrink-0 border border-white/15 rounded flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-white/5 transition"
+            aria-label="Voltar pra etapa 2"
+            title="Voltar"
           >
-            ← Step 3 — Editor
+            ←
           </button>
-          <h2 className="text-lg sm:text-xl leading-snug" style={{ fontFamily: "Georgia, serif" }}>
-            Ajuste os slides, gere a <i>legenda</i> e poste.
-          </h2>
+          <div className="min-w-0">
+            <h2
+              className="text-lg sm:text-xl leading-tight truncate"
+              style={{ fontFamily: "Georgia, serif" }}
+            >
+              Editor
+            </h2>
+            <div className="text-[11px] sm:text-xs opacity-60 truncate">
+              Ajuste slides, <i>legenda</i> e poste
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 relative">
           <button

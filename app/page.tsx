@@ -291,18 +291,56 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen px-4 sm:px-6 py-6 sm:py-8 max-w-7xl mx-auto">
-      <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-4">
-        <div>
-          <div className="text-[10px] sm:text-xs tracking-[4px] uppercase opacity-60">Digital Paisagismo</div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl mt-1" style={{ fontFamily: "Georgia, serif" }}>
-            Gerador de <i>Carrossel</i>
-          </h1>
-          <div className="text-xs opacity-60 mt-1 leading-relaxed">
-            IA escolhe a melhor foto pra capa e casa a copy com o que aparece em cada imagem.
+    <main className="min-h-screen px-4 sm:px-6 py-5 sm:py-8 max-w-7xl mx-auto">
+      <header className="mb-5 sm:mb-8">
+        {/* Linha 1: logo/titulo + menu mobile. Desktop: tambem stepper + navs inline */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] sm:text-xs tracking-[4px] uppercase opacity-60">
+              Digital Paisagismo
+            </div>
+            <h1
+              className="text-2xl sm:text-3xl md:text-4xl mt-0.5"
+              style={{ fontFamily: "Georgia, serif" }}
+            >
+              Gerador de <i>Carrossel</i>
+            </h1>
+            <div className="text-xs opacity-60 mt-1 leading-relaxed hidden sm:block">
+              IA escolhe a melhor foto pra capa e casa a copy com o que aparece em cada imagem.
+            </div>
           </div>
+
+          {/* Desktop: navs inline */}
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            <Link
+              href="/posts"
+              className="text-xs tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity border border-white/20 hover:border-white/40 rounded px-3 py-1.5"
+            >
+              Posts ↗
+            </Link>
+            <Link
+              href="/tests"
+              className="text-xs tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity border border-white/20 hover:border-white/40 rounded px-3 py-1.5"
+            >
+              A/B
+            </Link>
+            {step !== 1 && (
+              <button
+                onClick={resetToStart}
+                className="text-xs tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity border border-white/20 hover:border-white/40 rounded px-3 py-1.5"
+                title="Volta pra etapa 1 e descarta o carrossel atual"
+              >
+                ↺ Recomeçar
+              </button>
+            )}
+          </div>
+
+          {/* Mobile: menu hamburguer */}
+          <MobileMenu step={step} onReset={resetToStart} />
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+
+        {/* Linha 2: stepper. Mobile apenas bullets. Desktop full */}
+        <div className="mt-4 sm:mt-5">
           <Steps
             current={step}
             enabled={{
@@ -312,27 +350,6 @@ export default function Home() {
             }}
             onNavigate={(s) => setStep(s)}
           />
-          <Link
-            href="/posts"
-            className="text-[10px] sm:text-xs tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity border border-white/20 hover:border-white/40 rounded px-3 py-1.5"
-          >
-            Posts ↗
-          </Link>
-          <Link
-            href="/tests"
-            className="text-[10px] sm:text-xs tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity border border-white/20 hover:border-white/40 rounded px-3 py-1.5"
-          >
-            A/B
-          </Link>
-          {step !== 1 && (
-            <button
-              onClick={resetToStart}
-              className="text-[10px] sm:text-xs tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity border border-white/20 hover:border-white/40 rounded px-3 py-1.5"
-              title="Volta pra etapa 1 e descarta o carrossel atual"
-            >
-              ↺ Recomeçar
-            </button>
-          )}
         </div>
       </header>
 
@@ -397,5 +414,65 @@ export default function Home() {
         />
       )}
     </main>
+  );
+}
+
+function MobileMenu({
+  step,
+  onReset,
+}: {
+  step: number;
+  onReset: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="sm:hidden relative shrink-0">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`w-11 h-11 border rounded flex items-center justify-center text-lg transition-colors ${
+          open ? "border-white/40 bg-white/10" : "border-white/15 hover:bg-white/5"
+        }`}
+        aria-label="Menu"
+      >
+        {open ? "×" : "≡"}
+      </button>
+      {open && (
+        <>
+          <button
+            className="fixed inset-0 z-40 cursor-default"
+            onClick={() => setOpen(false)}
+            aria-label="Fechar"
+            tabIndex={-1}
+          />
+          <div className="absolute right-0 top-12 z-50 w-52 bg-[#131612] border border-white/15 rounded-lg shadow-2xl overflow-hidden">
+            <Link
+              href="/posts"
+              onClick={() => setOpen(false)}
+              className="block w-full text-left px-4 py-3 text-sm tracking-wide border-b border-white/5 hover:bg-white/5"
+            >
+              Posts ↗
+            </Link>
+            <Link
+              href="/tests"
+              onClick={() => setOpen(false)}
+              className="block w-full text-left px-4 py-3 text-sm tracking-wide border-b border-white/5 hover:bg-white/5"
+            >
+              A/B Tests
+            </Link>
+            {step !== 1 && (
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onReset();
+                }}
+                className="block w-full text-left px-4 py-3 text-sm tracking-wide hover:bg-white/5"
+              >
+                ↺ Recomeçar
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
