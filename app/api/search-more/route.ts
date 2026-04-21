@@ -3,6 +3,7 @@ import { getSupabase } from "@/lib/supabase";
 import { embed } from "@/lib/embeddings";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 /**
  * POST /api/search-more

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
+export const maxDuration = 15;
 
 /**
  * Persistencia de legendas geradas em Supabase.

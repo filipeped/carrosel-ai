@@ -3,6 +3,7 @@ import { getSupabase } from "@/lib/supabase";
 import { saveCarrossel, listRecent } from "@/lib/history";
 
 export const runtime = "nodejs";
+export const maxDuration = 15;
 
 /**
  * GET  /api/carrosseis?onlyPosted=1 → lista ultimos carrosseis (postados ou nao)

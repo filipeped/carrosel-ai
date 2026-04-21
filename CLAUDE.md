@@ -48,13 +48,15 @@ UPDATE image_bank SET analise_visual = NULL WHERE analise_visual IS NOT NULL;
 
 ### Renderização de slides
 
-**100% client-side via `html-to-image`.** `app/page.tsx` captura o iframe do preview via DOM → PNG (`captureSlideAsBlob` / `downloadSlideFromDom`). Mesmo fluxo pro download, preview modal e post (upload em `/api/upload-slide` → Supabase Storage → Graph API recebe URL pública).
+**100% client-side via `html-to-image`.** Captura do iframe do preview via DOM → PNG (`lib/capture.ts:captureSlideAsBlob`). PixelRatio adaptativo (2.5x → 2x → 1.5x → 1x) — supersampling quando cabe, fallback automático senão. `lib/capture.ts:lastSuccessfulRatio` memoiza entre slides do mesmo batch pra não desperdiçar tempo testando ratios que já falharam.
 
-**Zero render server-side** — não existe Satori, Puppeteer, Chromium no projeto.
+**Upload bypassa Vercel** (evita limite 4.5MB body): `POST /api/upload-url` retorna signed URL, cliente dá `PUT` binário direto pro Supabase Storage. Zero base64 overhead, zero 413.
+
+**Zero render server-side** — não existe Satori, Puppeteer, Chromium.
 
 ### Templates de slide (`templates/`)
 
-`base.ts` exporta `baseStyle()` + `BRAND_HANDLE`. 4 renderers retornam string HTML: `renderCover`, `renderPlantDetail`, `renderInspiration`, `renderCta`. Fontes (Fraunces / Archivo / JetBrains Mono) via `<link>` Google Fonts no iframe.
+`base.ts` exporta `baseStyle()` + `BRAND_HANDLE`. 4 renderers retornam string HTML: `renderCover`, `renderPlantDetail`, `renderInspiration`, `renderCta`. Fontes (Fraunces / Archivo / JetBrains Mono) são **self-hosted** em `/public/fonts/*.woff2` e injetadas via `@font-face` inline no iframe (evita SecurityError cssRules de CORS do Google Fonts).
 
 ### Persistência
 
@@ -69,7 +71,25 @@ UPDATE image_bank SET analise_visual = NULL WHERE analise_visual IS NOT NULL;
 - **Score composto**: `0.35*cover_potential + 0.15*composicao + 0.10*qualidade + 0.10*semantic + 0.30*aderenciaTema`.
 - **Preview Instagram** (`InstagramPreviewModal`): mostra o PNG real (mesma conversão do post) antes de publicar. Bug aparece no preview antes de sair.
 
+### Equipe de agentes IA (`lib/agents/`)
+
+Pipeline modular com agentes especializados que podem ser encadeados:
+
+- **`prompt-analyst.ts`** — classifica persona (em obra / casa pronta), extrai dor principal, enriquece prompt antes da busca.
+- **`carousel-critic.ts`** — critica slides com rubrica por dimensão (hook 0-25, narrativa 0-25, persona 0-20, vocab 0-15, cta 0-15). `temperature: 0.3` + benchmarks concretos.
+- **`ensemble-critic.ts`** — roda 3 critics em paralelo (viral/marca/técnico), retorna mediana + flag "controverso" se desacordam (stddev > 10).
+- **`caption-optimizer.ts`** — brand polish: pré-clean determinístico (vocab premium, emoji proibido) + polish semântico Claude.
+- **`viral-master.ts`** — garante que copy usa 1 dos 6 frameworks 2026 (pattern_interrupt, information_gap, contrarian, specific_number, prize_frame, timing). Mata frases inspiracionais vazias.
+- **`self-refine.ts`** — loop iterativo gera → critica → reescreve até score ≥ 88 ou cap 3 iterações.
+- **`hook-tournament.ts`** — gera 20 hooks, avalia em 4 dimensões (curiosity, specificity, swipe-incentive, pattern-interrupt), retorna top 3.
+- **`caption-tournament.ts`** — 4 rodadas paralelas = ~20 legendas, ranker escolhe top K.
+- **`slides-architect.ts`** — decide tamanho do carrossel (7-10 slides) + outline.
+- **`visual-curator.ts`** — modo observacional (image-first): agrupa 8-10 fotos coerentes do banco, detecta tese.
+- **`observational-copy.ts`** — escreve copy observacional (curador) sobre fotos agrupadas, sem tema externo.
+- **`competitor-research.ts`** — RAG com hooks de referência em `data/competitor-hooks.json`.
+
 ### Deploy
 
-- Vercel Pro — `maxDuration=60` nas rotas que precisam (upload/publish).
+- Vercel Pro — `maxDuration` configurado por rota (10s default, 30s pra search/copy, 60s pra publish, 120s pra post completo, 300s pra test-batch).
 - Env vars em 3 ambientes (production/preview/development).
+- Cron diário `/api/cron-insights` (Vercel Cron) puxa métricas IG dos posts publicados.
