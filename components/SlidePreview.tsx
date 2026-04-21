@@ -97,10 +97,12 @@ export function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: 
         ref={iframeRef}
         srcDoc={html}
         title="preview"
-        sandbox="allow-same-origin"
+        /*
+         * Sem sandbox: o render agora eh server-side (nao usa mais o iframe pra
+         * html-to-image). srcDoc eh HTML controlado por nos — seguro.
+         * Remove o warning "Blocked script execution in about:srcdoc".
+         */
         onLoad={() => {
-          // Pre-warm: dispara fetch das fontes Google o mais cedo possivel
-          // pra que document.fonts.ready no capture nao precise esperar muito.
           try {
             const doc = iframeRef.current?.contentDocument;
             if (doc?.fonts?.ready) {
