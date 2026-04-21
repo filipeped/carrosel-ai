@@ -48,7 +48,7 @@ Dado um TEMA, voce decide quantos slides tem o carrossel (7-10) e planeja o rote
 - information_gap: abre loop que so o carrossel fecha
 - contrarian: vai contra senso comum (gera debate)
 - specific_number: R$X mil, Y%, Z vezes (credibilidade)
-- status_prize_frame: ativa pertencimento alto padrao
+- status_prize_frame: ativa pertencimento — por GOSTO e CUIDADO, nao renda
 - timing: urgencia especifica de obra ou estacao
 
 ## RETORNE JSON PURO

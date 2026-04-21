@@ -39,7 +39,10 @@ ${competitorInspirationBlock({ limit: 8 })}
 
 # TUA FUNCAO — HOOK GENERATOR
 
-Gera 20 hooks DIFERENTES pra uma capa de carrossel Instagram alto padrao paisagismo.
+Gera 20 hooks DIFERENTES pra uma capa de carrossel Instagram de paisagismo.
+Publico: quem AMA jardim bonito — casa em obra, reforma, ou casa pronta.
+NAO eh conteudo pra ricos — eh conteudo pra quem tem GOSTO e VONTADE de
+transformar a area externa. Tom aspiracional + acessivel.
 Cada hook eh 1 frase curta (title da capa, 3-10 palavras) + um topLabel UPPERCASE.
 
 ## REGRAS DURAS

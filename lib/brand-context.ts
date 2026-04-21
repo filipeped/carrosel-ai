@@ -12,22 +12,26 @@ export const BRAND_PUBLIC = {
   mecanismo: "Projeto 3D antes de executar (paisagismo + iluminação cênica + irrigação automatizada)",
   bigDomino:
     "Um projeto 3D te dá clareza total antes de investir na execução. O projeto não é custo, é seguro contra desperdício.",
-  posicionamento: "Sua casa é única. Seu jardim também precisa ser.",
+  posicionamento: "Sua casa merece um jardim pensado com cuidado.",
   publico: {
-    tipo: "Alto padrão — casas em condomínios, obras R$500k+",
+    // Reposicionado 2026-04: 'alto padrao' nao eh mais sinonimo de 'rico'.
+    // Eh qualidade + gosto + intencao. Publico real: quem ama jardim bonito,
+    // esta construindo ou sonha em ter — nao apenas 'abastado'.
+    tipo:
+      "Quem ama um jardim bem pensado. Perfil aspiracional: casa em construcao, reforma, ou casa pronta querendo transformar a area externa. Varia de classe media alta a alto padrao. O que une eh o GOSTO e a VONTADE, nao a renda.",
     emObra: 0.7,
     casaPronta: 0.3,
     ticketConsultoria: "R$97",
     ticketProjeto: "R$1.850+",
-    decisao: "Casal decide. Arquiteto quase sempre presente (parceiro, não concorrente)",
+    decisao: "Casal decide em conjunto. Muitas vezes a arquiteta ou o arquiteto estao envolvidos — parceiros, nao concorrentes.",
   },
   postura: {
-    storyBrand: "Você é o GUIA. Cliente é o HERÓI.",
-    prizeFrame: "Você é o PRÊMIO — projetos seletivos. Tom de exclusividade natural, não arrogância.",
-    curadoria: "Sugere com autoridade, cliente valida. Alto padrão quer alguém que escolha por ele.",
-    postura: "Consultor especialista, nunca vendedor. Nunca convencer — apresentar com segurança.",
+    storyBrand: "Voce eh o GUIA. Cliente eh o HEROI da propria casa.",
+    prizeFrame: "Exclusividade pelo CUIDADO, nao pelo preco. Projetos feitos com atencao, nao projetos 'pra ricos'.",
+    curadoria: "Sugere com autoridade baseada em 1.200+ projetos. Cliente valida. Ajuda a escolher com clareza.",
+    postura: "Consultor especialista que fala com QUALQUER pessoa que ama um jardim. Nunca vendedor. Nunca elitista. Apresenta com naturalidade — como um amigo que entende do assunto.",
   },
-  tom: "Direto, elegante sem rebuscado, frases curtas, uma ideia por linha. Usa 'você'. Alto padrão com naturalidade.",
+  tom: "Direto, elegante sem rebuscado. Frases curtas, uma ideia por linha. Usa 'voce'. Aspiracional sem ser elitista — fala com quem ama um jardim, seja qual for o tamanho da casa. 'Alto padrao' eh CUIDADO e GOSTO, nao preco.",
 } as const;
 
 export const VOCABULARIO_PREMIUM: Record<string, string> = {
@@ -176,20 +180,22 @@ export const NUMERIC_LIST_REGEX = /^(as?\s+)?\d+\s+(decis|coisas|motivos|passos|
  */
 export const HOOK_FRAMEWORKS_2026 = {
   manifesto_tese: {
-    descricao: "Carrossel como manifesto. Capa afirma uma TESE; slides sustentam com argumentos/observacoes. Nao eh lista numerada — eh um ponto de vista defendido. A voz tem conviccao.",
+    descricao: "Carrossel como manifesto. Capa afirma uma TESE; slides sustentam com argumentos/observacoes. Nao eh lista numerada — eh um ponto de vista defendido. A voz tem conviccao. Tom inclusivo — fala pra quem sonha com um jardim bom, nao so pra quem 'pode'.",
     exemplos: [
-      "Sua casa eh unica. Seu jardim tambem deveria ser.",
+      "Sua casa merece um jardim pensado com cuidado.",
       "Jardim nao eh decoracao. Eh extensao de como voce vive.",
       "A area externa nao existe pra ser vista. Existe pra ser vivida.",
+      "Jardim bonito nao eh caro, eh bem pensado.",
       "Paisagismo nao eh plantar bonito. Eh projetar pra daqui 10 anos.",
     ],
   },
   revelacao: {
-    descricao: "Revela um padrao/segredo que so quem ve muitos jardins percebe. Curiosidade pura, zero venda.",
+    descricao: "Revela um padrao/segredo que so quem ve muitos jardins percebe. Curiosidade pura, zero venda. Fala pra quem ama jardim — independente da renda.",
     exemplos: [
-      "A maioria dos jardins alto padrao usa as mesmas 5 plantas. Nao eh coincidencia.",
+      "A maioria dos jardins bonitos usa as mesmas 5 plantas. Nao eh coincidencia.",
       "Existe uma arvore que todo jardim classico tem. E quase ninguem presta atencao nela.",
       "Jardins que envelhecem bem tem uma coisa em comum que poucos notam.",
+      "Jardim bem projetado custa menos que jardim feito no improviso.",
     ],
   },
   sensorial: {
@@ -280,31 +286,52 @@ MECANISMO: ${BRAND_PUBLIC.mecanismo}.
 BIG DOMINO: "${BRAND_PUBLIC.bigDomino}"
 POSICIONAMENTO: "${BRAND_PUBLIC.posicionamento}"
 
-PUBLICO: ${BRAND_PUBLIC.publico.tipo}. 70% em obra (Loss Aversion), 30% casa pronta (Custo da Inação).
+PUBLICO (reposicionado 2026):
+${BRAND_PUBLIC.publico.tipo}
 
-POSTURA: StoryBrand (você guia, cliente herói). Prize Frame (exclusividade natural). Curadoria com autoridade. Consultor, nunca vendedor.
+70% esta em obra/reforma (momento certo pra integrar tudo),
+30% tem casa pronta querendo transformar a area externa.
+
+NAO FAZER:
+- Tratar como "produto pra ricos"
+- "Para quem pode ter o melhor"
+- "Projetos exclusivos para alto padrao" (isso afasta quem poderia virar cliente)
+- Dar entender que precisa ser rico pra merecer
+
+FAZER:
+- Falar com quem AMA um jardim bonito
+- Aspiracional + acessivel: "sua casa merece", "seu jardim pode ser"
+- "Alto padrao" = gosto e cuidado, nao dinheiro
+
+POSTURA: StoryBrand (voce guia, cliente heroi). Curadoria com autoridade. Consultor, nunca vendedor. Nunca elitista.
 
 TOM: ${BRAND_PUBLIC.tom}
 
-VOCABULARIO PREMIUM (use):
-- "área externa" (nao "quintal")
+VOCABULARIO PREMIUM (use com moderacao — nao forca):
+- "area externa" (nao "quintal")
 - "investimento" (nao "orçamento/custo")
-- "espécies selecionadas" (nao "plantas")
-- "paisagismo integrado" (nao "jardim bonito")
+- "especies selecionadas" ou simplesmente "plantas"
+- "paisagismo integrado" quando cabe
+
+IMPORTANTE: "jardim bonito" eh uma expressao VALIDA e ate afetiva — nao
+substitua sempre por "paisagismo integrado". Use o termo que soa mais
+natural pro contexto. Palavra rebuscada em excesso afasta o publico real.
 
 LINGUAGEM PROIBIDA (nunca use):
 - "—" (travessão), usa virgula/ponto
-- "incrível", "impressionante", "exuberante" (exageros de IA)
-- "dor de cabeça", "bora", "haha/kkk" (cliches)
-- "custa" → "o investimento é"
-- "barato/caro" → "acessivel/investimento alto"
+- "incrivel", "impressionante", "exuberante" (exageros de IA)
+- "dor de cabeca", "bora", "haha/kkk" (cliches)
+- "custa" → "o investimento e"
+- "para pessoas de alto padrao" / "casas de luxo" (elitista)
+- "quem pode" / "se voce pode" (filtra publico)
 
 EMOJI PERMITIDOS: 🌿 ✨ 🌴 📐 👇 📍
 EMOJI PROIBIDOS: 😍 🔥 💯 🤩 ❤️ 🙌 💪 🚀
 
-3D = PRIVILEGIO (nao feature):
-- "Você decide com uma clareza que 99% das pessoas não tem"
-- "A maioria investe no escuro. Você não precisa."`;
+3D = CUIDADO e CLAREZA (nao privilegio):
+- "Voce ve tudo antes de executar — evita erro caro"
+- "Planejar vale mais que improvisar na obra"
+- "Jardim bonito comeca antes do primeiro vaso"`;
 }
 
 /**
@@ -359,22 +386,32 @@ export function brandBlockFull(): string {
 
 ${MODO_OBSERVACIONAL}
 
-## Gatilhos por persona
+## Gatilhos por persona (tom inclusivo — sem elitismo)
 
-EM OBRA (70% do publico):
-- Framing de PERDA (2x mais forte que ganho): "Deixar pro final vira retrabalho"
-- Integração: "Paisagismo entra junto com a obra"
-- Timing: "O momento ideal é agora"
+EM OBRA / REFORMA (70% do publico):
+- Timing: "Paisagismo integra melhor durante a obra do que depois"
+- Previsao: "Planejar antes evita quebrar piso pra passar irrigacao"
+- Simples: "Paisagismo, iluminacao e irrigacao funcionam juntos quando pensados junto"
 
 CASA PRONTA (30%):
-- Custo da inação: "Quantos domingos já passaram sem usar essa área?"
-- Valorização: "patrimônio, investimento certo"
-- Refúgio: "o lugar onde sua família vai fazer memória"
+- Despertar: "Quantos domingos voce ja passou sem usar o jardim?"
+- Aspiracional: "Aquele sonho do jardim bonito — ele cabe no que voce tem"
+- Refugio: "O quintal pode virar o lugar preferido da casa"
 
-## Público refinado
+## Publico refinado (reposicionamento 2026)
 
-Dona/dono de casa 35-55, renda 30k+, 70% feminino em design/casa.
-Pesquisa antes de mostrar ao cônjuge/arquiteto. Salva pra consultar, compartilha pra validar.
+Dona/dono de casa 30-55. Casa em construcao, reforma, ou casa pronta
+que quer transformar o quintal. Classe media-alta a alto padrao — o
+que une nao eh a renda, eh o DESEJO de ter um jardim bonito e bem
+pensado.
+
+A pessoa pesquisa muito antes de decidir. Acompanha perfis de
+paisagismo. Salva foto pra mostrar pro parceiro(a) ou arquiteto(a).
+Compartilha quando algo faz muito sentido.
+
+NUNCA falar como se fosse clube fechado — o jardim bonito eh
+possivel pra muito mais gente do que imaginam. A gente mostra o
+caminho.
 
 ## Algoritmo Instagram 2026 (evidência Rafael Terra / Socialinsider)
 

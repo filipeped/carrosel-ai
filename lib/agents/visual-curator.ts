@@ -49,11 +49,14 @@ Fotos ligadas por PELO MENOS 1 destes eixos:
 ## TESE DETECTADA (critico)
 
 Depois de agrupar, escreve em 1 frase CONCRETA o que liga as fotos:
-✅ BOM: "area externa alto padrao com dominio de pedra basalto e palmeira real"
+✅ BOM: "area externa com dominio de pedra basalto e palmeira real"
 ✅ BOM: "jardins tropicais densos com luz rasante final tarde"
 ✅ BOM: "corredores laterais que usam verde pra transformar passagem em momento"
-❌ RUIM: "jardins bonitos de alto padrao" (vago)
+❌ RUIM: "jardins bonitos de alto padrao" (vago + elitista)
 ❌ RUIM: "fotos coerentes" (meta, nao eh tese)
+❌ EVITE: expressoes como "alto padrao", "luxo", "exclusivo" na tese —
+   tom elitista afasta o publico. Foca no ELEMENTO VISUAL concreto,
+   nao em status.
 
 A tese vai virar base do copy. Quanto mais concreta, melhor o copy sai.
 
@@ -101,7 +104,7 @@ export async function visualCurator(params: {
     avoidTeses.length > 0
       ? `\n\nTESES JA USADAS RECENTEMENTE (NAO repetir, escolhe angulo DIFERENTE):\n${avoidTeses
           .map((t, i) => `${i + 1}. ${t}`)
-          .join("\n")}\n\nSe as fotos disponiveis so permitem essas mesmas teses, escolhe um SUBRECORTE novo: por exemplo, em vez de "jardim alto padrao", foca em "gestao de luz" ou "contraste de texturas" ou "ritmo de alturas". Angulo novo sempre.`
+          .join("\n")}\n\nSe as fotos disponiveis so permitem essas mesmas teses, escolhe um SUBRECORTE novo: em vez de "jardim tropical", foca em "gestao de luz" ou "contraste de texturas" ou "ritmo de alturas". Angulo novo sempre. Evite termos elitistas como "alto padrao".`
       : "";
   const user = `CANDIDATAS (${candidates.length} fotos com vision):
 

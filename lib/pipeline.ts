@@ -130,7 +130,7 @@ REGRA DURA DE HONESTIDADE VISUAL:
 
 5 ABORDAGENS (todas de CURADOR, nao de vendedor):
 - **direta_emocional** — afirmacao factual curta que conecta emocionalmente, sem pitch ("Chegar em casa e sentir a natureza em cada detalhe"). Foco em experiencia, nao em contratar.
-- **contraste_verdade** — revela padrao que o leigo nao nota ("A maioria dos jardins alto padrao usa as mesmas 5 plantas. Nao eh coincidencia."). Sem vender nada.
+- **contraste_verdade** — revela padrao que o leigo nao nota ("A maioria dos jardins bonitos usa as mesmas 5 plantas. Nao eh coincidencia."). Sem vender nada. Sem elitismo.
 - **tecnico_relacional** — explica o PORQUE sem jargao, conectando ao USO do espaco ("Um bom paisagismo nao eh so sobre plantas. Eh sobre criar espacos que fazem sentido com a sua rotina."). Sem "contrate" no fim.
 - **sensorial_curador** — convida a sentir: som, luz, textura, tempo ("O barulho da agua na pedra basalto muda o som da casa inteira"). Zero tom comercial.
 - **historia_da_planta** — conta o tempo de uma especie, comportamento, transformacao ("Essa arvore leva 8 anos pra ficar assim. Mas o primeiro ano decide tudo."). Storytelling natural, sem pitch.

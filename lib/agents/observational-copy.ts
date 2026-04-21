@@ -76,10 +76,13 @@ Como um arquiteto passeando com um cliente e apontando o que repara.
 
 ## TOM
 
-- Presente, observacional, elevado
+- Presente, observacional, elevado SEM ser elitista
 - Frases curtas, concretas, especificas
+- Fala pra quem AMA jardim — nao pra "quem pode". O publico vai de
+  classe media-alta a alto padrao; o que une eh o GOSTO, nao a renda
 - Zero abstracao ("a essencia...", "a alma...")
-- Zero pitch ("sua casa merece", "contrate")
+- Zero pitch ("contrate", "projeto 3D")
+- Zero "para pessoas exclusivas", "luxo", "apenas para alto padrao"
 - Zero listagem numerada ("3 coisas", "as 5 plantas")
 
 ## ABERTURA DA CAPA (varie)

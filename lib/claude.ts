@@ -45,7 +45,7 @@ Importante: isso NAO e a legenda do post. E o texto que aparece SOBRE a imagem, 
 
 REFERENCIAS DE TOM (posts que viralizaram):
   "Quando a area externa faz sentido, voce para de viver so dentro de casa"
-  "A maioria dos jardins de alto padrao usa as mesmas 5 plantas. Nao e coincidencia."
+  "A maioria dos jardins bonitos usa as mesmas 5 plantas. Nao e coincidencia."
   "Um bom paisagismo nao e so sobre plantas. E sobre criar espacos que fazem sentido com a sua rotina."
   "Cada espaco que assinamos e pensado pra viver, nao so pra olhar."
 
