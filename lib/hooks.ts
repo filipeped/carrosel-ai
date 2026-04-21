@@ -3,80 +3,124 @@ import { useEffect, useRef, useState } from "react";
 import type { ProgressState } from "./types";
 
 /**
- * Barra de progresso simulada com fases nomeadas.
+ * Barra de progresso ADAPTATIVA com fases nomeadas.
  *
  * Comportamento:
- * - Avanca proporcional ao tempo ate 90% no fim do totalSec estimado
- * - Apos 90%, continua crescendo ASSINTOTICO rumo a 99% (nunca trava)
- *   → user no mobile nao ve 95% parado pensando que travou
- * - Quando `active` vira false, snap pra 100% em 400ms e some
+ * - Primeira execucao: usa soma dos `seconds` das fases como baseline
+ * - Apos cada execucao bem-sucedida, grava tempo REAL em localStorage
+ * - Proximas execucoes usam media das ultimas 5 duracoes reais → acurado
+ * - Curva EASE-OUT: cresce rapido no inicio, suave no fim (sensacao de "anda sempre")
+ * - Se ultrapassar baseline, continua ate 99% asymptotico
+ * - Snap pra 100% quando `active` vira false
+ *
+ * @param historyKey chave opcional pra gravar historico em localStorage.
+ *                   Use a mesma chave pra mesma operacao — aprende o tempo real.
  */
 export function useProgressSim(
   active: boolean,
   phases: { name: string; seconds: number }[],
+  historyKey?: string,
 ) {
   const [state, setState] = useState<ProgressState>(null);
-  const finishingRef = useRef<number | null>(null);
+  const startRef = useRef<number>(0);
 
   useEffect(() => {
     if (!active) {
-      // Nao esta mais ativo — se tem progresso, snap pra 100% suave antes de some
-      setState((prev) => {
-        if (!prev) return null;
-        // Marca inicio do "finish animation" pra decidir quanto tempo esperar
-        finishingRef.current = Date.now();
-        return { ...prev, pct: 100, phase: "Concluído", etaSec: 0 };
-      });
-      const t = setTimeout(() => {
-        setState(null);
-        finishingRef.current = null;
-      }, 500);
+      // Terminou — grava duracao real no historico se tinha comecado
+      if (startRef.current > 0 && historyKey) {
+        const realSec = (Date.now() - startRef.current) / 1000;
+        recordDuration(historyKey, realSec);
+      }
+      startRef.current = 0;
+      // Snap 100% suave
+      setState((prev) => (prev ? { ...prev, pct: 100, phase: "Concluído", etaSec: 0 } : null));
+      const t = setTimeout(() => setState(null), 500);
       return () => clearTimeout(t);
     }
 
-    finishingRef.current = null;
-    const totalSec = phases.reduce((s, p) => s + p.seconds, 0);
+    // Calcula baseline: historico (se existir) ou soma das fases * fator conservador
+    const estimated = phases.reduce((s, p) => s + p.seconds, 0);
+    const historical = historyKey ? getAvgDuration(historyKey) : 0;
+    // Histórico sempre prefere — real > estimativa. Se não, conservador 1.3x.
+    const baseline = historical > 0 ? historical : estimated * 1.3;
     const start = Date.now();
+    startRef.current = start;
 
     const tick = () => {
       const elapsed = (Date.now() - start) / 1000;
-      // Fase atual: acumula ate encontrar a faixa onde elapsed cai
+
+      // Fase atual — mapeia elapsed proporcional na escala do baseline
+      // (não nas durações originais, que podem estar defasadas)
+      const scale = baseline / estimated;
       let acc = 0;
       let phaseName = phases[0].name;
       for (const p of phases) {
-        if (elapsed < acc + p.seconds) {
+        const adj = p.seconds * scale;
+        if (elapsed < acc + adj) {
           phaseName = p.name;
           break;
         }
-        acc += p.seconds;
+        acc += adj;
         phaseName = p.name;
       }
 
       let pct: number;
-      if (elapsed <= totalSec) {
-        // 0 → 90% proporcional ao tempo estimado
-        pct = (elapsed / totalSec) * 90;
+      if (elapsed <= baseline) {
+        // EASE-OUT: sqrt(t) cresce rapido no inicio, desacelera no fim
+        // Assim o user ve progresso constante ate o baseline, sem "travada rapida em 95"
+        const t = elapsed / baseline;
+        pct = Math.sqrt(t) * 92;  // vai ate 92% no baseline
       } else {
-        // Passou do estimado: assintota 90 → 99
-        // Cada totalSec extra adiciona ~50% do gap restante ate 99
-        const overshoot = elapsed - totalSec;
-        const gap = 9;  // 99 - 90
-        pct = 90 + gap * (1 - Math.exp(-overshoot / (totalSec || 20)));
-        // Muda mensagem de fase pra sinalizar "quase la, so mais um pouco"
+        // Passou do baseline — assintota 92 → 99
+        const overshoot = elapsed - baseline;
+        pct = 92 + 7 * (1 - Math.exp(-overshoot / (baseline * 0.4)));
         phaseName = `${phases[phases.length - 1]?.name || "Finalizando"} (quase la)`;
       }
 
-      const etaSec = Math.max(0, totalSec - elapsed);
+      const etaSec = Math.max(0, baseline - elapsed);
       setState({ pct: Math.min(99, pct), phase: phaseName, etaSec });
     };
 
     tick();
-    const id = setInterval(tick, 300);
+    const id = setInterval(tick, 250);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   return state;
+}
+
+/**
+ * Historico de duracao real em localStorage — usado pelo useProgressSim
+ * pra adaptar baseline a cada execucao.
+ */
+function recordDuration(key: string, seconds: number): void {
+  if (typeof window === "undefined") return;
+  try {
+    const storeKey = `carrosel:duration:${key}`;
+    const raw = localStorage.getItem(storeKey);
+    const list: number[] = raw ? JSON.parse(raw) : [];
+    list.push(seconds);
+    // mantem so as ultimas 10 — decaimento implicito
+    const trimmed = list.slice(-10);
+    localStorage.setItem(storeKey, JSON.stringify(trimmed));
+  } catch {}
+}
+
+function getAvgDuration(key: string): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const storeKey = `carrosel:duration:${key}`;
+    const raw = localStorage.getItem(storeKey);
+    if (!raw) return 0;
+    const list: number[] = JSON.parse(raw);
+    if (!list.length) return 0;
+    // Media das ultimas 5 (mais estavel, menos ruido)
+    const recent = list.slice(-5);
+    return recent.reduce((s, n) => s + n, 0) / recent.length;
+  } catch {
+    return 0;
+  }
 }
 
 /**

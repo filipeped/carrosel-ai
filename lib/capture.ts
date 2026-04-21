@@ -2,14 +2,15 @@
 import type { SlideData, ImageRow } from "./types";
 
 /**
- * Client-side: dispara render server-side e baixa PNGs resultantes.
+ * Client-side: submete jobs de render server-side + faz polling.
  *
- * ZERO html-to-image. ZERO iframe capture. ZERO canvas tainting.
- * Server renderiza via Chromium headless (1080x1350 @ 2x = 2160x2700 PNG nativo),
- * sobe pro Supabase Storage, retorna URLs publicas. Client baixa via fetch+blob.
+ * FLUXO RESILIENTE A MINIMIZACAO / BLOQUEIO DE TELA:
+ * 1. submitRenderJob() → recebe jobId em ~200ms, o server continua renderizando
+ * 2. pollRenderJob(jobId, onProgress) → espera ate status='done'
+ * 3. Se o user fecha o navegador, jobId fica em localStorage — ao voltar, retoma poll
  *
- * Funciona igual em iPhone, Android, Desktop. Se rolar navigator.share(), usa menu
- * nativo do sistema (salvar galeria / IG / WhatsApp).
+ * Server renderiza via Chromium headless (1080x1350 @ 2x = 2160x2700 PNG nativo).
+ * Cliente nao depende mais de iframe + html-to-image (gambiarra antiga).
  */
 
 export type RenderedSlide = {
@@ -21,43 +22,157 @@ export type RenderedSlide = {
 };
 
 export type RenderBatchResult = {
-  ok: true;
-  batchId: string;
+  jobId: string;
   slides: RenderedSlide[];
   elapsed_ms: number;
 };
 
+export type ProgressUpdate = {
+  progress: number;      // 0-100
+  status: "pending" | "running" | "done" | "error";
+  slidesReady: number;
+  totalSlides: number;
+};
+
+type PollOptions = {
+  onProgress?: (u: ProgressUpdate) => void;
+  intervalMs?: number;
+  maxWaitMs?: number;
+  signal?: AbortSignal;
+};
+
+const ACTIVE_JOB_KEY = "carrosel:activeRenderJob:v1";
+
+function saveActiveJob(jobId: string, slideCount: number): void {
+  try {
+    localStorage.setItem(
+      ACTIVE_JOB_KEY,
+      JSON.stringify({ jobId, slideCount, at: Date.now() }),
+    );
+  } catch {}
+}
+
+function clearActiveJob(): void {
+  try {
+    localStorage.removeItem(ACTIVE_JOB_KEY);
+  } catch {}
+}
+
 /**
- * Pede ao server pra renderizar todos os slides. Retorna URLs publicas.
- * Mantem-se sem cache — toda chamada gera novo batch (se slides foram editados).
+ * Se existe um job ativo no localStorage (de sessao anterior), retorna ele.
+ * Util pra retomar polling quando o user volta pro app depois de fechar.
  */
-export async function renderBatch(
+export function clearActiveRenderJob(): void {
+  clearActiveJob();
+}
+
+export function getActiveJob(): { jobId: string; slideCount: number; at: number } | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_JOB_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { jobId: string; slideCount: number; at: number };
+    // Ignora jobs de mais de 1 hora
+    if (Date.now() - parsed.at > 60 * 60 * 1000) {
+      clearActiveJob();
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Submete um job e retorna jobId em ~200ms. Server continua processando
+ * mesmo que o client desconecte ou minimize.
+ */
+export async function submitRenderJob(
   slides: SlideData[],
   orderedImages: (ImageRow | undefined)[],
-): Promise<RenderBatchResult> {
+): Promise<string> {
   const imageUrls = orderedImages.map((im) => im?.url || "");
   if (imageUrls.some((u) => !u)) {
     throw new Error("alguma imagem sem URL (selecao incompleta?)");
   }
-  const batchId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const r = await fetch("/api/render-batch", {
+  const r = await fetch("/api/render/submit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ slides, imageUrls, batchId, upload: true }),
+    body: JSON.stringify({ slides, imageUrls }),
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
-    throw new Error(err.error || `render-batch falhou: ${r.status}`);
+    throw new Error(err.error || "submit falhou");
   }
-  const data = await r.json();
-  if (!data.ok) throw new Error(data.error || "render-batch falhou");
-  return data as RenderBatchResult;
+  const { jobId } = await r.json();
+  saveActiveJob(jobId, slides.length);
+  return jobId;
 }
 
 /**
- * Baixa UM PNG via fetch + blob + <a download>.
- * Funciona em desktop e Android. Em iOS Safari sempre abre em nova aba (limitacao
- * do sistema) — a funcao de fallback abre o navigator.share quando disponivel.
+ * Polla /api/render/status/[id] ate status='done' ou 'error'.
+ * Intervalo 1.5s, backoff leve se responder lento.
+ * Abort via AbortSignal opcional.
+ */
+export async function pollRenderJob(
+  jobId: string,
+  opts: PollOptions = {},
+): Promise<RenderBatchResult> {
+  const { onProgress, intervalMs = 1500, maxWaitMs = 5 * 60_000, signal } = opts;
+  const start = Date.now();
+
+  while (true) {
+    if (signal?.aborted) throw new DOMException("aborted", "AbortError");
+    if (Date.now() - start > maxWaitMs) {
+      throw new Error(`timeout (${Math.round(maxWaitMs / 1000)}s) esperando render`);
+    }
+
+    const r = await fetch(`/api/render/status/${jobId}`, { cache: "no-store" });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+      throw new Error(err.error || "poll falhou");
+    }
+    const data = await r.json();
+    const slidesReady = Math.round(((data.progress || 0) / 100) * (data.total_slides || 1));
+    onProgress?.({
+      progress: data.progress || 0,
+      status: data.status,
+      slidesReady,
+      totalSlides: data.total_slides || 0,
+    });
+
+    if (data.status === "done") {
+      clearActiveJob();
+      return {
+        jobId,
+        slides: data.result.slides,
+        elapsed_ms: data.result.elapsed_ms,
+      };
+    }
+    if (data.status === "error") {
+      clearActiveJob();
+      throw new Error(data.error || "render falhou no servidor");
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+}
+
+/**
+ * Conveniencia: submete + espera + retorna URLs.
+ * Use quando nao precisa de jobId intermediario.
+ */
+export async function renderBatch(
+  slides: SlideData[],
+  orderedImages: (ImageRow | undefined)[],
+  onProgress?: (u: ProgressUpdate) => void,
+): Promise<RenderBatchResult> {
+  const jobId = await submitRenderJob(slides, orderedImages);
+  return pollRenderJob(jobId, { onProgress });
+}
+
+/**
+ * Baixa UM arquivo via fetch + blob + <a download>.
+ * Funciona em desktop e Android. Em iOS Safari, prefira shareSlides().
  */
 export async function downloadUrl(url: string, filename: string): Promise<void> {
   const res = await fetch(url, { cache: "no-store" });
@@ -71,13 +186,11 @@ export async function downloadUrl(url: string, filename: string): Promise<void> 
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  // Libera memoria apos 5s (tempo pro browser iniciar o download)
   setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
 }
 
 /**
- * Detecta se o device suporta Web Share API com arquivos.
- * Safari iOS e Chrome Android modernos suportam. Desktop geralmente nao.
+ * Web Share API com arquivos (iOS 16.4+, Chrome Android). Desktop quase nunca.
  */
 export function canShareFiles(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -90,12 +203,6 @@ export function canShareFiles(): boolean {
   }
 }
 
-/**
- * Compartilha TODOS os PNGs via menu nativo do sistema operacional.
- * Usuario escolhe: Salvar Fotos / Instagram / WhatsApp / etc.
- *
- * Uso no mobile onde <a download> nao funciona (iOS Safari).
- */
 export async function shareSlides(urls: string[]): Promise<void> {
   if (!canShareFiles()) throw new Error("Web Share API nao disponivel");
   const files: File[] = [];
@@ -108,8 +215,5 @@ export async function shareSlides(urls: string[]): Promise<void> {
       }),
     );
   }
-  await navigator.share({
-    files,
-    title: "Carrossel Digital Paisagismo",
-  });
+  await navigator.share({ files, title: "Carrossel Digital Paisagismo" });
 }

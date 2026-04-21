@@ -8,6 +8,36 @@ import { SlideEditor } from "../SlideEditor";
 import { InstagramPreviewModal } from "../InstagramPreviewModal";
 import { ProgressBar } from "../ProgressBar";
 
+function MenuItem({
+  label,
+  hint,
+  onClick,
+  disabled,
+  accent,
+}: {
+  label: string;
+  hint?: string;
+  onClick: () => void;
+  disabled?: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full text-left px-4 py-3 border-b border-white/5 last:border-b-0 transition-colors disabled:opacity-40 ${
+        accent
+          ? "text-[#d6e7c4] hover:bg-[#d6e7c4]/10"
+          : "hover:bg-white/5"
+      }`}
+    >
+      <div className="text-sm tracking-wide">{label}</div>
+      {hint && <div className="text-[11px] opacity-50 mt-0.5">{hint}</div>}
+    </button>
+  );
+}
+
 export function Step3({
   slides,
   setSlides,
@@ -89,30 +119,53 @@ export function Step3({
     } catch {}
   }, [selectedCaption]);
 
-  const publishProgress = useProgressSim(busyPost, [
-    { name: "Instagram: criando containers de mídia", seconds: 12 },
-    { name: "Instagram: aguardando processamento", seconds: 15 },
-    { name: "Publicando carrossel", seconds: 8 },
-  ]);
-  const renderProgress = useProgressSim(capturingPreview || busyAll, [
-    { name: "Renderizando slides em alta qualidade (server)", seconds: 15 },
-    { name: "Otimizando PNGs e subindo", seconds: 8 },
-  ]);
+  const publishProgress = useProgressSim(
+    busyPost,
+    [
+      { name: "Instagram: criando containers de mídia", seconds: 12 },
+      { name: "Instagram: aguardando processamento", seconds: 15 },
+      { name: "Publicando carrossel", seconds: 8 },
+    ],
+    "publish",
+  );
+  const renderProgress = useProgressSim(
+    capturingPreview || busyAll,
+    [
+      { name: "Renderizando slides em alta qualidade (server)", seconds: 15 },
+      { name: "Otimizando PNGs e subindo", seconds: 8 },
+    ],
+    "render",
+  );
   // Wake Lock: mantem o device acordado durante qualquer operacao longa
   useWakeLock(busyAll || busyPost || capturingPreview || regenCopy || fetchingMore || savingDraft);
 
-  const regenCopyProgress = useProgressSim(regenCopy, [
-    { name: "Lendo descrição visual de cada foto", seconds: 3 },
-    { name: "Escrevendo texto dentro dos slides (cards)", seconds: 10 },
-    { name: "Gerando legendas do post em background", seconds: 15 },
-  ]);
+  const regenCopyProgress = useProgressSim(
+    regenCopy,
+    [
+      { name: "Lendo descrição visual de cada foto", seconds: 3 },
+      { name: "Escrevendo texto dentro dos slides (cards)", seconds: 10 },
+      { name: "Gerando legendas do post em background", seconds: 15 },
+    ],
+    "regenCopy",
+  );
+
+  const [actionsOpen, setActionsOpen] = useState(false);
+
+  const [realRenderProgress, setRealRenderProgress] = useState<{
+    ready: number;
+    total: number;
+    status: string;
+  } | null>(null);
 
   async function downloadAll() {
     setBusyAll(true);
     setPostResult(null);
+    setRealRenderProgress(null);
     try {
       const orderedForRender = slides.map((s) => allImages[s.imageIdx] || allImages[0]);
-      const { slides: rendered } = await renderBatch(slides, orderedForRender);
+      const { slides: rendered } = await renderBatch(slides, orderedForRender, (u) =>
+        setRealRenderProgress({ ready: u.slidesReady, total: u.totalSlides, status: u.status }),
+      );
       const urls = rendered.map((r) => r.url);
       // Mobile (iOS/Android): tenta Share API nativa pra abrir menu "Salvar na galeria"
       if (canShareFiles()) {
@@ -133,6 +186,7 @@ export function Step3({
       setPostResult({ ok: false, error: (e as Error).message || String(e) });
     } finally {
       setBusyAll(false);
+      setRealRenderProgress(null);
     }
   }
 
@@ -237,9 +291,12 @@ export function Step3({
     setCapturingPreview(true);
     setPostResult(null);
     setRenderedUrls(null);
+    setRealRenderProgress(null);
     try {
       const orderedForRender = slides.map((s) => allImages[s.imageIdx] || allImages[0]);
-      const { slides: rendered } = await renderBatch(slides, orderedForRender);
+      const { slides: rendered } = await renderBatch(slides, orderedForRender, (u) =>
+        setRealRenderProgress({ ready: u.slidesReady, total: u.totalSlides, status: u.status }),
+      );
       const urls = rendered.map((r) => r.url);
       setPreviewImages(urls);
       setRenderedUrls(urls);
@@ -248,6 +305,7 @@ export function Step3({
       setPostResult({ ok: false, error: (e as Error).message || String(e) });
     } finally {
       setCapturingPreview(false);
+      setRealRenderProgress(null);
     }
   }
 
@@ -293,68 +351,87 @@ export function Step3({
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 sm:mb-8 gap-3">
-        <div className="min-w-0">
-          <div className="text-[10px] tracking-[4px] uppercase opacity-50 mb-1">
-            Step 3 — Editor & Publicação
-          </div>
+      <div className="flex items-start justify-between gap-3 mb-6 sm:mb-8">
+        <div className="min-w-0 flex-1">
+          <button
+            onClick={onBack}
+            className="text-[10px] tracking-[4px] uppercase opacity-50 hover:opacity-80 transition-opacity mb-1 flex items-center gap-1"
+          >
+            ← Step 3 — Editor
+          </button>
           <h2 className="text-lg sm:text-xl leading-snug" style={{ fontFamily: "Georgia, serif" }}>
             Ajuste os slides, gere a <i>legenda</i> e poste.
           </h2>
         </div>
-        {/* Mobile: grid 3 col sem estourar. Desktop: flex-wrap alinhado a direita */}
-        <div className="grid grid-cols-3 sm:flex sm:flex-wrap sm:justify-end gap-2 items-stretch">
-          <button
-            onClick={onBack}
-            className="col-span-3 sm:col-auto sm:flex-none px-3 sm:px-4 py-2 min-h-[44px] text-xs tracking-wider uppercase opacity-60 hover:opacity-100 transition-opacity text-left sm:text-center"
-          >
-            ← Voltar
-          </button>
-          <button
-            disabled={fetchingMore || !setAllImages}
-            onClick={fetchMoreImages}
-            className="border border-white/15 px-2 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-[11px] sm:text-xs disabled:opacity-40 hover:bg-white/5 transition-colors truncate"
-            title="Busca mais imagens do banco pra esse tema"
-          >
-            <span className="sm:hidden">{fetchingMore ? "..." : `+ fotos (${allImages.length})`}</span>
-            <span className="hidden sm:inline">{fetchingMore ? "Buscando..." : `+ Mais imagens (${allImages.length})`}</span>
-          </button>
-          <div className="flex gap-1">
-            <button
-              disabled={regenCopy}
-              onClick={regenerateCopy}
-              className="flex-1 sm:flex-none border border-white/15 px-2 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-[11px] sm:text-xs disabled:opacity-40 hover:bg-white/5 transition-colors truncate"
-              title="Regenera todos os slides. Pra regenerar so 1, clica no ↻ de cada card"
-            >
-              {regenCopy ? "..." : "↻ Copy"}
-            </button>
-            <button
-              onClick={() => setBriefOpen((v) => !v)}
-              className={`min-h-[44px] px-3 border rounded tracking-wider uppercase text-xs transition-colors ${
-                briefOpen || customBrief
-                  ? "border-[#d6e7c4] text-[#d6e7c4] bg-[#d6e7c4]/10"
-                  : "border-white/15 hover:bg-white/5"
-              }`}
-              title="Briefing extra pra copy (opcional)"
-            >
-              {customBrief ? "✎" : "+"}
-            </button>
-          </div>
-          <button
-            disabled={savingDraft || !carrosselId}
-            onClick={saveDraft}
-            className="border border-white/15 px-2 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-[11px] sm:text-xs disabled:opacity-40 hover:bg-white/5 transition-colors truncate"
-            title={!carrosselId ? "Aguarde o carrossel ser salvo" : "Salva como rascunho pra postar depois"}
-          >
-            {savingDraft ? "..." : draftSaved ? "✓" : "Salvar"}
-          </button>
+        <div className="flex items-center gap-2 shrink-0 relative">
           <button
             disabled={busyAll}
             onClick={downloadAll}
-            className="col-span-2 sm:col-auto border border-white/15 px-2 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-[11px] sm:text-xs disabled:opacity-40 hover:bg-white/5 transition-colors truncate"
+            className="bg-[#d6e7c4] text-black px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-[11px] sm:text-xs disabled:opacity-40 hover:brightness-110 transition whitespace-nowrap font-medium"
+            title="Renderiza em alta qualidade no servidor e baixa / compartilha"
           >
-            {busyAll ? "Renderizando..." : "⬇ Baixar PNGs"}
+            {busyAll ? "..." : "⬇ Baixar"}
           </button>
+          <button
+            onClick={() => setActionsOpen((v) => !v)}
+            className={`w-11 h-11 border rounded flex items-center justify-center text-lg transition-colors ${
+              actionsOpen
+                ? "border-white/40 bg-white/10"
+                : "border-white/15 hover:bg-white/5"
+            }`}
+            title="Mais ações"
+            aria-label="Mais ações"
+          >
+            ⋯
+          </button>
+          {actionsOpen && (
+            <>
+              <button
+                className="fixed inset-0 z-40 cursor-default"
+                onClick={() => setActionsOpen(false)}
+                aria-label="Fechar menu"
+                tabIndex={-1}
+              />
+              <div className="absolute right-0 top-12 z-50 w-64 bg-[#131612] border border-white/15 rounded-lg shadow-2xl overflow-hidden">
+                <MenuItem
+                  disabled={fetchingMore || !setAllImages}
+                  onClick={() => {
+                    setActionsOpen(false);
+                    fetchMoreImages();
+                  }}
+                  label={fetchingMore ? "Buscando..." : `+ Mais imagens (${allImages.length})`}
+                  hint="Busca mais fotos do banco pra esse tema"
+                />
+                <MenuItem
+                  disabled={regenCopy}
+                  onClick={() => {
+                    setActionsOpen(false);
+                    regenerateCopy();
+                  }}
+                  label={regenCopy ? "Gerando..." : "↻ Regerar copy"}
+                  hint="Reescreve o texto de todos os slides"
+                />
+                <MenuItem
+                  onClick={() => {
+                    setActionsOpen(false);
+                    setBriefOpen((v) => !v);
+                  }}
+                  label={customBrief ? "✎ Editar briefing" : "+ Briefing extra"}
+                  hint="Guia pro tom da copy"
+                  accent={!!customBrief}
+                />
+                <MenuItem
+                  disabled={savingDraft || !carrosselId}
+                  onClick={() => {
+                    setActionsOpen(false);
+                    saveDraft();
+                  }}
+                  label={savingDraft ? "Salvando..." : draftSaved ? "✓ Salvo" : "Salvar rascunho"}
+                  hint={!carrosselId ? "Aguarde o carrossel ser salvo" : "Guarda pra postar depois"}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -397,8 +474,18 @@ export function Step3({
 
       {(capturingPreview || busyAll) && (
         <div className="mb-4 border border-[#d6e7c4]/30 bg-[#d6e7c4]/5 rounded-lg px-4 py-3">
-          <div className="text-[10px] tracking-widest uppercase opacity-70 mb-1">
-            {busyAll ? "Preparando PNGs para download…" : "Renderizando slides…"} · pode minimizar a tela
+          <div className="text-[10px] tracking-widest uppercase opacity-70 mb-1 flex flex-wrap items-center gap-x-3">
+            <span>
+              {busyAll ? "Preparando PNGs para download…" : "Renderizando slides…"}
+            </span>
+            {realRenderProgress && realRenderProgress.total > 0 && (
+              <span className="text-[#d6e7c4] normal-case tracking-normal">
+                {realRenderProgress.ready} de {realRenderProgress.total} prontos
+              </span>
+            )}
+            <span className="opacity-60 normal-case tracking-normal">
+              · pode minimizar · fecha o navegador e volta depois, continua rodando
+            </span>
           </div>
           <ProgressBar progress={renderProgress} />
         </div>

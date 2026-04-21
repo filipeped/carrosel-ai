@@ -82,17 +82,25 @@ export default function Home() {
   const wake = useWakeLock(loading);
   const pageVisible = usePageVisible();
 
-  const searchProgress = useProgressSim(currentFlow === "search", [
-    { name: "Interpretando o tema", seconds: 6 },
-    { name: "Buscando candidatas no banco de 1500 fotos", seconds: 8 },
-    { name: "IA analisando cada foto (qualidade, luz, composição)", seconds: 25 },
-    { name: "Selecionando as 6 melhores + capa", seconds: 10 },
-  ]);
+  const searchProgress = useProgressSim(
+    currentFlow === "search",
+    [
+      { name: "Interpretando o tema", seconds: 6 },
+      { name: "Buscando candidatas no banco de 1500 fotos", seconds: 8 },
+      { name: "IA analisando cada foto (qualidade, luz, composição)", seconds: 25 },
+      { name: "Selecionando as 6 melhores + capa", seconds: 10 },
+    ],
+    "search",
+  );
 
-  const copyProgress = useProgressSim(currentFlow === "copy", [
-    { name: "Lendo descrição visual de cada foto", seconds: 3 },
-    { name: "Escrevendo texto dentro dos slides (cards)", seconds: 10 },
-  ]);
+  const copyProgress = useProgressSim(
+    currentFlow === "copy",
+    [
+      { name: "Lendo descrição visual de cada foto", seconds: 3 },
+      { name: "Escrevendo texto dentro dos slides (cards)", seconds: 10 },
+    ],
+    "copy",
+  );
 
   async function doCuradoria() {
     setLoading(true);

@@ -10,6 +10,16 @@
       "maxDuration": 60,
       "memory": 3009
     },
+    "app/api/render/worker/route.ts": {
+      "maxDuration": 60,
+      "memory": 3009
+    },
+    "app/api/render/submit/route.ts": {
+      "maxDuration": 15
+    },
+    "app/api/render/status/[id]/route.ts": {
+      "maxDuration": 10
+    },
     "app/api/publish/route.ts": {
       "maxDuration": 120
     }
