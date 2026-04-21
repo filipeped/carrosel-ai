@@ -247,18 +247,35 @@ export function Step3({
       const batchId = String(Date.now());
       const imageUrls: string[] = [];
       for (let i = 0; i < previewImages.length; i++) {
-        const png = previewImages[i].replace(/^data:image\/\w+;base64,/, "");
-        const up = await fetch("/api/upload-slide", {
+        // 1. Pega signed URL do server (body pequeno ~200B, zero risco de 413)
+        const urlRes = await fetch("/api/upload-url", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ png, batchId, index: i }),
+          body: JSON.stringify({ batchId, index: i }),
         });
-        if (!up.ok) {
-          const err = await up.json().catch(() => ({ error: `status ${up.status}` }));
-          throw new Error(`upload slide ${i + 1}: ${err.error}`);
+        if (!urlRes.ok) {
+          const err = await urlRes.json().catch(() => ({ error: `status ${urlRes.status}` }));
+          throw new Error(`upload-url slide ${i + 1}: ${err.error}`);
         }
-        const { url } = await up.json();
-        imageUrls.push(url);
+        const { signedUrl, publicUrl } = await urlRes.json();
+
+        // 2. Converte dataUrl -> Blob binario (sem base64 overhead)
+        const blob = await (await fetch(previewImages[i])).blob();
+
+        // 3. PUT direto pro Supabase Storage — NAO passa pelo Vercel
+        //    Elimina 413 porque nao ha limite de 4.5MB nesse fluxo
+        const putRes = await fetch(signedUrl, {
+          method: "PUT",
+          body: blob,
+          headers: {
+            "Content-Type": "image/png",
+            "x-upsert": "true",
+          },
+        });
+        if (!putRes.ok) {
+          throw new Error(`upload slide ${i + 1}: PUT status ${putRes.status}`);
+        }
+        imageUrls.push(publicUrl);
       }
       // Envia slides + imagens_ids atuais pra persistir a versao FINAL editada
       // (senao a linha fica com o estado antigo de quando foi criada).
