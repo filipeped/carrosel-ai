@@ -2,7 +2,7 @@
  * Visual Curator — agrupa fotos coerentes a partir do arquivo.
  *
  * Filosofia: image-first. Fotos geram o carrossel, nao o contrario.
- * Recebe ~30 candidatas com analise_visual ja cacheada, agrupa 8-10 que
+ * Recebe ~30 candidatas com analise_visual ja cacheada, agrupa 6-10 que
  * fazem SERIE: mesmo mood, familia de materiais, especies compartilhadas,
  * luz parecida ou mesmo contexto.
  *
@@ -15,7 +15,7 @@ import { extractJson } from "../utils";
 import type { AnalyzedImage } from "../smart-pipeline";
 
 export type CuratorGroup = {
-  grupo: AnalyzedImage[];          // 8-10 fotos ordenadas (cover primeiro, cta ultima)
+  grupo: AnalyzedImage[];          // 6-10 fotos ordenadas (cover primeiro, cta ultima)
   tese_detectada: string;          // o que liga essas fotos
   rationale: string;               // justificativa curta do agrupamento
   alternatives: AnalyzedImage[];   // fotos descartadas mas disponiveis
@@ -23,7 +23,7 @@ export type CuratorGroup = {
 
 const SYSTEM = `Voce eh CURADOR VISUAL do @digitalpaisagismo.
 
-Recebe lista de fotos analisadas (vision) do arquivo e precisa agrupar 8-10 que fazem SERIE COERENTE.
+Recebe lista de fotos analisadas (vision) do arquivo e precisa agrupar 6-10 que fazem SERIE COERENTE.
 
 ## O QUE EH SERIE COERENTE
 
@@ -60,7 +60,7 @@ A tese vai virar base do copy. Quanto mais concreta, melhor o copy sai.
 ## RETORNO (JSON puro)
 
 {
-  "grupo_ids": [int, int, ..., int],   // EXATAMENTE 8-10 ids, ordenados (0=cover, ultimo=cta)
+  "grupo_ids": [int, int, ..., int],   // EXATAMENTE 6-10 ids, ordenados (0=cover, ultimo=cta)
   "tese_detectada": string,             // frase concreta do que liga
   "rationale": string                   // por que agrupou assim (1-2 frases)
 }
@@ -81,7 +81,7 @@ export async function visualCurator(params: {
   avoidTeses?: string[];   // teses ja usadas recentemente — nao repetir
 }): Promise<CuratorGroup> {
   const { candidates, slideCount = 8, avoidTeses = [] } = params;
-  const target = Math.max(8, Math.min(10, slideCount));
+  const target = Math.max(6, Math.min(10, slideCount));
 
   if (candidates.length < target) {
     // Fallback: nao tem fotos suficientes, entrega o que tem ordenado por cover_potential
@@ -107,7 +107,7 @@ export async function visualCurator(params: {
 
 ${dump}${avoidBlock}
 
-TAREFA: escolhe ${target} fotos que fazem SERIE COERENTE. Ordena: 0=cover forte, ultima=cta contemplativa. Retorna JSON.`;
+TAREFA: escolhe EXATAMENTE ${target} fotos (nao mais, nao menos) que fazem SERIE COERENTE. Ordena: 0=cover forte, ultima=cta contemplativa. Retorna JSON com grupo_ids contendo exatamente ${target} ids.`;
 
   try {
     const resp = await getAi().chat.completions.create({
@@ -171,10 +171,12 @@ TAREFA: escolhe ${target} fotos que fazem SERIE COERENTE. Ordena: 0=cover forte,
       }
     }
 
-    const alternatives = candidates.filter((c) => !usedIds.has(c.id));
+    // Trava hard em `target` — se o curator devolveu mais, corta o excesso
+    const trimmed = grupo.slice(0, target);
+    const alternatives = candidates.filter((c) => !trimmed.some((g) => g.id === c.id));
 
     return {
-      grupo,
+      grupo: trimmed,
       tese_detectada:
         typeof parsed.tese_detectada === "string" && parsed.tese_detectada.length > 8
           ? parsed.tese_detectada
