@@ -375,22 +375,14 @@ export function Step3({
         </div>
         <div className="flex items-center gap-2 shrink-0 relative">
           <button
-            disabled={busyAll}
-            onClick={downloadAll}
-            className="bg-[#d6e7c4] text-black px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-[11px] sm:text-xs disabled:opacity-40 hover:brightness-110 transition whitespace-nowrap font-medium"
-            title="Renderiza em alta qualidade no servidor e baixa / compartilha"
-          >
-            {busyAll ? "..." : "⬇ Baixar"}
-          </button>
-          <button
             onClick={() => setActionsOpen((v) => !v)}
             className={`w-11 h-11 border rounded flex items-center justify-center text-lg transition-colors ${
               actionsOpen
                 ? "border-white/40 bg-white/10"
                 : "border-white/15 hover:bg-white/5"
             }`}
-            title="Mais ações"
-            aria-label="Mais ações"
+            title="Ações"
+            aria-label="Ações"
           >
             ⋯
           </button>
@@ -403,6 +395,16 @@ export function Step3({
                 tabIndex={-1}
               />
               <div className="absolute right-0 top-12 z-50 w-64 bg-[#131612] border border-white/15 rounded-lg shadow-2xl overflow-hidden">
+                <MenuItem
+                  disabled={busyAll}
+                  onClick={() => {
+                    setActionsOpen(false);
+                    downloadAll();
+                  }}
+                  label={busyAll ? "Renderizando..." : "⬇ Baixar PNGs"}
+                  hint="Renderiza em 2160×2700 e baixa / compartilha"
+                  accent
+                />
                 <MenuItem
                   disabled={fetchingMore || !setAllImages}
                   onClick={() => {
