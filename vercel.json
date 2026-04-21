@@ -8,11 +8,11 @@
   "functions": {
     "app/api/render-batch/route.ts": {
       "maxDuration": 60,
-      "memory": 3009
+      "memory": 2048
     },
     "app/api/render/worker/route.ts": {
       "maxDuration": 60,
-      "memory": 3009
+      "memory": 2048
     },
     "app/api/render/submit/route.ts": {
       "maxDuration": 15
