@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ImageRow, Selection, SlideData } from "@/lib/types";
-import { useProgressSim } from "@/lib/hooks";
+import { useProgressSim, useWakeLock, usePageVisible } from "@/lib/hooks";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Steps } from "@/components/Steps";
 import { Step1 } from "@/components/steps/Step1";
@@ -73,8 +73,14 @@ export default function Home() {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("carrosel:caption:v1");
       localStorage.removeItem("carrosel:ideas:v1");   // Limpa ideias sugeridas
+      // NAO limpa teses/obsImageIds — historico serve pra NAO repetir entre sessoes
     } catch {}
   }
+
+  // Wake Lock: mantem a tela ligada enquanto o flow de gerar imagens/copy roda.
+  // Evita o celular dormir e matar os fetchs. Fallback silencioso onde nao suporta.
+  const wake = useWakeLock(loading);
+  const pageVisible = usePageVisible();
 
   const searchProgress = useProgressSim(currentFlow === "search", [
     { name: "Interpretando o tema", seconds: 6 },
@@ -94,10 +100,25 @@ export default function Home() {
     setError("");
     setCarrosselId(null);
     try {
+      // Historico: ultimas teses (evita repetir) + ultimas imagens (evita mesma selecao)
+      let excludeTeses: string[] = [];
+      let excludeImageIds: number[] = [];
+      try {
+        excludeTeses = JSON.parse(localStorage.getItem("carrosel:teses:v1") || "[]");
+        excludeImageIds = JSON.parse(
+          localStorage.getItem("carrosel:obsImageIds:v1") || "[]",
+        );
+      } catch {}
+
       const r = await fetch("/api/curadoria", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slideCount: 8 }),
+        body: JSON.stringify({
+          slideCount: 8,
+          excludeTeses: excludeTeses.slice(-8),
+          excludeImageIds: excludeImageIds.slice(-60),
+          seed: Date.now(),
+        }),
       });
       if (!r.ok) {
         const text = await r.text().catch(() => "");
@@ -117,6 +138,25 @@ export default function Home() {
       setCarrosselId(d.carrosselId || null);
       setStep(3); // Pula Step 2 (ja tem slides)
       setAutoGenCaption(Date.now());
+
+      // Persiste tese + ids pra evitar repetir no proximo click
+      try {
+        const prevT: string[] = JSON.parse(
+          localStorage.getItem("carrosel:teses:v1") || "[]",
+        );
+        if (d.tese_detectada) {
+          const nextT = [...prevT, d.tese_detectada].slice(-12);
+          localStorage.setItem("carrosel:teses:v1", JSON.stringify(nextT));
+        }
+        const prevIds: number[] = JSON.parse(
+          localStorage.getItem("carrosel:obsImageIds:v1") || "[]",
+        );
+        const newIds = [sel.cover, ...sel.inner, sel.cta]
+          .map((im) => im?.id)
+          .filter((x): x is number => typeof x === "number");
+        const nextIds = [...prevIds, ...newIds].slice(-80);
+        localStorage.setItem("carrosel:obsImageIds:v1", JSON.stringify(nextIds));
+      } catch {}
     } catch (e) {
       setError(`Curadoria: ${(e as Error).message}`);
     } finally {
@@ -297,8 +337,20 @@ export default function Home() {
       {/* Barra global — fica visivel em qualquer step enquanto gera */}
       {currentFlow && (
         <div className="mb-6 border border-[#d6e7c4]/30 bg-[#d6e7c4]/5 rounded-lg px-4 py-3">
-          <div className="text-[10px] tracking-widest uppercase opacity-70 mb-1">
-            {currentFlow === "search" ? "Gerando seleção de imagens…" : "Gerando copy dos slides…"} (continua mesmo se trocar de aba)
+          <div className="text-[10px] tracking-widest uppercase opacity-70 mb-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>
+              {currentFlow === "search" ? "Gerando seleção de imagens…" : "Gerando copy dos slides…"}
+            </span>
+            {wake.held && (
+              <span className="text-[#d6e7c4] normal-case tracking-normal">
+                · tela ativa (pode minimizar)
+              </span>
+            )}
+            {!pageVisible && (
+              <span className="text-amber-300 normal-case tracking-normal">
+                · app em segundo plano, mantenha a tela desbloqueada
+              </span>
+            )}
           </div>
           <ProgressBar progress={currentFlow === "search" ? searchProgress : copyProgress} />
         </div>

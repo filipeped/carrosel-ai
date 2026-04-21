@@ -11,12 +11,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^147.0.2",
     "@supabase/supabase-js": "^2.47.0",
     "clsx": "^2.1.1",
     "html-to-image": "^1.11.13",
     "jsonrepair": "^3.14.0",
     "next": "^15.5.15",
     "openai": "^4.77.0",
+    "puppeteer": "^24.42.0",
+    "puppeteer-core": "^24.42.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "sharp": "^0.34.5",

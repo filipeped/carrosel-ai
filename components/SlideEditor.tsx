@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { ImageRow, SlideData, SlideKind } from "@/lib/types";
-import { downloadSlideFromDom } from "@/lib/capture";
+import { renderBatch, downloadUrl, canShareFiles, shareSlides } from "@/lib/capture";
 import { SlidePreview } from "./SlidePreview";
 
 function Field({
@@ -50,9 +50,24 @@ export function SlideEditor({
   const [regenBusy, setRegenBusy] = useState(false);
 
   async function handleDownload() {
+    if (!img) return;
     setBusy(true);
     try {
-      await downloadSlideFromDom(index);
+      const { slides: rendered } = await renderBatch([slide], [img]);
+      const url = rendered[0]?.url;
+      if (!url) throw new Error("render retornou vazio");
+      const filename = `slide-${String(index + 1).padStart(2, "0")}.png`;
+      if (canShareFiles()) {
+        try {
+          await shareSlides([url]);
+          return;
+        } catch (err) {
+          if ((err as Error).name === "AbortError") return;
+        }
+      }
+      await downloadUrl(url, filename);
+    } catch (e) {
+      alert(`Erro ao baixar: ${(e as Error).message}`);
     } finally {
       setBusy(false);
     }

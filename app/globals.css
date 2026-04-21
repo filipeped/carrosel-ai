@@ -12,13 +12,25 @@ html, body {
   color: var(--color-cream);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   -webkit-font-smoothing: antialiased;
+  /* Trava scroll horizontal — mata qualquer overflow residual no mobile */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 html {
   /* evita zoom em iOS quando input entra em foco */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Respeita preferencia do OS por movimento reduzido */
 }
+
+/* Reduz motion quando o user pede (acessibilidade + bateria mobile) */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* Imagens nunca estouram o container (fix common de horizontal overflow) */
+img, video { max-width: 100%; height: auto; }
 
 body {
   min-height: 100vh;

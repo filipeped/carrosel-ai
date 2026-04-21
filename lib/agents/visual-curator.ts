@@ -73,8 +73,9 @@ function flattenImage(img: AnalyzedImage, idx: number): string {
 export async function visualCurator(params: {
   candidates: AnalyzedImage[];
   slideCount?: number;
+  avoidTeses?: string[];   // teses ja usadas recentemente — nao repetir
 }): Promise<CuratorGroup> {
-  const { candidates, slideCount = 8 } = params;
+  const { candidates, slideCount = 8, avoidTeses = [] } = params;
   const target = Math.max(8, Math.min(10, slideCount));
 
   if (candidates.length < target) {
@@ -91,9 +92,15 @@ export async function visualCurator(params: {
   }
 
   const dump = candidates.map((c, i) => flattenImage(c, i)).join("\n");
+  const avoidBlock =
+    avoidTeses.length > 0
+      ? `\n\nTESES JA USADAS RECENTEMENTE (NAO repetir, escolhe angulo DIFERENTE):\n${avoidTeses
+          .map((t, i) => `${i + 1}. ${t}`)
+          .join("\n")}\n\nSe as fotos disponiveis so permitem essas mesmas teses, escolhe um SUBRECORTE novo: por exemplo, em vez de "jardim alto padrao", foca em "gestao de luz" ou "contraste de texturas" ou "ritmo de alturas". Angulo novo sempre.`
+      : "";
   const user = `CANDIDATAS (${candidates.length} fotos com vision):
 
-${dump}
+${dump}${avoidBlock}
 
 TAREFA: escolhe ${target} fotos que fazem SERIE COERENTE. Ordena: 0=cover forte, ultima=cta contemplativa. Retorna JSON.`;
 
@@ -101,7 +108,7 @@ TAREFA: escolhe ${target} fotos que fazem SERIE COERENTE. Ordena: 0=cover forte,
     const resp = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 1400,
-      temperature: 0.4,
+      temperature: 0.85,  // alto — forca variacao entre rodadas consecutivas
       messages: [
         { role: "system", content: SYSTEM },
         { role: "user", content: user },

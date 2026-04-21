@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { ImageRow, Selection, SlideData } from "@/lib/types";
-import { useProgressSim } from "@/lib/hooks";
-import { captureSlideAsBlob, downloadSlideFromDom, resetCaptureRatio } from "@/lib/capture";
+import { useProgressSim, useWakeLock } from "@/lib/hooks";
+import { renderBatch, downloadUrl, shareSlides, canShareFiles } from "@/lib/capture";
 import { CaptionPanel } from "../CaptionPanel";
 import { SlideEditor } from "../SlideEditor";
 import { InstagramPreviewModal } from "../InstagramPreviewModal";
@@ -90,12 +90,16 @@ export function Step3({
   }, [selectedCaption]);
 
   const publishProgress = useProgressSim(busyPost, [
-    { name: "Capturando os slides do preview", seconds: 8 },
-    { name: "Subindo PNGs pro Supabase Storage", seconds: 10 },
     { name: "Instagram: criando containers de mídia", seconds: 12 },
     { name: "Instagram: aguardando processamento", seconds: 15 },
     { name: "Publicando carrossel", seconds: 8 },
   ]);
+  const renderProgress = useProgressSim(capturingPreview || busyAll, [
+    { name: "Renderizando slides em alta qualidade (server)", seconds: 15 },
+    { name: "Otimizando PNGs e subindo", seconds: 8 },
+  ]);
+  // Wake Lock: mantem o device acordado durante qualquer operacao longa
+  useWakeLock(busyAll || busyPost || capturingPreview || regenCopy || fetchingMore || savingDraft);
 
   const regenCopyProgress = useProgressSim(regenCopy, [
     { name: "Lendo descrição visual de cada foto", seconds: 3 },
@@ -105,11 +109,28 @@ export function Step3({
 
   async function downloadAll() {
     setBusyAll(true);
+    setPostResult(null);
     try {
-      for (let i = 0; i < slides.length; i++) {
-        await downloadSlideFromDom(i);
-        await new Promise((r) => setTimeout(r, 250));
+      const orderedForRender = slides.map((s) => allImages[s.imageIdx] || allImages[0]);
+      const { slides: rendered } = await renderBatch(slides, orderedForRender);
+      const urls = rendered.map((r) => r.url);
+      // Mobile (iOS/Android): tenta Share API nativa pra abrir menu "Salvar na galeria"
+      if (canShareFiles()) {
+        try {
+          await shareSlides(urls);
+          return;
+        } catch (shareErr) {
+          // user cancelou share ou deu erro — cai pra download direto
+          if ((shareErr as Error).name === "AbortError") return;
+        }
       }
+      // Desktop + Android fallback: baixa cada PNG via fetch + <a download>
+      for (let i = 0; i < urls.length; i++) {
+        await downloadUrl(urls[i], `slide-${String(i + 1).padStart(2, "0")}.png`);
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    } catch (e) {
+      setPostResult({ ok: false, error: (e as Error).message || String(e) });
     } finally {
       setBusyAll(false);
     }
@@ -208,27 +229,20 @@ export function Step3({
     }
   }
 
+  // URLs publicas dos slides ja renderizados no server — usadas direto pra postar
+  const [renderedUrls, setRenderedUrls] = useState<string[] | null>(null);
+
   async function openPreview() {
     // Caption vazia agora eh OK — IG aceita carrossel sem legenda.
-    // Se o user esqueceu de clicar 'Usar esta', passa adiante mesmo assim.
     setCapturingPreview(true);
     setPostResult(null);
-    // Reset memoria de ratio: comeca em 2.5x na 1a tentativa do novo preview
-    resetCaptureRatio();
+    setRenderedUrls(null);
     try {
-      const dataUrls: string[] = [];
-      for (let i = 0; i < slides.length; i++) {
-        const blob = await captureSlideAsBlob(i);
-        if (!blob) throw new Error(`falha ao capturar slide ${i + 1}`);
-        const u = await new Promise<string>((resolve, reject) => {
-          const fr = new FileReader();
-          fr.onload = () => resolve(fr.result as string);
-          fr.onerror = () => reject(fr.error);
-          fr.readAsDataURL(blob);
-        });
-        dataUrls.push(u);
-      }
-      setPreviewImages(dataUrls);
+      const orderedForRender = slides.map((s) => allImages[s.imageIdx] || allImages[0]);
+      const { slides: rendered } = await renderBatch(slides, orderedForRender);
+      const urls = rendered.map((r) => r.url);
+      setPreviewImages(urls);
+      setRenderedUrls(urls);
       setPreviewOpen(true);
     } catch (e) {
       setPostResult({ ok: false, error: (e as Error).message || String(e) });
@@ -238,52 +252,19 @@ export function Step3({
   }
 
   async function postarNoInstagram() {
-    if (!previewImages) return;
+    if (!renderedUrls?.length) return;
     setBusyPost(true);
     setPostResult(null);
     try {
-      const batchId = String(Date.now());
-      const imageUrls: string[] = [];
-      for (let i = 0; i < previewImages.length; i++) {
-        // 1. Pega signed URL do server (body pequeno ~200B, zero risco de 413)
-        const urlRes = await fetch("/api/upload-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ batchId, index: i }),
-        });
-        if (!urlRes.ok) {
-          const err = await urlRes.json().catch(() => ({ error: `status ${urlRes.status}` }));
-          throw new Error(`upload-url slide ${i + 1}: ${err.error}`);
-        }
-        const { signedUrl, publicUrl } = await urlRes.json();
-
-        // 2. Converte dataUrl -> Blob binario (sem base64 overhead)
-        const blob = await (await fetch(previewImages[i])).blob();
-
-        // 3. PUT direto pro Supabase Storage — NAO passa pelo Vercel
-        //    Elimina 413 porque nao ha limite de 4.5MB nesse fluxo
-        const putRes = await fetch(signedUrl, {
-          method: "PUT",
-          body: blob,
-          headers: {
-            "Content-Type": "image/png",
-            "x-upsert": "true",
-          },
-        });
-        if (!putRes.ok) {
-          throw new Error(`upload slide ${i + 1}: PUT status ${putRes.status}`);
-        }
-        imageUrls.push(publicUrl);
-      }
-      // Envia slides + imagens_ids atuais pra persistir a versao FINAL editada
-      // (senao a linha fica com o estado antigo de quando foi criada).
+      // URLs ja sao publicas (renderizadas server-side, subidas pro Supabase Storage).
+      // Vai direto pro /api/publish — IG baixa do Supabase. Zero 413, zero overhead.
       const orderedNow = [selection.cover, ...selection.inner, selection.cta];
       const imagens_ids = orderedNow.map((im) => im?.id).filter(Boolean);
       const r = await fetch("/api/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          imageUrls,
+          imageUrls: renderedUrls,
           caption: selectedCaption,
           carrosselId,
           slides,
@@ -313,7 +294,7 @@ export function Step3({
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 sm:mb-8 gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="text-[10px] tracking-[4px] uppercase opacity-50 mb-1">
             Step 3 — Editor & Publicação
           </div>
@@ -321,29 +302,31 @@ export function Step3({
             Ajuste os slides, gere a <i>legenda</i> e poste.
           </h2>
         </div>
-        <div className="flex gap-2 items-center">
+        {/* Mobile: grid 3 col sem estourar. Desktop: flex-wrap alinhado a direita */}
+        <div className="grid grid-cols-3 sm:flex sm:flex-wrap sm:justify-end gap-2 items-stretch">
           <button
             onClick={onBack}
-            className="flex-1 sm:flex-none px-3 sm:px-4 py-2 min-h-[44px] text-xs tracking-wider uppercase opacity-60 hover:opacity-100 transition-opacity"
+            className="col-span-3 sm:col-auto sm:flex-none px-3 sm:px-4 py-2 min-h-[44px] text-xs tracking-wider uppercase opacity-60 hover:opacity-100 transition-opacity text-left sm:text-center"
           >
             ← Voltar
           </button>
           <button
             disabled={fetchingMore || !setAllImages}
             onClick={fetchMoreImages}
-            className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
+            className="border border-white/15 px-2 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-[11px] sm:text-xs disabled:opacity-40 hover:bg-white/5 transition-colors truncate"
             title="Busca mais imagens do banco pra esse tema"
           >
-            {fetchingMore ? "Buscando..." : `+ Mais imagens (${allImages.length})`}
+            <span className="sm:hidden">{fetchingMore ? "..." : `+ fotos (${allImages.length})`}</span>
+            <span className="hidden sm:inline">{fetchingMore ? "Buscando..." : `+ Mais imagens (${allImages.length})`}</span>
           </button>
-          <div className="flex-1 sm:flex-none flex gap-1">
+          <div className="flex gap-1">
             <button
               disabled={regenCopy}
               onClick={regenerateCopy}
-              className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
+              className="flex-1 sm:flex-none border border-white/15 px-2 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-[11px] sm:text-xs disabled:opacity-40 hover:bg-white/5 transition-colors truncate"
               title="Regenera todos os slides. Pra regenerar so 1, clica no ↻ de cada card"
             >
-              {regenCopy ? "Gerando..." : "↻ Gerar copy"}
+              {regenCopy ? "..." : "↻ Copy"}
             </button>
             <button
               onClick={() => setBriefOpen((v) => !v)}
@@ -360,17 +343,17 @@ export function Step3({
           <button
             disabled={savingDraft || !carrosselId}
             onClick={saveDraft}
-            className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
+            className="border border-white/15 px-2 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-[11px] sm:text-xs disabled:opacity-40 hover:bg-white/5 transition-colors truncate"
             title={!carrosselId ? "Aguarde o carrossel ser salvo" : "Salva como rascunho pra postar depois"}
           >
-            {savingDraft ? "Salvando..." : draftSaved ? "✓ Salvo" : "Salvar rascunho"}
+            {savingDraft ? "..." : draftSaved ? "✓" : "Salvar"}
           </button>
           <button
             disabled={busyAll}
             onClick={downloadAll}
-            className="flex-1 sm:flex-none border border-white/15 px-4 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-xs disabled:opacity-40 hover:bg-white/5 transition-colors"
+            className="col-span-2 sm:col-auto border border-white/15 px-2 sm:px-5 py-2.5 min-h-[44px] rounded tracking-wider uppercase text-[11px] sm:text-xs disabled:opacity-40 hover:bg-white/5 transition-colors truncate"
           >
-            {busyAll ? "Gerando..." : "Baixar PNGs"}
+            {busyAll ? "Renderizando..." : "⬇ Baixar PNGs"}
           </button>
         </div>
       </div>
@@ -409,6 +392,15 @@ export function Step3({
             Regenerando copy de todos os slides…
           </div>
           <ProgressBar progress={regenCopyProgress} />
+        </div>
+      )}
+
+      {(capturingPreview || busyAll) && (
+        <div className="mb-4 border border-[#d6e7c4]/30 bg-[#d6e7c4]/5 rounded-lg px-4 py-3">
+          <div className="text-[10px] tracking-widest uppercase opacity-70 mb-1">
+            {busyAll ? "Preparando PNGs para download…" : "Renderizando slides…"} · pode minimizar a tela
+          </div>
+          <ProgressBar progress={renderProgress} />
         </div>
       )}
 
