@@ -376,6 +376,97 @@ app.post("/warm", async (req, res) => {
   res.json({ ok: true, cached: imageUrls.length, elapsed_ms: Date.now() - t0 });
 });
 
+async function updateJob(jobId, patch) {
+  if (!jobId) return;
+  try {
+    await sb.from("render_jobs").update({
+      ...patch,
+      updated_at: new Date().toISOString(),
+    }).eq("id", jobId);
+  } catch (e) {
+    console.warn("[job] update falhou:", e.message);
+  }
+}
+
+// Extrai pipeline de render pra reuso sync/async
+async function runRenderPipeline({ slides, imageUrls, bid, upload, onProgress }) {
+  if (upload) {
+    try { await sb.storage.createBucket(BUCKET, { public: true }); } catch {}
+  }
+  const tFetch = Date.now();
+  const imageDataUrls = await Promise.all(
+    imageUrls.map((url) => fetchImageBase64(url).catch(() => url)),
+  );
+  const fetchMs = Date.now() - tFetch;
+
+  const total = slides.length;
+  const results = new Array(total);
+  const uploads = new Array(total);
+  let doneCount = 0;
+
+  async function renderSlide(i) {
+    const html = buildSlideHtml(slides[i], imageDataUrls[i]);
+    const raw = await renderHtmlToPng(html);
+    const png = await optimizePng(raw);
+    if (upload) {
+      uploads[i] = (async () => {
+        const filePath = `${bid}/slide-${String(i + 1).padStart(2, "0")}.png`;
+        const { error } = await sb.storage.from(BUCKET).upload(filePath, png, {
+          contentType: "image/png", upsert: true, cacheControl: "3600",
+        });
+        if (error) throw new Error(error.message);
+        const { data } = sb.storage.from(BUCKET).getPublicUrl(filePath);
+        return { index: i, url: data.publicUrl, bytes: png.byteLength, width: 2160, height: 2700 };
+      })();
+    } else {
+      uploads[i] = Promise.resolve({
+        index: i,
+        url: `data:image/png;base64,${png.toString("base64")}`,
+        bytes: png.byteLength, width: 2160, height: 2700,
+      });
+    }
+    doneCount++;
+    if (onProgress) onProgress(doneCount, total);
+  }
+
+  const CONCURRENCY = Math.min(POOL_SIZE, total);
+  let cursor = 0;
+  const workers = Array.from({ length: CONCURRENCY }, async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= total) return;
+      await renderSlide(i);
+    }
+  });
+  await Promise.all(workers);
+  for (let i = 0; i < total; i++) results[i] = await uploads[i];
+  return { results, fetchMs };
+}
+
+async function processAsync(jobId, slides, imageUrls, bid, upload, t0) {
+  await updateJob(jobId, {
+    status: "running",
+    started_at: new Date().toISOString(),
+    progress: 0,
+    total_slides: slides.length,
+  });
+  const { results, fetchMs } = await runRenderPipeline({
+    slides, imageUrls, bid, upload,
+    onProgress: async (done, total) => {
+      const pct = Math.round((done / total) * 100);
+      await updateJob(jobId, { progress: pct });
+    },
+  });
+  const elapsed = Date.now() - t0;
+  await updateJob(jobId, {
+    status: "done",
+    progress: 100,
+    result: { slides: results, elapsed_ms: elapsed },
+    finished_at: new Date().toISOString(),
+  });
+  console.log(`[render-async] job ${jobId}: ${slides.length} slides em ${elapsed}ms (fetch ${fetchMs}ms)`);
+}
+
 app.post("/render", async (req, res) => {
   const t0 = Date.now();
   try {
@@ -384,7 +475,7 @@ app.post("/render", async (req, res) => {
       return res.status(401).json({ error: "invalid token" });
     }
 
-    const { slides, imageUrls, batchId, upload = true } = req.body || {};
+    const { slides, imageUrls, batchId, upload = true, jobId = null } = req.body || {};
     if (!Array.isArray(slides) || !slides.length) {
       return res.status(400).json({ error: "slides[] required" });
     }
@@ -395,61 +486,31 @@ app.post("/render", async (req, res) => {
     const bid = batchId || `vps-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const total = slides.length;
 
-    if (upload) {
-      try { await sb.storage.createBucket(BUCKET, { public: true }); } catch {}
-    }
-
-    // 1) Pre-baixa TODAS as imagens em paralelo (Node eh muito rapido pra fetch)
-    const tFetch = Date.now();
-    const imageDataUrls = await Promise.all(
-      imageUrls.map((url) => fetchImageBase64(url).catch(() => url)),
-    );
-    const fetchMs = Date.now() - tFetch;
-
-    // 2) Render + upload em pipeline — upload do slide N roda em paralelo com render do N+1
-    const results = new Array(total);
-    const uploads = new Array(total);
-
-    async function renderSlide(i) {
-      const html = buildSlideHtml(slides[i], imageDataUrls[i]);
-      const raw = await renderHtmlToPng(html);
-      const png = await optimizePng(raw);
-      if (upload) {
-        uploads[i] = (async () => {
-          const filePath = `${bid}/slide-${String(i + 1).padStart(2, "0")}.png`;
-          const { error } = await sb.storage.from(BUCKET).upload(filePath, png, {
-            contentType: "image/png", upsert: true, cacheControl: "3600",
-          });
-          if (error) throw new Error(error.message);
-          const { data } = sb.storage.from(BUCKET).getPublicUrl(filePath);
-          return { index: i, url: data.publicUrl, bytes: png.byteLength, width: 2160, height: 2700 };
-        })();
-      } else {
-        uploads[i] = Promise.resolve({
-          index: i,
-          url: `data:image/png;base64,${png.toString("base64")}`,
-          bytes: png.byteLength, width: 2160, height: 2700,
+    // Se veio jobId, modo ASYNC: responde logo {accepted:true} e continua em bg.
+    // VPS atualiza render_jobs.status + progress + result direto no Supabase.
+    // Cliente polla /api/render/status/[id] pra saber quando termina.
+    if (jobId) {
+      res.json({ accepted: true, jobId });
+      // Roda o render em background; qualquer erro vira status='error'
+      processAsync(jobId, slides, imageUrls, bid, upload, t0).catch((e) => {
+        console.error(`[render-async] job ${jobId} falhou:`, e.message);
+        updateJob(jobId, {
+          status: "error",
+          error: String(e.message || e),
+          finished_at: new Date().toISOString(),
         });
-      }
+      });
+      return;
     }
 
-    // Roda com concorrencia = POOL_SIZE (cada slide pega 1 page do pool)
-    const CONCURRENCY = Math.min(POOL_SIZE, total);
-    let cursor = 0;
-    const workers = Array.from({ length: CONCURRENCY }, async () => {
-      while (true) {
-        const i = cursor++;
-        if (i >= total) return;
-        await renderSlide(i);
-      }
+    // Modo SYNC (sem jobId): usa mesmo pipeline e retorna result no body
+    const { results, fetchMs } = await runRenderPipeline({
+      slides, imageUrls, bid, upload,
     });
-    await Promise.all(workers);
-    // Espera TODOS os uploads concluirem (ja rodaram em paralelo durante o render)
-    for (let i = 0; i < total; i++) results[i] = await uploads[i];
 
     const elapsed = Date.now() - t0;
     console.log(
-      `[render] ${total} slides | total ${elapsed}ms (fetch ${fetchMs}ms, pool ${_pagePool.length}/${POOL_SIZE})`,
+      `[render-sync] ${total} slides | ${elapsed}ms (fetch ${fetchMs}ms)`,
     );
     res.json({ ok: true, batchId: bid, slides: results, elapsed_ms: elapsed });
   } catch (e) {

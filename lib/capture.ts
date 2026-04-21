@@ -83,45 +83,6 @@ export function getActiveJob(): { jobId: string; slideCount: number; at: number 
 }
 
 /**
- * Tenta renderizar via VPS proxy (sincrono, 15-30s).
- * Se VPS nao estiver configurado (503 com fallback:true) ou falhar,
- * retorna null pro chamador cair no fluxo de jobs.
- */
-async function tryVpsRender(
-  slides: SlideData[],
-  orderedImages: (ImageRow | undefined)[],
-): Promise<RenderBatchResult | null> {
-  const imageUrls = orderedImages.map((im) => im?.url || "");
-  if (imageUrls.some((u) => !u)) return null;
-  try {
-    const r = await fetch("/api/render/proxy", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slides, imageUrls, batchId: `vps-${Date.now()}` }),
-    });
-    if (!r.ok) {
-      // 503 = VPS nao configurado → fallback silencioso pro fluxo de jobs
-      // Outros = problema transient com VPS → tambem fallback
-      const err = await r.json().catch(() => ({}));
-      if (!err.fallback) {
-        console.warn("[vps] render falhou sem fallback flag:", err.error);
-      }
-      return null;
-    }
-    const data = await r.json();
-    if (!data.ok || !Array.isArray(data.slides)) return null;
-    return {
-      jobId: data.batchId || "vps-direct",
-      slides: data.slides,
-      elapsed_ms: data.elapsed_ms || 0,
-    };
-  } catch (e) {
-    console.warn("[vps] erro de rede, caindo pro fallback:", (e as Error).message);
-    return null;
-  }
-}
-
-/**
  * Submete um job e retorna jobId em ~200ms. Server continua processando
  * mesmo que o client desconecte ou minimize.
  */
@@ -199,29 +160,24 @@ export async function pollRenderJob(
 /**
  * Conveniencia: renderiza slides e retorna URLs publicas.
  *
- * Estrategia: tenta VPS primeiro (rapido, 15-30s). Se VPS nao estiver
- * configurado/disponivel, cai pro fluxo de jobs serverless (2-3min chunked).
- * Transparente pro cliente — mesma assinatura.
+ * Fluxo UNIFICADO com jobs — VPS ou serverless, sempre via submit+poll.
+ * Garante que o render continua mesmo se o user fechar o app / bloquear tela.
+ *
+ * Backend:
+ * - Se RENDER_VPS_URL configurado: submit dispara VPS fire-and-forget,
+ *   VPS renderiza (15-30s) e atualiza render_jobs no Supabase direto.
+ * - Senao: worker serverless chunked (2-3min).
+ *
+ * User pode:
+ * - Fechar o navegador → volta depois, localStorage lembra o jobId, retoma
+ * - Minimizar o app no mobile → render continua na VPS, poll retoma ao voltar
+ * - Desligar a internet → job continua no servidor, cliente retoma online
  */
 export async function renderBatch(
   slides: SlideData[],
   orderedImages: (ImageRow | undefined)[],
   onProgress?: (u: ProgressUpdate) => void,
 ): Promise<RenderBatchResult> {
-  // 1) Tenta VPS (rapido)
-  onProgress?.({ progress: 10, status: "running", slidesReady: 0, totalSlides: slides.length });
-  const vpsResult = await tryVpsRender(slides, orderedImages);
-  if (vpsResult) {
-    onProgress?.({
-      progress: 100,
-      status: "done",
-      slidesReady: vpsResult.slides.length,
-      totalSlides: slides.length,
-    });
-    return vpsResult;
-  }
-
-  // 2) Fallback: fluxo de jobs serverless
   const jobId = await submitRenderJob(slides, orderedImages);
   return pollRenderJob(jobId, { onProgress });
 }

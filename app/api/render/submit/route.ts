@@ -9,11 +9,14 @@ export const maxDuration = 15;
  * Body: { slides, imageUrls, batchId?, upload? }
  *
  * 1. Cria row em render_jobs (status=pending)
- * 2. Dispara worker em background via fetch fire-and-forget
+ * 2. Dispara render em background via fetch fire-and-forget
+ *    - Se RENDER_VPS_URL set: dispara pra VPS (JOB EM BACKGROUND TOTAL — user
+ *      pode fechar browser, desligar celular, qualquer coisa. VPS continua
+ *      renderizando e atualiza render_jobs no Supabase.)
+ *    - Senao: dispara pro worker serverless chunked (fallback)
  * 3. Retorna { jobId } em ~200ms
  *
  * Cliente faz poll em /api/render/status/[id] ate status=done.
- * Pode fechar o navegador — o Vercel continua processando.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -35,20 +38,46 @@ export async function POST(req: NextRequest) {
       upload: body.upload !== false,
     });
 
-    // Dispara worker — fire and forget. Nao awaita, nao cancela se o body for small.
-    // keepalive:true permite que o fetch sobreviva se o handler atual terminar.
-    const workerUrl = `${getSelfUrl(req.headers)}/api/render/worker`;
-    fetch(workerUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jobId }),
-      keepalive: true,
-    }).catch((err) => {
-      // Log apenas — nao aborta o response pro cliente
-      console.warn("[submit] falha ao disparar worker (tentara de novo em poll):", err.message);
-    });
+    const vpsUrl = process.env.RENDER_VPS_URL;
+    const vpsToken = process.env.RENDER_VPS_TOKEN;
 
-    return NextResponse.json({ jobId });
+    if (vpsUrl && vpsToken) {
+      // VPS modo async: chama fire-and-forget com jobId → VPS atualiza render_jobs
+      // direto no Supabase. User pode fechar o app que VPS continua trabalhando.
+      fetch(`${vpsUrl.replace(/\/$/, "")}/render`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${vpsToken}`,
+        },
+        body: JSON.stringify({
+          jobId,
+          slides: body.slides,
+          imageUrls: body.imageUrls,
+          batchId: body.batchId,
+          upload: body.upload !== false,
+        }),
+        keepalive: true,
+        // Timeout curto — so pra garantir que a request saiu. VPS responde em 50ms
+        // com {accepted:true} e continua em bg.
+        signal: AbortSignal.timeout(5000),
+      }).catch((e) => {
+        console.warn("[submit] falha ao disparar VPS:", e.message);
+      });
+    } else {
+      // Fallback serverless — worker chunked no proprio Vercel
+      const workerUrl = `${getSelfUrl(req.headers)}/api/render/worker`;
+      fetch(workerUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId }),
+        keepalive: true,
+      }).catch((e) => {
+        console.warn("[submit] falha ao disparar worker serverless:", e.message);
+      });
+    }
+
+    return NextResponse.json({ jobId, backend: vpsUrl ? "vps" : "serverless" });
   } catch (e) {
     console.error("[render/submit] falhou:", (e as Error).message);
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
