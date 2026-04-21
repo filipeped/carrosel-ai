@@ -6,9 +6,9 @@ import { getSupabase } from "@/lib/supabase";
 import {
   getJob,
   markRunning,
-  updateProgress,
   markDone,
   markError,
+  getSelfUrl,
   type RenderJobResult,
 } from "@/lib/jobs";
 
@@ -17,23 +17,30 @@ export const maxDuration = 60;
 
 /**
  * POST /api/render/worker
- * Body: { jobId: string }
+ * Body: { jobId: string, startFrom?: number }
  *
- * Worker interno — executa o render de um job em render_jobs.
- * Disparado por /api/render/submit via fetch fire-and-forget.
+ * CHUNKED WORKER — resolve o timeout de 60s do Vercel Hobby:
  *
- * Atualiza progress conforme cada slide termina. Cliente polla /status/[id].
+ * 1. Recebe jobId e offset opcional (startFrom=0 na 1a chamada)
+ * 2. Renderiza slides SEQUENCIAIS ate `BUDGET_MS` (deixa ~15s de buffer)
+ * 3. Salva progresso parcial em `result.slides[]` + `progress`
+ * 4. Se ainda tem slides pendentes, invoca proximo worker (fire-and-forget)
+ * 5. Ultimo worker marca status='done'
  *
- * Max 60s no Vercel Pro — cabe ate ~10 slides em paralelo de 3.
+ * Cada chunk cabe bem em 60s:
+ *   - Cold start Chromium: ~5-8s (so na 1a invocacao)
+ *   - Cada slide: ~4-8s em paralelo
+ *   - Com budget 45s, da pra 4-6 slides no 1o chunk, 6-8 nos demais
  */
 
 const BUCKET = "carrosseis-publicados";
-const CONCURRENCY = 3;
+const BUDGET_MS = 45_000;   // processa ate 45s, deixa 15s buffer
+const CONCURRENCY = 2;
 
 async function optimizePng(buf: Buffer): Promise<Buffer> {
   try {
     return await sharp(buf)
-      .png({ compressionLevel: 9, adaptiveFiltering: true, palette: false, effort: 10 })
+      .png({ compressionLevel: 9, adaptiveFiltering: true, palette: false, effort: 6 })
       .toBuffer();
   } catch {
     return buf;
@@ -43,8 +50,9 @@ async function optimizePng(buf: Buffer): Promise<Buffer> {
 export async function POST(req: NextRequest) {
   let jobId = "";
   try {
-    const body = (await req.json()) as { jobId: string };
+    const body = (await req.json()) as { jobId: string; startFrom?: number };
     jobId = body.jobId;
+    const startFrom = Math.max(0, body.startFrom || 0);
     if (!jobId) {
       return NextResponse.json({ error: "jobId required" }, { status: 400 });
     }
@@ -57,24 +65,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, already: job.status });
     }
 
-    await markRunning(jobId);
+    if (startFrom === 0) {
+      await markRunning(jobId);
+    }
 
     const { slides, imageUrls, batchId: inputBatchId, upload = true } = job.input;
     const batchId = inputBatchId || `job-${jobId}`;
     const total = slides.length;
-    const t0 = Date.now();
+
+    // Inicia results a partir do que ja estava no DB (chunks anteriores)
+    const prevResults = (job.result?.slides || []) as RenderJobResult["slides"];
+    const results: RenderJobResult["slides"] = new Array(total);
+    for (const r of prevResults) results[r.index] = r;
 
     const sb = getSupabase();
-    if (upload) {
+    if (upload && startFrom === 0) {
       try {
         await sb.storage.createBucket(BUCKET, { public: true });
       } catch {
-        // ok, ja existe
+        // ja existe
       }
     }
 
-    const results: RenderJobResult["slides"] = new Array(total);
-    let done = 0;
+    const t0 = Date.now();
+    let nextToProcess = startFrom;
 
     async function renderOne(i: number): Promise<void> {
       const html = buildSlideHtml(slides[i], imageUrls[i]);
@@ -82,6 +96,7 @@ export async function POST(req: NextRequest) {
         width: 1080,
         height: 1350,
         deviceScaleFactor: 2,
+        timeout: 20_000,
       });
       const png = await optimizePng(raw);
       let url: string;
@@ -99,26 +114,73 @@ export async function POST(req: NextRequest) {
         url = `data:image/png;base64,${png.toString("base64")}`;
       }
       results[i] = { index: i, url, bytes: png.byteLength, width: 2160, height: 2700 };
-      done++;
-      updateProgress(jobId, done, total).catch(() => {});
     }
 
-    // Pool paralelo (concurrency 3)
-    let cursor = 0;
-    const workers = Array.from({ length: Math.min(CONCURRENCY, total) }, async () => {
-      while (true) {
-        const i = cursor++;
-        if (i >= total) return;
-        await renderOne(i);
+    // Processa de `startFrom` em diante, com concorrencia controlada,
+    // ate estourar o orcamento OU terminar todos.
+    let stopped = false;
+    while (nextToProcess < total && !stopped) {
+      const batchIds: number[] = [];
+      for (let k = 0; k < CONCURRENCY && nextToProcess < total; k++) {
+        batchIds.push(nextToProcess++);
       }
+      await Promise.all(batchIds.map(renderOne));
+
+      // Atualiza progresso no DB apos cada sub-batch
+      const doneCount = results.filter((r) => r).length;
+      const progress = Math.round((doneCount / total) * 100);
+      await sb
+        .from("render_jobs")
+        .update({
+          progress,
+          result: { slides: results.filter((r) => r) },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
+
+      // Verifica orcamento — se sobra pouco, pula pro chunking
+      if (Date.now() - t0 > BUDGET_MS && nextToProcess < total) {
+        stopped = true;
+      }
+    }
+
+    if (nextToProcess >= total) {
+      // Terminou tudo — marca done
+      const elapsed = Date.now() - t0;
+      await markDone(jobId, {
+        slides: results.filter((r) => r).sort((a, b) => a.index - b.index),
+        elapsed_ms: elapsed,
+      });
+      console.log(`[worker] job ${jobId} CONCLUIDO: ${total} slides`);
+      return NextResponse.json({ ok: true, jobId, done: true });
+    }
+
+    // Ainda tem slides — dispara proximo chunk
+    console.log(
+      `[worker] job ${jobId} chunk parou em ${nextToProcess}/${total}, disparando continuacao`,
+    );
+    const workerUrl = `${getSelfUrl(req.headers)}/api/render/worker`;
+    // await curto pra maximizar chance de pegar sucessor rodando na mesma Lambda
+    try {
+      await fetch(workerUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId, startFrom: nextToProcess }),
+        keepalive: true,
+        // Nao espera response — o handler proximo roda independente
+        signal: AbortSignal.timeout(1500),
+      });
+    } catch {
+      // timeout de 1.5s eh esperado, o worker ja foi disparado
+    }
+
+    return NextResponse.json({
+      ok: true,
+      jobId,
+      chunked: true,
+      processed_until: nextToProcess,
+      total,
     });
-    await Promise.all(workers);
-
-    const elapsed = Date.now() - t0;
-    await markDone(jobId, { slides: results, elapsed_ms: elapsed });
-    console.log(`[worker] job ${jobId} done: ${total} slides em ${elapsed}ms`);
-
-    return NextResponse.json({ ok: true, jobId, elapsed_ms: elapsed });
   } catch (e) {
     const msg = (e as Error).message || String(e);
     console.error(`[worker] job ${jobId} falhou:`, msg);
