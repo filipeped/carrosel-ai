@@ -193,6 +193,16 @@ export default function Home() {
       setSelection(sel);
       setAllImages([sel.cover, ...sel.inner, sel.cta, ...sel.alternatives]);
       setStep(2);
+      // Pre-aquece cache de imagens na VPS — o render no Step 3 sera mais rapido
+      fetch("/api/render/warm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrls: [sel.cover, ...sel.inner, sel.cta]
+            .map((im) => im?.url)
+            .filter(Boolean),
+        }),
+      }).catch(() => {});
     } catch (e) {
       setError((e as Error).message);
     } finally {
