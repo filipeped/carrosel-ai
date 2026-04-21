@@ -122,7 +122,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          slideCount: 8,
+          slideCount: 6,
           excludeTeses: excludeTeses.slice(-8),
           excludeImageIds: excludeImageIds.slice(-60),
           seed: Date.now(),

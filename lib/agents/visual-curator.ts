@@ -36,10 +36,15 @@ Fotos ligadas por PELO MENOS 1 destes eixos:
 
 ## REGRAS DURAS
 
-- Exatamente 8-10 fotos no grupo (default 8)
-- MAXIMO 2 fotos com o mesmo hero_element (evita 8 piscinas iguais)
+- Exatamente 6 fotos no grupo (carrossel curto e forte, nao 8+)
+- MAXIMO 1 foto por hero_element distinto — DIVERSIDADE EH OBRIGATORIA.
+  Se 3 candidatas tem hero "piscina com deck", escolhe so 1. Busca
+  variedade: uma piscina, uma planta em destaque, um corredor, um
+  detalhe textural, etc. Carrossel TODO de piscina eh proibido.
+- NENHUMA foto repetida (mesmo id)
 - Ordem: cover = maior cover_potential + mais forte visualmente, cta = mais contemplativa/panoramica
-- Slides do meio: diversidade de enquadramento, mesmo que a serie seja coerente
+- Slides do meio: CADA UM com angulo/elemento diferente — carrossel
+  precisa CONTAR uma historia visual, nao repetir a mesma foto 6x
 
 ## TESE DETECTADA (critico)
 
@@ -127,23 +132,42 @@ TAREFA: escolhe ${target} fotos que fazem SERIE COERENTE. Ordena: 0=cover forte,
     const byId = new Map(candidates.map((c) => [c.id, c]));
     const grupo: AnalyzedImage[] = [];
     const usedIds = new Set<number>();
+    const usedHeros = new Set<string>();  // hero ja usado — nao repete
+    const normalizeHero = (h: string) =>
+      (h || "").toLowerCase().replace(/[^a-z]+/g, " ").trim();
+
     for (const id of ids) {
       const img = byId.get(id);
       if (!img || usedIds.has(id)) continue;
+      const hero = normalizeHero(img.analise_visual?.hero_element || "");
+      if (hero && usedHeros.has(hero)) continue;  // hero repetido — pula
       usedIds.add(id);
+      if (hero) usedHeros.add(hero);
       grupo.push(img);
       if (grupo.length >= target) break;
     }
 
-    // Garante minimo preenchendo com maior cover_potential disponivel
+    // Garante minimo preenchendo com maior cover_potential E hero novo
     if (grupo.length < target) {
       const remaining = candidates
         .filter((c) => !usedIds.has(c.id))
         .sort((a, b) => (b.analise_visual?.cover_potential || 0) - (a.analise_visual?.cover_potential || 0));
       for (const img of remaining) {
+        const hero = normalizeHero(img.analise_visual?.hero_element || "");
+        if (hero && usedHeros.has(hero)) continue;  // pula duplicados
         grupo.push(img);
         usedIds.add(img.id);
+        if (hero) usedHeros.add(hero);
         if (grupo.length >= target) break;
+      }
+      // Se AINDA faltar, relaxa regra de hero (melhor repetir que nao entregar)
+      if (grupo.length < target) {
+        for (const img of remaining) {
+          if (usedIds.has(img.id)) continue;
+          grupo.push(img);
+          usedIds.add(img.id);
+          if (grupo.length >= target) break;
+        }
       }
     }
 
@@ -165,12 +189,13 @@ TAREFA: escolhe ${target} fotos que fazem SERIE COERENTE. Ordena: 0=cover forte,
       (a, b) => (b.analise_visual?.cover_potential || 0) - (a.analise_visual?.cover_potential || 0),
     );
     const grupo: AnalyzedImage[] = [];
-    const heroCounts = new Map<string, number>();
+    const usedHeros = new Set<string>();
+    const normalize = (h: string) =>
+      (h || "").toLowerCase().replace(/[^a-z]+/g, " ").trim();
     for (const img of sorted) {
-      const hero = (img.analise_visual?.hero_element || "").toLowerCase();
-      const count = heroCounts.get(hero) || 0;
-      if (count >= 2) continue;
-      heroCounts.set(hero, count + 1);
+      const hero = normalize(img.analise_visual?.hero_element || "");
+      if (hero && usedHeros.has(hero)) continue;
+      if (hero) usedHeros.add(hero);
       grupo.push(img);
       if (grupo.length >= target) break;
     }

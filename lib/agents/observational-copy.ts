@@ -98,8 +98,16 @@ Cada slide olha UM detalhe especifico da sua foto:
 - "Essa camada de musgo so apareceu no segundo verao."
 - "Tres texturas diferentes em um metro quadrado de jardim."
 
-REGRA DURA: SO cita elemento/planta/material que aparece em descricao_visual
-ou plantas[] da imagem correspondente. Zero alucinacao.
+REGRAS DURAS:
+- SO cita elemento/planta/material que aparece em descricao_visual
+  ou plantas[] da imagem correspondente. Zero alucinacao.
+- CADA slide tem um ANGULO COMPLETAMENTE DIFERENTE — proibido
+  repetir ideia, conceito ou abordagem entre slides. Se slide 2 fala
+  de luz, slide 3 fala de textura; se slide 3 fala de textura,
+  slide 4 fala de tempo/maturidade; etc.
+- ZERO titulos genericos tipo "Beleza natural", "Harmonia", "Elegancia".
+  Cada titulo precisa ser CONCRETO e unico na serie.
+- Proibido usar a mesma palavra-chave de hook em 2 slides.
 
 ## CTA (ultimo slide)
 

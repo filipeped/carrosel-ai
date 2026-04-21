@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       excludeImageIds?: number[];
       seed?: number;
     };
-    const slideCount = Math.max(6, Math.min(10, body.slideCount ?? 8));
+    const slideCount = Math.max(6, Math.min(6, body.slideCount ?? 6));  // trava em 6
     const persist = body.persist !== false;
     const excludeTeses = Array.isArray(body.excludeTeses)
       ? body.excludeTeses.slice(0, 12)
