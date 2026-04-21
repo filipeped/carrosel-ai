@@ -209,10 +209,8 @@ export function Step3({
   }
 
   async function openPreview() {
-    if (!selectedCaption.trim()) {
-      alert("Escolha uma legenda antes de postar (clica em 'Usar esta' no card que quiser).");
-      return;
-    }
+    // Caption vazia agora eh OK — IG aceita carrossel sem legenda.
+    // Se o user esqueceu de clicar 'Usar esta', passa adiante mesmo assim.
     setCapturingPreview(true);
     setPostResult(null);
     // Reset memoria de ratio: comeca em 2.5x na 1a tentativa do novo preview

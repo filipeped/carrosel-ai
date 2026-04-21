@@ -21,9 +21,9 @@ export async function POST(req: NextRequest) {
     if (!imageUrls?.length || imageUrls.length < 2) {
       return NextResponse.json({ error: "imageUrls (>=2) required" }, { status: 400 });
     }
-    if (!caption) {
-      return NextResponse.json({ error: "caption required" }, { status: 400 });
-    }
+    // Caption vazia eh valida — IG aceita carrossel sem legenda.
+    // Usa " " como minimo pra Graph API nao reclamar se for null/undefined.
+    const finalCaption = (caption || " ").trim() || " ";
 
     // Dedup: se esse carrossel ja foi postado, retorna o link existente
     if (carrosselId) {
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       } catch {}
     }
 
-    const res = await publishCarousel({ imageUrls, caption });
+    const res = await publishCarousel({ imageUrls, caption: finalCaption });
     if (!res.ok) {
       return NextResponse.json({ error: res.error }, { status: 500 });
     }
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       // title do slide 0 se tiver
       const firstSlideTitle =
         Array.isArray(slides) && slides[0]?.title ? String(slides[0].title).slice(0, 80) : null;
-      const firstCaptionLine = caption.split("\n")[0].slice(0, 80);
+      const firstCaptionLine = finalCaption.split("\n")[0].slice(0, 80);
       const display_title = firstSlideTitle || firstCaptionLine;
 
       await updateInstagramPost(carrosselId, {
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
         instagram_permalink: res.permalink,
         thumb_url: imageUrls[0],
         slides: Array.isArray(slides) ? slides : undefined,
-        caption_options: [{ legenda: caption }],
+        caption_options: [{ legenda: finalCaption }],
         imagens_ids: Array.isArray(imagens_ids) ? imagens_ids : undefined,
         display_title,
       });
