@@ -4,6 +4,10 @@
  * Top N viram candidatos de capa nas variantes A/B.
  *
  * O hook eh 80% do sucesso do carrossel (pesquisa 2026).
+ *
+ * Frameworks alinhados com brand-context.ts (7 frameworks 2026).
+ * Pesos baseados em dados reais do @digitalpaisagismo:
+ *   sensorial (40%) > manifesto_tese (25%) > outros (35%).
  */
 
 import { getAi, getPremiumModel, MODEL } from "../claude";
@@ -31,6 +35,16 @@ type TournamentOptions = {
   persona?: string;
 };
 
+const FRAMEWORK_NAMES: HookFrameworkKey[] = [
+  "sensorial",
+  "manifesto_tese",
+  "revelacao",
+  "quebra_expectativa",
+  "historia_da_planta",
+  "observacao_de_quem_entende",
+  "comportamento_do_jardim",
+];
+
 const GENERATE_SYSTEM = `${brandBlockFull()}
 
 ${viralFrameworksBlock()}
@@ -45,14 +59,34 @@ NAO eh conteudo pra ricos — eh conteudo pra quem tem GOSTO e VONTADE de
 transformar a area externa. Tom aspiracional + acessivel.
 Cada hook eh 1 frase curta (title da capa, 3-10 palavras) + um topLabel UPPERCASE.
 
+## DISTRIBUICAO OBRIGATORIA DE FRAMEWORKS (baseada em dados reais)
+
+Os hooks que MAIS performam no perfil sao SENSORIAIS e MANIFESTOS.
+Respeite esta distribuicao nos 20 hooks:
+
+- sensorial: 8 hooks (40%) — textura, luz, som, cenario, vivencia do espaco
+- manifesto_tese: 5 hooks (25%) — afirmacao forte que posiciona a marca
+- revelacao: 2 hooks (10%) — padrao/segredo que so quem ve muitos jardins percebe
+- quebra_expectativa: 2 hooks (10%) — contraria intuicao visual
+- historia_da_planta: 1 hook (5%) — tempo, crescimento, transformacao da planta
+- observacao_de_quem_entende: 1 hook (5%) — olhar tecnico traduzido em detalhe visivel
+- comportamento_do_jardim: 1 hook (5%) — como o jardim age ao longo do tempo
+
+## EXEMPLOS DE HOOKS QUE BOMBARAM NO PERFIL (dados reais)
+
+- "Onde o verde encontra a arquitetura, ate o corredor lateral vira cenario" → 605 likes (sensorial)
+- "Arquitetura define a forma. Paisagismo define a sensacao" → 282 likes (manifesto_tese)
+- "Com verde ao redor, a piscina vira o destino da casa" → 188 likes (sensorial)
+
 ## REGRAS DURAS
 
-- Variar os 6 frameworks: 3-4 hooks por framework (pattern_interrupt, information_gap, contrarian, specific_number, status_prize_frame, timing)
 - Max 10 palavras no title
-- topLabel: 2-3 palavras UPPERCASE (ex: "ANTES DA OBRA", "AREA EXTERNA")
-- Zero inspiracional vazio
+- topLabel: 2-3 palavras UPPERCASE (ex: "AREA EXTERNA", "PAISAGISMO")
+- Zero inspiracional vazio ("abraca", "floresce", "reflete sua alma")
+- Zero tom comercial ("contratar", "projeto 3D", "antes da obra", "me manda no direct")
 - Zero "incrivel", "impressionante", "exuberante"
-- Linguagem concreta (casa, obra, projeto, decisao, custo, timing)
+- Hooks SENSORIAIS descrevem CENA concreta (luz, textura, volume, caminho, agua)
+- Hooks MANIFESTO fazem AFIRMACAO com conviccao (X define Y, X nao eh Y, X merece Z)
 - Cada hook precisa abrir um LOOP que obriga swipe
 
 ## RETORNE JSON PURO
@@ -62,12 +96,12 @@ Cada hook eh 1 frase curta (title da capa, 3-10 palavras) + um topLabel UPPERCAS
     {
       "texto": string (3-10 palavras, vira o title da capa),
       "topLabel": string (2-3 palavras UPPERCASE),
-      "framework": "pattern_interrupt"|"information_gap"|"contrarian"|"specific_number"|"status_prize_frame"|"timing"
+      "framework": "sensorial"|"manifesto_tese"|"revelacao"|"quebra_expectativa"|"historia_da_planta"|"observacao_de_quem_entende"|"comportamento_do_jardim"
     }
   ]
 }
 
-Gera EXATAMENTE 20. Variacao obrigatoria.`;
+Gera EXATAMENTE 20. Distribuicao obrigatoria.`;
 
 const EVALUATE_SYSTEM = `${brandBlockFull()}
 
@@ -75,24 +109,32 @@ const EVALUATE_SYSTEM = `${brandBlockFull()}
 
 Recebe uma lista de hooks candidatos. Avalia cada um em 4 criterios de 0-10.
 
+## BONUS DE FRAMEWORK (aplica ao score final)
+
+Dados reais do @digitalpaisagismo mostram que sensorial e manifesto_tese performam
+3-5x melhor que outros frameworks. Considere isso na avaliacao:
+
+- sensorial e manifesto_tese: se bem executados, merecem +1 em swipe_incentive
+- generico/vago: penalizar em specificity
+
 ## CRITERIOS
 
 ### curiosity (0-10)
-Quanto o hook abre um LOOP que faz a pessoa precisar saber a resposta?
-- 10: "O erro de R$40 mil que aparece 6 meses depois" (obriga swipe)
-- 7: "3 decisoes que mudam o projeto" (curiosity generica)
+Quanto o hook abre um LOOP que faz a pessoa precisar saber mais?
+- 10: "O barulho da agua na pedra basalto muda o som da casa inteira" (quer ver/ouvir)
+- 7: "Jardins que envelhecem bem tem algo em comum" (curiosity generica)
 - 3: "Paisagismo que faz diferenca" (zero curiosity)
 
 ### specificity (0-10)
-Quanto o hook eh especifico e concreto (numero, tempo, pessoa) em vez de vago?
-- 10: "Quebrar piso pra passar irrigacao custa 3x mais"
-- 6: "3 perguntas pro arquiteto"
-- 2: "Decisoes importantes"
+Quanto o hook eh especifico e concreto (cena, planta, detalhe) em vez de vago?
+- 10: "Folhagem de palmeira real desenha sombras diferentes a cada hora" (cena especifica)
+- 6: "O detalhe que muda tudo" (vago)
+- 2: "Jardim lindo" (generico)
 
 ### swipe_incentive (0-10)
-Quanto o hook PROMETE payoff no resto do carrossel?
-- 10: "A pergunta que paisagista evita — e muda tudo" (promete revelacao)
-- 6: "O que ninguem fala sobre jardim" (promessa generica)
+Quanto o hook PROMETE payoff visual no resto do carrossel?
+- 10: "Onde o verde encontra a arquitetura, o corredor vira cenario" (quer ver as fotos)
+- 6: "Algo que poucos notam" (promessa generica)
 - 2: "Natureza eh vida" (zero promessa)
 
 ### pattern_interrupt (0-10)
@@ -134,14 +176,14 @@ export async function hookTournament(params: {
   const genResp = await getAi().chat.completions.create({
     model: getPremiumModel() || MODEL,
     max_tokens: 2800,
-    temperature: 0.9,
+    temperature: 0.75,
     messages: [
       { role: "system", content: GENERATE_SYSTEM },
       {
         role: "user",
         content: `TEMA: "${prompt}"${briefBlock}${personaBlock}${approachBlock}
 
-Gera EXATAMENTE ${count} hooks variados. JSON puro.`,
+Gera EXATAMENTE ${count} hooks variados. Distribuicao obrigatoria de frameworks. JSON puro.`,
       },
     ],
   });
@@ -153,6 +195,13 @@ Gera EXATAMENTE ${count} hooks variados. JSON puro.`,
   if (hooks.length === 0) {
     console.error("[hook-tournament] zero hooks gerados");
     return [];
+  }
+
+  // Valida frameworks — corrige invalidos pro mais proximo valido
+  for (const h of hooks) {
+    if (!FRAMEWORK_NAMES.includes(h.framework)) {
+      h.framework = "sensorial"; // fallback pro melhor performer
+    }
   }
 
   // ETAPA 2: avaliar os hooks
