@@ -2,11 +2,13 @@
  * Slides Architect — decide o TAMANHO do carrossel (7-10 slides).
  * Pesquisa 2026: 7-10 eh sweet spot. 10 slides = boost Explore quando completion >80%.
  * Decide tambem o OUTLINE (roteiro sumario de cada slide).
+ *
+ * Frameworks alinhados com brand-context.ts (7 frameworks 2026).
  */
 
 import { getAi, MODEL } from "../claude";
 import { extractJson } from "../utils";
-import { brandBlockCompact } from "../brand-context";
+import { brandBlockCompact, type HookFrameworkKey } from "../brand-context";
 
 export type SlideOutline = {
   slideIdx: number;
@@ -19,8 +21,18 @@ export type ArchitectPlan = {
   slideCount: 7 | 8 | 9 | 10;
   outline: SlideOutline[];
   rationale: string;
-  recommended_hook_framework: string; // pattern_interrupt, information_gap, etc
+  recommended_hook_framework: HookFrameworkKey;
 };
+
+const VALID_FRAMEWORKS: HookFrameworkKey[] = [
+  "sensorial",
+  "manifesto_tese",
+  "revelacao",
+  "quebra_expectativa",
+  "historia_da_planta",
+  "observacao_de_quem_entende",
+  "comportamento_do_jardim",
+];
 
 const SYSTEM = `${brandBlockCompact()}
 
@@ -39,17 +51,20 @@ Dado um TEMA, voce decide quantos slides tem o carrossel (7-10) e planeja o rote
 
 ## ESTRUTURA
 
-- Slide 0: CAPA com HOOK (1 dos 6 frameworks)
+- Slide 0: CAPA com HOOK (1 dos 7 frameworks)
 - Slides 1..N-2: MIOLO alternando plantDetail (planta especifica) e inspiration (conceito/micro-ensaio)
-- Slide N-1: CTA (pergunta aberta ou DM call)
+- Slide N-1: CTA (pergunta aberta — NAO call de DM)
 
-## 6 FRAMEWORKS DE HOOK (recomenda 1 pra capa)
-- pattern_interrupt: frase afirmativa que quebra expectativa
-- information_gap: abre loop que so o carrossel fecha
-- contrarian: vai contra senso comum (gera debate)
-- specific_number: R$X mil, Y%, Z vezes (credibilidade)
-- status_prize_frame: ativa pertencimento — por GOSTO e CUIDADO, nao renda
-- timing: urgencia especifica de obra ou estacao
+## 7 FRAMEWORKS DE HOOK 2026 (recomenda 1 pra capa)
+PRIORIZE sensorial e manifesto_tese — sao os que mais performam no perfil (dados reais).
+
+- sensorial: convida a sentir textura, som, luz, cenario. MELHOR framework (avg 282 eng, top post 609 likes)
+- manifesto_tese: afirmacao forte que posiciona a marca com conviccao. 2o melhor (avg 155 eng)
+- revelacao: revela padrao/segredo que so quem ve muitos jardins percebe
+- quebra_expectativa: afirmacao curta que contraria intuicao visual
+- historia_da_planta: conta o tempo de uma planta, crescimento, transformacao
+- observacao_de_quem_entende: olhar tecnico traduzido em detalhe visivel
+- comportamento_do_jardim: como o jardim age ao longo do tempo
 
 ## RETORNE JSON PURO
 
@@ -62,7 +77,7 @@ Dado um TEMA, voce decide quantos slides tem o carrossel (7-10) e planeja o rote
     { "slideIdx": N-1, "type": "cta", "purpose": "...", "imageHint": "..." }
   ],
   "rationale": string (1-2 frases: por que esse tamanho e esse hook),
-  "recommended_hook_framework": "pattern_interrupt"|"information_gap"|"contrarian"|"specific_number"|"status_prize_frame"|"timing"
+  "recommended_hook_framework": "sensorial"|"manifesto_tese"|"revelacao"|"quebra_expectativa"|"historia_da_planta"|"observacao_de_quem_entende"|"comportamento_do_jardim"
 }`;
 
 export async function planSlides(params: {
@@ -100,7 +115,6 @@ Decide slideCount (7-10) e retorna outline completo. JSON puro.`;
     // Valida outline
     let outline: SlideOutline[] = Array.isArray(parsed.outline) ? parsed.outline : [];
     if (outline.length !== slideCount) {
-      // Gera outline default
       outline = Array.from({ length: slideCount }).map((_, i) => {
         let type: SlideOutline["type"] = "inspiration";
         if (i === 0) type = "cover";
@@ -113,24 +127,26 @@ Decide slideCount (7-10) e retorna outline completo. JSON puro.`;
             i === 0
               ? "capa com hook forte"
               : i === slideCount - 1
-              ? "CTA de DM ou pergunta aberta"
+              ? "CTA pergunta aberta"
               : `slide ${i}: progressao da narrativa`,
         };
       });
     }
 
+    // Valida framework — fallback pra sensorial (melhor performer)
+    const recFramework = typeof parsed.recommended_hook_framework === "string"
+      ? parsed.recommended_hook_framework as HookFrameworkKey
+      : "sensorial";
+    const validFramework = VALID_FRAMEWORKS.includes(recFramework) ? recFramework : "sensorial";
+
     return {
       slideCount,
       outline,
       rationale: typeof parsed.rationale === "string" ? parsed.rationale : "default plan (LLM invalid)",
-      recommended_hook_framework:
-        typeof parsed.recommended_hook_framework === "string"
-          ? parsed.recommended_hook_framework
-          : "information_gap",
+      recommended_hook_framework: validFramework,
     };
   } catch (err) {
     console.error("[slides-architect] falhou:", (err as Error).message);
-    // Fallback seguro: 8 slides padrao
     const slideCount: 8 = 8;
     const outline: SlideOutline[] = Array.from({ length: slideCount }).map((_, i) => {
       let type: SlideOutline["type"] = "inspiration";
@@ -147,7 +163,7 @@ Decide slideCount (7-10) e retorna outline completo. JSON puro.`;
       slideCount,
       outline,
       rationale: "fallback: architect offline, usando 8 slides default",
-      recommended_hook_framework: "information_gap",
+      recommended_hook_framework: "sensorial",
     };
   }
 }
