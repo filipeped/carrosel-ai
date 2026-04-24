@@ -109,59 +109,11 @@ de curador ou COMPORTAMENTO do jardim, aprova. Se eh pitch disfarcado ou poesia 
 REGRA 1: se a pessoa nao consegue explicar a ideia pro conjuge em 5 segundos, a ideia nao serve.
 REGRA 2: se a ideia parece "eu vendo paisagismo", a ideia nao serve. Tem que parecer "eu amo jardim e quero te mostrar algo que voce nao reparou".
 REGRA 3: evite linguagem de OBRA (gesso, alvenaria, pedreiro, retrabalho). Nao eh errado, mas vira vibe de consultor, nao de curador.`;
-
-// ---------------------------------------------------------------------------
-// Formulas viralizaveis — misturando emocional + gatilho forte
-// ---------------------------------------------------------------------------
-const FORMULAS = `10 FORMULAS VIRAIS — use variado, nao repete a mesma:
-
-1. ERRO ESPECIFICO + CUSTO
-   "O erro de [R$X mil / Y meses] que aparece [quando]"
-   Ex: "O erro de R$20 mil que aparece 1 ano depois da obra"
-
-2. CONTRARIAN FORTE
-   "[A maioria faz X]. [Consequencia ruim]."
-   Ex: "Contratar paisagista depois da obra eh retrabalho com nome bonito."
-
-3. PERGUNTA QUE O PUBLICO NAO FAZ
-   "A pergunta que voce devia fazer antes de [acao]"
-   Ex: "A pergunta que voce devia fazer ao arquiteto antes de fechar o projeto."
-
-4. NUMERO + DECISAO ALTA ALAVANCA
-   "N decisoes que [impacto alto em reais/tempo]"
-   Ex: "3 decisoes que valem mais que escolher plantas — e duram 20 anos"
-
-5. TIMING DA OBRA (em obra especifico)
-   "Se a obra esta em [fase], [acao imediata relevante]"
-   Ex: "Se a obra esta na alvenaria, a irrigacao ja precisa estar projetada."
-
-6. CONSEQUENCIA ESCONDIDA
-   "O que [coisa bonita] esconde em [tempo]"
-   Ex: "O que um jardim mal planejado esconde no 2o verao."
-
-7. QUEBRA DE EXPECTATIVA
-   "[X] nao eh o que voce pensa. Eh [Y]."
-   Ex: "Piscina nao eh destaque. Eh o que ta em volta."
-
-8. CUSTO DA INACAO (casa pronta)
-   "[Tempo longo] olhando [area sem uso]. [Consequencia]."
-   Ex: "5 anos olhando aquela area externa sem usar — o custo nao eh dinheiro, eh familia."
-
-9. ETAPA ESCONDIDA DE PROCESSO
-   "O passo que [quem decide] pula — e paga caro"
-   Ex: "O passo que o casal pula antes da obra — e custa o dobro pra corrigir."
-
-10. PRIZE FRAME + CURADORIA
-    "Nem todo projeto vira cliente. [Criterio]."
-    Ex: "Projeto 3D nao eh pra todo mundo. Eh pra quem ja decidiu investir alto padrao."
-
-OBS: formula 5, 9 e 1 funcionam MELHOR pra em obra (70% do publico). Use pelo menos 5 das 16 ideias com angle em obra.`;
-
 // ---------------------------------------------------------------------------
 // System: gerar 12 ideias virais JA CURADAS
 // ---------------------------------------------------------------------------
 function buildGenerateSystem(voiceRefs: string): string {
-  // Prompt compacto — antes era 5k tokens (PERSONA + GATILHOS + ANTI + FORMULAS + voiceRefs)
+  // Prompt compacto — PERSONA + GATILHOS + ANTI + voiceRefs
   // e estourava timeout. Agora injetamos so o essencial.
   return `${brandBlockCompact()}
 
@@ -202,40 +154,6 @@ RETORNE JSON PURO:
 }
 Exatamente 12. Distribuicao: 4+ sensorial (prioridade maxima), 3+ manifesto/tese, 2+ revelacao, 1+ historia/observacao.`;
 }
-
-// ---------------------------------------------------------------------------
-// System: curadoria 16 -> 8
-// ---------------------------------------------------------------------------
-const CURATE_SYSTEM = `Voce eh editor-chefe do @digitalpaisagismo. Recebeu 16 candidatas.
-
-Selecione 8 priorizando VIRALIDADE (nao inspiracional).
-
-ELIMINE primeiro:
-1. Qualquer ideia que parece "frase de efeito" sem carne (promessa vaga de beleza, poesia emocional vazia).
-2. Qualquer uma que funcionaria igual pra outra marca de paisagismo (nao tem cara Digital Paisagismo).
-3. Linguagem tecnica pesada (fitossociologia, estratificacao, nomes cientificos, nomes de paisagistas famosos).
-4. Contextos repetidos (max 1 em cada: piscina, varanda, entrada, rooftop).
-5. Formulas repetidas (max 2 da mesma formula).
-
-PRIORIZE:
-- Information gap forte (gancho de curiosidade real)
-- Loss aversion com numero/custo concreto
-- Contrarian (gera comments/debate)
-- Angle de "em obra" (70% do publico)
-
-DISTRIBUICAO FINAL (nas 8):
-- 4-5 com persona "em-obra" ou "ambos" com timing de obra
-- 2-3 casa pronta / ambos
-- Pelo menos 2 contrarian ou information-gap forte
-- Maximo 1 inspiracional pura
-
-Retorne JSON puro:
-{
-  "ideias": [
-    { "titulo": string, "hook": string, "persona": string, "gatilho": string }
-  ]
-}
-Exatamente 8, ordenado da mais viral pra menos viral.`;
 
 export async function POST(req: NextRequest) {
   try {
