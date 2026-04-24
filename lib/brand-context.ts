@@ -39,7 +39,8 @@ export const VOCABULARIO_PREMIUM: Record<string, string> = {
   "jardim bonito": "paisagismo integrado",
   orçamento: "investimento",
   orcamento: "investimento",
-  plantas: "espécies selecionadas",
+  // V10: "plantas" eh termo natural e afetivo — nao substituir por rebuscado
+  // plantas: "espécies selecionadas",
   "sessão de diagnóstico": "consultoria personalizada",
   barato: "acessível",
   caro: "investimento alto",
@@ -310,7 +311,7 @@ TOM: ${BRAND_PUBLIC.tom}
 VOCABULARIO PREMIUM (use com moderacao — nao forca):
 - "area externa" (nao "quintal")
 - "investimento" (nao "orçamento/custo")
-- "especies selecionadas" ou simplesmente "plantas"
+- "plantas" (natural e afetivo — evite "especies selecionadas" que soa rebuscado)
 - "paisagismo integrado" quando cabe
 
 IMPORTANTE: "jardim bonito" eh uma expressao VALIDA e ate afetiva — nao

@@ -187,6 +187,7 @@ Retorne JSON puro.`;
     const resp = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 900,
+      temperature: 0.4,
       messages: [
         { role: "system", content: SYSTEM },
         { role: "user", content: user },

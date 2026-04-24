@@ -55,6 +55,7 @@ export async function analyzePrompt(
   const resp = await getAi().chat.completions.create({
     model: MODEL,
     max_tokens: 800,
+    temperature: 0.3,
     messages: [
       { role: "system", content: SYSTEM },
       { role: "user", content: input },

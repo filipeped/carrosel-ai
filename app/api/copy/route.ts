@@ -96,6 +96,7 @@ ${strictOutputRule}`;
       getAi().chat.completions.create({
         model: MODEL,
         max_tokens: 2400,
+        temperature: 0.65,
         messages: [
           { role: "system", content: BRAND_VOICE + "\n\n" + SCHEMA + strictOutputRule },
           { role: "user", content: userPrompt + (extraInstruction ? `\n\n${extraInstruction}` : "") },

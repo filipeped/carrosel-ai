@@ -116,7 +116,7 @@ TAREFA: escolhe EXATAMENTE ${target} fotos (nao mais, nao menos) que fazem SERIE
     const resp = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 1400,
-      temperature: 0.85,  // alto — forca variacao entre rodadas consecutivas
+      temperature: 0.65,  // V10: reduzido de 0.85 — variacao com mais estabilidade
       messages: [
         { role: "system", content: SYSTEM },
         { role: "user", content: user },

@@ -48,7 +48,7 @@ export async function captionTournament(params: {
   rounds?: number;
   topK?: number;
 }): Promise<TournamentCaption[]> {
-  const { prompt, slides, imageUrls, persona, rounds = 4, topK = 3 } = params;
+  const { prompt, slides, imageUrls, persona, rounds = 2, topK = 3 } = params;
 
   // ETAPA 1: gera N rodadas em paralelo (variacao natural do LLM)
   const batches = await Promise.all(

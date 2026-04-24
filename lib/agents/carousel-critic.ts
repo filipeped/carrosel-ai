@@ -82,22 +82,22 @@ function preCheck(slides: SlideLike[]) {
 const BENCHMARKS = `## BENCHMARKS DE CALIBRACAO (use pra ancorar teu score)
 
 ### Score 95 (excelente — referencia)
-Capa: "O erro de R$30 mil que aparece 1 ano depois da obra"
-Narrativa: 4 slides tecnicos + 1 CTA, progressao clara, usa "area externa", "investimento", Big Domino presente ("decidir antes de executar")
-CTA: "Me manda PROJETO no direct e te mando os 3 criterios completos"
+Capa: "O barulho da agua na pedra basalto muda o som da casa inteira"
+Narrativa: 4 slides sensoriais com progressao clara (luz, textura, som, tempo). Cada slide abre detalhe concreto. Tom de curador apaixonado — zero venda.
+CTA: "Que jardim voce tem olhado sem realmente enxergar?" (pergunta aberta contemplativa)
 Breakdown: hook=23 narrativa=24 persona=20 vocab=14 cta=14 = 95
 
 ### Score 80 (bom, mas 1-2 dimensoes com gap)
-Capa: "3 decisoes que valem mais que escolher plantas"
-Narrativa: 4 slides relevantes mas 1 generico. Vocab premium presente.
-CTA: "Salva pra nao esquecer" (passivo, nao DM)
+Capa: "A maioria dos jardins bonitos usa as mesmas 5 plantas. Nao eh coincidencia."
+Narrativa: 4 slides relevantes com revelacao, mas 1 generico. Vocab natural e concreto.
+CTA: "Quando foi a ultima vez que voce parou no jardim?" (contemplativo mas vago)
 Breakdown: hook=21 narrativa=20 persona=17 vocab=13 cta=9 = 80
 
 ### Score 65 (mediano — regenerar 1-2 slides)
-Capa: "Seu jardim merece um projeto bem feito"
+Capa: "Jardins que envelhecem bem tem algo em comum"
 Narrativa: promessa vaga, 2 slides genericos, um bom.
 Vocab mediano: usa "quintal" em 1 slide.
-CTA: "Conheca nosso trabalho"
+CTA: "O que acha?" (fraco, sem direcao)
 Breakdown: hook=14 narrativa=15 persona=14 vocab=10 cta=12 = 65
 
 ### Score 40 (ruim — regenerar copy inteira)
