@@ -146,13 +146,13 @@ Cliente alto padrão quase sempre tem arquiteto. **NUNCA tratar como concorrênc
 
 ### Legenda
 
-- **Tamanho**: máximo **50 palavras** (ideal 30-45)
+- **Tamanho**: máximo **60 palavras** (ideal 30-50)
 - **Estrutura**: hook 1 linha + 1-2 frases + fechamento/CTA
 - **3 abordagens** a gerar:
   - `direta_emocional` — afirmação factual curta que conecta emocionalmente
   - `contraste_verdade` — provocação honesta que quebra crença comum
   - `tecnico_relacional` — explica o porquê técnico conectando ao USO do espaço
-- **Hashtags**: 10-14, todas minúsculas, sem acento, sem camelCase
+- **Hashtags**: 3-5, nicho específico, todas minúsculas, sem acento
 - **Emoji**: máximo 3 por legenda. Permitidos: 🌿 ✨ 🌴 📐 👇 📍. **Proibidos**: 😍 🔥 💯 🤩 ❤️ 🙌 💪 🚀
 
 ### Ganchos por persona
@@ -229,7 +229,7 @@ Fontes consultadas: Rafael Terra (partner Meta BR), Socialinsider, TrueFuture Me
 
 ### Regras técnicas 2026 (aplicar nos prompts)
 
-- **Hashtags**: 3-5, nicho específico (não 10-14)
+- **Hashtags**: 3-5, nicho específico, todas minúsculas, sem acento
 - **Primeira linha da legenda**: ≤ 120 chars (IG corta em 125)
 - **Formato**: 1080×1350 (4:5) — quadrado perde 30% da tela
 - **Carrossel**: 6-10 slides ideal (pico de retenção em ~slide 10)

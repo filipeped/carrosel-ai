@@ -93,7 +93,7 @@ NAO avalia brand fit nem viralidade — so QUALIDADE TECNICA do texto.
 - Estrutura (0-25): slides bem ordenados (capa -> progressao -> CTA), zero slide fora de lugar
 - Legibilidade (0-25): frases curtas, sem jargao confuso, texto fluido
 - Correcao (0-20): sem erro de portugues, sem repeticao desnecessaria
-- Limite de tamanho (0-15): primeira linha <=120 chars, legenda <=50 palavras, 3-5 hashtags
+- Limite de tamanho (0-15): primeira linha <=120 chars, legenda <=60 palavras, 3-5 hashtags
 - Coerencia visual/texto (0-15): texto bate com imagem, zero alucinacao de planta que nao ta na foto
 
 RETORNE JSON PURO:

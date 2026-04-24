@@ -429,7 +429,7 @@ IMPLICAÇÃO PRATICA:
 ## Formato Instagram 2026
 
 LEGENDA:
-- Max 50 palavras (ideal 30-45)
+- Max 60 palavras (ideal 30-50)
 - PRIMEIRA LINHA: max 120 caracteres (IG corta em 125)
 - Estrutura: hook 1 linha + 1-2 frases + fecho/CTA
 - 3 abordagens: direta_emocional, contraste_verdade, tecnico_relacional

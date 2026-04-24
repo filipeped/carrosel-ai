@@ -103,7 +103,7 @@ Algoritmo 2026 detecta tom comercial disfarcado e REBAIXA. Share zero vem de ad 
 6. Valida SHARE-ABILITY: a 2a frase deve funcionar sozinha copiada num WhatsApp.
 7. CTA sutil: pergunta aberta que convida contemplacao ("onde o teu jardim te leva primeiro?"),
    NAO call de direct. CTA de DM eh tom de venda — banido.
-8. Mantem o TAMANHO (max 50 palavras, ideal 30-45).
+8. Mantem o TAMANHO (max 60 palavras, ideal 30-50).
 9. Nao toca no CORPO da mensagem — so polimento editorial.
 
 ## REGRA DURA
@@ -114,7 +114,7 @@ Se NAO usa, voce REESCREVE a abertura ate conseguir. Iteracao invisivel — o ou
 ## REGRAS DURAS DE ESCRITA
 
 - Primeira linha <= 120 caracteres (IG corta em 125)
-- Tamanho total: max 50 palavras
+- Tamanho total: max 60 palavras
 - Hashtags: 3-5 (mantem do input, nao inventa novas)
 - Zero frase inspiracional vazia (lista banida acima)
 - Zero tom comercial (lista COMERCIAL_VENDEDOR banida)
@@ -172,7 +172,7 @@ Retorna JSON puro.`;
     const resp = await getAi().chat.completions.create({
       model: getPremiumModel() || MODEL,
       max_tokens: 1200,
-      temperature: 0.7,
+      temperature: 0.55,
       messages: [
         { role: "system", content: SYSTEM },
         { role: "user", content: contextBlock },
