@@ -46,6 +46,8 @@ GATILHOS DE CURADOR QUE GERAM SAVE/SHARE:
    ✅ "A area externa nao existe pra ser vista. Existe pra ser vivida."
    ❌ "3 decisoes antes de chamar paisagista" (lista comercial — NAO)
    ❌ "Seu jardim eh lindo" (afirmacao vaga sem tese — NAO)
+   EXEMPLOS REAIS DO PERFIL (dados Instagram):
+   ✅ "Arquitetura define a forma. Paisagismo define a sensacao" → 283 likes
 
 1. REVELACAO (padrao que so quem ve muitos jardins percebe)
    ✅ "A maioria dos jardins alto padrao usa as mesmas 5 plantas. Nao eh coincidencia."
@@ -56,6 +58,10 @@ GATILHOS DE CURADOR QUE GERAM SAVE/SHARE:
    ✅ "O barulho da agua na pedra basalto muda o som da casa inteira"
    ✅ "Folhagem de palmeira real desenha sombras diferentes a cada hora do dia"
    ❌ "Seu jardim reflete sua alma" (inspiracional vazio)
+   EXEMPLOS REAIS DO PERFIL (dados Instagram):
+   ✅ "Onde o verde encontra a arquitetura, ate o corredor lateral vira cenario" → 608 likes
+   ✅ "Com verde ao redor, a piscina vira o destino da casa" → 188 likes
+   ✅ "Quando o caminho ate a porta ja faz parte do projeto" → 46 likes
 
 3. HISTORIA DA PLANTA (tempo, crescimento, transformacao)
    ✅ "Essa arvore leva 8 anos pra ficar assim. Mas o primeiro ano decide tudo."
@@ -170,7 +176,7 @@ ${voiceRefs ? `EXEMPLOS DO PERFIL (tom):\n${voiceRefs.slice(0, 1200)}\n\n` : ""}
 TAREFA: gerar 12 ideias VIRAIS (JA CURADAS — so as melhores, nao 16). Cada uma em contexto diferente.
 
 REGRAS DURAS:
-- Distribuicao por GATILHO: 3+ manifesto/tese, 2+ revelacao, 2+ sensorial, 2+ historia ou observacao, resto mix.
+- Distribuicao por GATILHO: 4+ sensorial (PRIORIDADE — melhor performer, avg 401 eng), 3+ manifesto/tese (2o melhor, avg 158 eng), 2+ revelacao, 1+ historia ou observacao, resto mix.
 - Titulo fala pra QUEM OLHA jardim (dona, marido, arquiteto), nao pra quem vai CONTRATAR.
 - Entre 7 e 14 palavras.
 - Linguagem concreta e com CONVICCAO: planta, arvore, folha, luz, sombra, tempo, estacao, detalhe, ritmo.
@@ -194,7 +200,7 @@ RETORNE JSON PURO:
     }
   ]
 }
-Exatamente 12. Distribuicao: 3+ manifesto/tese (prioridade), 2+ revelacao, 2+ sensorial, 2+ historia/observacao.`;
+Exatamente 12. Distribuicao: 4+ sensorial (prioridade maxima), 3+ manifesto/tese, 2+ revelacao, 1+ historia/observacao.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -288,9 +294,9 @@ export async function POST(req: NextRequest) {
     const scoreHeuristic = (c: any): number => {
       let s = 0;
       const gat = String(c.gatilho_principal || "").toLowerCase();
-      if (gat.includes("manifesto") || gat.includes("tese")) s += 5;  // prioridade maxima
+      if (gat.includes("sensorial")) s += 6;  // prioridade maxima — avg 401 eng
       if (gat.includes("revelac")) s += 4;
-      if (gat.includes("sensorial")) s += 3;
+      if (gat.includes("manifesto") || gat.includes("tese")) s += 5;  // 2o melhor — avg 158 eng
       if (gat.includes("historia")) s += 3;
       if (gat.includes("observac")) s += 3;
       if (gat.includes("comportamento")) s += 2;
