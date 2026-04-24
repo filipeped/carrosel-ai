@@ -1,33 +1,53 @@
 {
-  "version": "2026.04",
-  "updated_at": "2026-04-20",
-  "note": "Hooks de referencia que viralizaram em perfis brasileiros de paisagismo/arquitetura alto padrao. NAO COPIAR — usar de inspiracao. Cada entrada tem estimativa de performance baseada em observacao manual.",
+  "version": "2026.04.24",
+  "updated_at": "2026-04-24",
+  "note": "Hooks de referencia que viralizaram em perfis brasileiros de paisagismo. NAO COPIAR — usar de inspiracao. Frameworks alinhados com brand-context.ts (7 frameworks 2026). Pesos baseados em dados reais do @digitalpaisagismo.",
+  "own_top_hooks": {
+    "note": "Hooks reais do @digitalpaisagismo ranqueados por engajamento. Fonte de verdade pra calibrar o modelo.",
+    "data": [
+      { "hook": "Onde o verde encontra a arquitetura, ate o corredor lateral vira cenario", "framework": "sensorial", "engagement": 609, "likes": 605, "date": "2026-04-21" },
+      { "hook": "Arquitetura define a forma. Paisagismo define a sensacao", "framework": "manifesto_tese", "engagement": 286, "likes": 282, "date": "2026-04-22" },
+      { "hook": "Com verde ao redor, a piscina vira o destino da casa", "framework": "sensorial", "engagement": 190, "likes": 188, "date": "2026-04-20" },
+      { "hook": "A maioria das areas externas e pensada depois que tudo acaba", "framework": "revelacao", "engagement": 75, "likes": 74, "date": "2026-04-22" },
+      { "hook": "Quando o caminho ate a porta ja faz parte do projeto", "framework": "sensorial", "engagement": 46, "likes": 46, "date": "2026-04-19" }
+    ]
+  },
+  "framework_weights": {
+    "note": "Pesos baseados em engajamento real. sensorial e manifesto_tese dominam os top posts.",
+    "sensorial": 0.40,
+    "manifesto_tese": 0.25,
+    "revelacao": 0.10,
+    "quebra_expectativa": 0.10,
+    "historia_da_planta": 0.05,
+    "observacao_de_quem_entende": 0.05,
+    "comportamento_do_jardim": 0.05
+  },
   "competitors": [
     {
       "handle": "@obrasdepaisagismo",
       "style": "tecnico-visual",
       "top_hooks": [
-        { "hook": "A arvore que transforma entrada em chegada", "framework": "pattern_interrupt", "estimate": "medio" },
-        { "hook": "5 plantas que substituem muro sem parecer cerca", "framework": "specific_number", "estimate": "alto" },
-        { "hook": "Por que pergola vazia parece abandonada", "framework": "information_gap", "estimate": "medio" }
+        { "hook": "A arvore que transforma entrada em chegada", "framework": "sensorial", "estimate": "medio" },
+        { "hook": "5 plantas que substituem muro sem parecer cerca", "framework": "revelacao", "estimate": "alto" },
+        { "hook": "Por que pergola vazia parece abandonada", "framework": "observacao_de_quem_entende", "estimate": "medio" }
       ]
     },
     {
       "handle": "@benediktopaisagismo",
       "style": "autoral-classico",
       "top_hooks": [
-        { "hook": "O detalhe que separa jardim bonito de jardim atemporal", "framework": "information_gap", "estimate": "alto" },
-        { "hook": "Arquitetura sem paisagismo eh casa, nao lar", "framework": "contrarian", "estimate": "medio" },
-        { "hook": "3 escolhas que valem mais do que qualquer planta", "framework": "information_gap", "estimate": "alto" }
+        { "hook": "O detalhe que separa jardim bonito de jardim atemporal", "framework": "observacao_de_quem_entende", "estimate": "alto" },
+        { "hook": "Arquitetura sem paisagismo eh casa, nao lar", "framework": "manifesto_tese", "estimate": "medio" },
+        { "hook": "3 escolhas que valem mais do que qualquer planta", "framework": "revelacao", "estimate": "alto" }
       ]
     },
     {
       "handle": "@rafaeloliveirapaisagismo",
       "style": "projeto-completo",
       "top_hooks": [
-        { "hook": "Fachada viva nao envelhece", "framework": "contrarian", "estimate": "medio" },
-        { "hook": "O erro de plantar antes de iluminar", "framework": "information_gap", "estimate": "alto" },
-        { "hook": "Jardim de alto padrao tem uma coisa em comum", "framework": "information_gap", "estimate": "alto" }
+        { "hook": "Fachada viva nao envelhece", "framework": "manifesto_tese", "estimate": "medio" },
+        { "hook": "O erro de plantar antes de iluminar", "framework": "revelacao", "estimate": "alto" },
+        { "hook": "Jardim de alto padrao tem uma coisa em comum", "framework": "revelacao", "estimate": "alto" }
       ]
     },
     {
@@ -35,16 +55,14 @@
       "style": "mix",
       "note": "Hooks que apareceram em varios perfis e geraram save alto (observacao 2025-2026)",
       "top_hooks": [
-        { "hook": "A maioria chama paisagista tarde demais", "framework": "contrarian", "estimate": "alto" },
-        { "hook": "Por que sua area externa parece vazia", "framework": "information_gap", "estimate": "alto" },
-        { "hook": "O valor real de um jardim projetado", "framework": "status_prize_frame", "estimate": "medio" },
-        { "hook": "Quebrar piso custa 3x mais que planejar antes", "framework": "specific_number", "estimate": "alto" },
-        { "hook": "Seu paisagista pergunta sobre iluminacao?", "framework": "information_gap", "estimate": "alto" },
-        { "hook": "Irrigacao automatica nao eh luxo. Eh economia.", "framework": "contrarian", "estimate": "alto" },
-        { "hook": "A vista de dentro da casa muda tudo", "framework": "pattern_interrupt", "estimate": "medio" },
-        { "hook": "Nao eh o jardim que esta errado. Eh a ordem.", "framework": "pattern_interrupt", "estimate": "alto" },
-        { "hook": "Antes do gesso fechar, projeto paisagistico pronto", "framework": "timing", "estimate": "alto" },
-        { "hook": "Quem tem casa de campo nao deveria plantar muda", "framework": "contrarian", "estimate": "alto" }
+        { "hook": "A maioria chama paisagista tarde demais", "framework": "revelacao", "estimate": "alto" },
+        { "hook": "Por que sua area externa parece vazia", "framework": "observacao_de_quem_entende", "estimate": "alto" },
+        { "hook": "O valor real de um jardim projetado", "framework": "manifesto_tese", "estimate": "medio" },
+        { "hook": "A vista de dentro da casa muda tudo", "framework": "sensorial", "estimate": "medio" },
+        { "hook": "Nao eh o jardim que esta errado. Eh a ordem.", "framework": "quebra_expectativa", "estimate": "alto" },
+        { "hook": "Irrigacao automatica nao eh luxo. Eh economia.", "framework": "quebra_expectativa", "estimate": "alto" },
+        { "hook": "Algumas palmeiras so mostram pra que vieram depois do 3o verao", "framework": "historia_da_planta", "estimate": "alto" },
+        { "hook": "Jardim bom nao eh no primeiro mes. Eh no segundo verao.", "framework": "comportamento_do_jardim", "estimate": "alto" }
       ]
     }
   ],
@@ -53,14 +71,18 @@
     "Natureza que floresce em cada detalhe — frase de efeito",
     "Transforme sua area externa em um refugio — generico",
     "Paisagismo incrivel pra sua casa — clickbait vazio",
-    "Seu jardim reflete sua alma — inspiracional"
+    "Seu jardim reflete sua alma — inspiracional",
+    "Quebrar piso custa 3x mais que planejar antes — tom comercial",
+    "Antes do gesso fechar, projeto paisagistico pronto — tom comercial",
+    "A maioria chama paisagista tarde demais — tom comercial"
   ],
   "frameworks_referencia": {
-    "pattern_interrupt": "Frase afirmativa que quebra expectativa em 2s",
-    "information_gap": "Abre loop que so o carrossel fecha",
-    "contrarian": "Vai contra senso comum — gera debate",
-    "specific_number": "R$X mil, Y%, Z vezes — credibilidade imediata",
-    "status_prize_frame": "Ativa pertencimento a clube alto padrao",
-    "timing": "Urgencia especifica ao momento do publico"
+    "sensorial": "Convida a experimentar com os sentidos. Textura, som, luz, cenario. O que MAIS performa no perfil (avg 282 eng).",
+    "manifesto_tese": "Afirmacao forte que posiciona a marca. Tese defendida com conviccao. Segundo melhor framework (avg 155 eng).",
+    "revelacao": "Revela padrao/segredo que so quem ve muitos jardins percebe. Curiosidade pura.",
+    "quebra_expectativa": "Afirmacao curta que contraria intuicao visual. Desperta 'como assim?'.",
+    "historia_da_planta": "Conta o tempo de uma planta — crescimento, transformacao. Storytelling de natureza.",
+    "observacao_de_quem_entende": "Olhar tecnico traduzido em detalhe visivel. Prize frame sutil.",
+    "comportamento_do_jardim": "Como o jardim age ao longo do tempo. Ensina sem vender."
   }
 }
