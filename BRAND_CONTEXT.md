@@ -252,3 +252,38 @@ Fontes consultadas: Rafael Terra (partner Meta BR), Socialinsider, TrueFuture Me
 - @alexhanazaki (214k) — minimalista internacional, legenda curta
 - @marcelofaisal — linguagem sofisticada mas elaborada
 - @folhapaisagismo, @cate_poli_paisagismo, @faisalpaisagistas — tom autoral, pouco emoji
+
+---
+
+## Boas Práticas de Postagem (dados reais abril 2026)
+
+### Horário ideal
+- **9h-12h** = 5-10x mais engajamento que posts à noite
+- Melhor: 09:00-12:00 (terça a quinta)
+- Evitar: depois das 16h
+
+### Frequência
+- **Máximo 1 post forte/dia** — 2+ posts/dia canibaliza engajamento
+- 1 post/dia bem feito > 2 medianos
+
+### CTA
+- **Afirmação contemplativa > pergunta aberta**
+- Posts sem pergunta: avg 247 eng
+- Posts com pergunta: avg 73 eng (3.4x menos)
+- Se usar pergunta, que seja retórica e curta
+
+### Ancoragem concreta
+- **Sempre mencionar planta OU espaço específico**
+- Com ancoragem: avg 200+ eng
+- Sem ancoragem (genérico): avg 34 eng
+- Exemplos: "palmeira-ráfis", "frangipani", "corredor lateral", "deck"
+
+### Hashtags otimizadas
+- **Tier 1 (usar sempre):** #jardimtropical, #jardimdossonhos, #landscapedesign
+- **Tier 2 (rotacionar):** #paisagismo, #arquiteturapaisagistica, #paisagismoaltopadrao
+- **Tier 3 (evitar):** #digitalpaisagismo, #projetopaisagistico
+
+### Tamanho ideal
+- **36-50 palavras** = sweet spot
+- Post mais curto (36 words) = 609 likes
+- Post mais longo (63 words) = 1 like

@@ -153,8 +153,9 @@ REGRAS DURAS:
   Sem isso, qualquer jardim vira mato em 6 meses. E onde seu jardim comeca a falhar?"
 - HASHTAGS: 3-5 por legenda (nao 10-14 — algoritmo 2026 pune excesso). TODAS minusculas, SEM acento, SEM camelCase, SEM char especial. Nicho especifico. Ex correto: #paisagismoaltopadrao. Errado: #paisagismoAltoPadrao.
 - PRIMEIRA LINHA: max 120 caracteres (IG corta em 125 no feed)
+- ANCORAGEM CONCRETA OBRIGATORIA: toda legenda deve citar pelo menos 1 planta (palmeira, frangipani, ipê) OU 1 espaco (piscina, corredor, fachada, deck). Posts ancorados em algo concreto tem 6x mais engajamento. Hooks genericos sem ancoragem nao performam.
 - SHARE-ABILITY: a 2a frase deve funcionar sozinha se copiada num WhatsApp. Ou seja, deve fazer sentido fora do contexto do post.
-- CTA: pergunta aberta contemplativa que convida pausa e resposta organica ("qual essa estacao pro teu jardim?", "qual planta marcou tua infancia?"). NAO use "me manda no direct", "em que fase", "qual projeto" — isso eh tom comercial, algoritmo rebaixa.
+- CTA: AFIRMACAO CONTEMPLATIVA que fecha com conviccao (ex: "Eh esse tipo de detalhe que muda tudo."). Posts SEM pergunta performam 3.4x melhor (dados reais). Se usar pergunta, que seja RETORICA e curta. NAO use "me manda no direct", "em que fase", "qual projeto", "qual planta voce..." — tom comercial.
 - EMOJI: permitido moderadamente (maximo 3 por legenda) APENAS os que o perfil ja usa: 🌿 ✨ 🌴 📐 👇 📍. PROIBIDO: 😍 🔥 💯 🤩 ❤️ 🙌 💪 🚀 (cringe, fora do tom).
 - Proibido: arrow-chars (→↓↑), "ola pessoal", "confira", "top", "incrivel", "imperdivel", "voce nao vai acreditar", clickbait vazio.
 - Quando citar nome cientifico, pode em italico via *asteriscos* OU sem italico (ambos ok).

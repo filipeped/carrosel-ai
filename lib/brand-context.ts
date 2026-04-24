@@ -430,6 +430,7 @@ IMPLICAÇÃO PRATICA:
 
 LEGENDA:
 - Max 60 palavras (ideal 30-50)
+- ANCORAGEM CONCRETA: toda legenda DEVE mencionar pelo menos 1 planta especifica OU 1 espaco concreto (piscina, corredor, fachada, deck, entrada). Posts com ancoragem concreta tem 6x mais engajamento (dados reais). Hooks genericos sem mencao = avg 34 eng vs 200+ com mencao.
 - PRIMEIRA LINHA: max 120 caracteres (IG corta em 125)
 - Estrutura: hook 1 linha + 1-2 frases + fecho/CTA
 - 3 abordagens: direta_emocional, contraste_verdade, tecnico_relacional
@@ -464,4 +465,54 @@ Save/Share → DM → WhatsApp → agente de vendas v36 → consultoria R$97 →
 - Planta citada DEVE existir no banco vegetacoes (via plant-identifier Nivel 4)
 - Elemento visual DEVE aparecer em descricao_visual da foto
 - Nunca inventar preço além de R$97 (consultoria) e R$1.850+ (projeto)`;
+}
+
+/**
+ * Hashtags otimizadas por performance real (dados Instagram abril 2026).
+ * Nicho específico > genérico. Max 3-5 por post.
+ * 
+ * TIER 1 (avg eng 270+): usar em todo post
+ * TIER 2 (avg eng 100-150): rotacionar
+ * TIER 3 (avg eng <100): evitar ou usar 1 max
+ */
+export const HASHTAG_TIERS = {
+  tier1_sempre: [
+    "#jardimtropical",      // avg 273 eng
+    "#jardimdossonhos",     // avg 613 eng (top performer)
+    "#landscapedesign",     // avg 153 eng
+  ],
+  tier2_rotacionar: [
+    "#paisagismo",          // avg 127 eng
+    "#arquiteturapaisagistica", // avg 118 eng
+    "#paisagismoaltopadrao",   // avg 120 eng
+    "#jardimmoderno",       // avg 111 eng
+    "#areaexterna",         // avg 103 eng
+  ],
+  tier3_evitar: [
+    "#digitalpaisagismo",   // avg 64 eng (branding, nao discovery)
+    "#projetopaisagistico", // avg 72 eng
+    "#paisagismointegrado", // avg 17 eng
+  ],
+} as const;
+
+/**
+ * Monta set de 3-5 hashtags otimizado.
+ * Regra: 1-2 tier1 + 2-3 tier2 + 0 tier3.
+ */
+export function buildOptimalHashtags(): string[] {
+  const t1 = [...HASHTAG_TIERS.tier1_sempre];
+  const t2 = [...HASHTAG_TIERS.tier2_rotacionar];
+  // Shuffle tier2
+  for (let i = t2.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [t2[i], t2[j]] = [t2[j], t2[i]];
+  }
+  // Pick 2 from tier1 + 3 from tier2 = 5 total
+  const picked = [
+    t1[Math.floor(Math.random() * t1.length)],
+    t1[Math.floor(Math.random() * t1.length)],
+    ...t2.slice(0, 3),
+  ];
+  // Dedupe
+  return [...new Set(picked)].slice(0, 5);
 }

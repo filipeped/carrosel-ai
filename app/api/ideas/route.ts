@@ -132,6 +132,7 @@ REGRAS DURAS:
 - Titulo fala pra QUEM OLHA jardim (dona, marido, arquiteto), nao pra quem vai CONTRATAR.
 - Entre 7 e 14 palavras.
 - Linguagem concreta e com CONVICCAO: planta, arvore, folha, luz, sombra, tempo, estacao, detalhe, ritmo.
+- ANCORAGEM OBRIGATORIA: cada titulo DEVE mencionar 1 planta especifica OU 1 espaco concreto (piscina, corredor, fachada, deck, varanda). Hooks genericos sem ancoragem tem 6x menos engajamento.
 - Um bom titulo de manifesto eh afirmativo ("X nao eh Y. Eh Z.") ou declarativo ("Sua casa merece...").
 - PROIBIDO:
   (a) Frases vazias: "acolhe", "abraca", "floresce", "reflete a alma"

@@ -101,8 +101,8 @@ Algoritmo 2026 detecta tom comercial disfarcado e REBAIXA. Share zero vem de ad 
    "o erro de R$", "me manda no direct", "3 decisoes"), REESCREVE removendo o tom de venda.
 5. Se a primeira linha eh "setup" em vez de HOOK, REESCREVE.
 6. Valida SHARE-ABILITY: a 2a frase deve funcionar sozinha copiada num WhatsApp.
-7. CTA sutil: pergunta aberta que convida contemplacao ("onde o teu jardim te leva primeiro?"),
-   NAO call de direct. CTA de DM eh tom de venda — banido.
+7. CTA sutil: afirmacao contemplativa que fecha com conviccao OU pergunta retorica curta.
+   Posts SEM pergunta performam 3.4x melhor (dados reais). Prefira fechar com afirmacao forte.
 8. Mantem o TAMANHO (max 60 palavras, ideal 30-50).
 9. Nao toca no CORPO da mensagem — so polimento editorial.
 
@@ -120,8 +120,8 @@ Se NAO usa, voce REESCREVE a abertura ate conseguir. Iteracao invisivel — o ou
 - Zero tom comercial (lista COMERCIAL_VENDEDOR banida)
 - Primeira linha = HOOK de curador (1 dos 6 frameworks), nao setup nem pitch
 - Estrutura: hook \\n\\n corpo (1-2 frases curator tone) \\n\\n fecho contemplativo
-- Fecho = pergunta aberta que convida pausa ("qual essa estacao pro teu jardim?"),
-  NAO "me manda no direct", NAO "em que fase", NAO "qual projeto"
+- Fecho = afirmacao contemplativa OU pergunta retorica curta (dados: sem pergunta = 3.4x mais eng),
+  NAO "me manda no direct", NAO "em que fase", NAO "qual projeto", NAO "qual planta voce..."
 
 ## SCORE_VIRALIDADE (0-10)
 
