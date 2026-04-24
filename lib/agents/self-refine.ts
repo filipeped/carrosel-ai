@@ -49,7 +49,7 @@ Reescreve APENAS as dimensoes com score baixo — nao toca no resto.
 
 ## REGRA CIRURGICA
 
-- Score baixo em HOOK (< 18/25) -> reescreve slide 0 (capa) com 1 dos 6 frameworks
+- Score baixo em HOOK (< 18/25) -> reescreve slide 0 (capa) com 1 dos 7 frameworks (priorizar sensorial ou manifesto_tese)
 - Score baixo em NARRATIVA (< 18/25) -> reescreve slides internos pra ter progressao
 - Score baixo em PERSONA (< 14/20) -> ajusta linguagem pra em-obra ou casa-pronta especifico
 - Score baixo em VOCAB (< 10/15) -> troca linguagem proibida / injeta vocab premium

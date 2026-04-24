@@ -136,7 +136,7 @@ Se NAO usa, voce REESCREVE a abertura ate conseguir. Iteracao invisivel — o ou
 {
   "legenda_viral": string (legenda final, pronta pra postar),
   "hashtags": string[] (3-5, preservando input),
-  "gatilho_usado": "pattern_interrupt"|"information_gap"|"contrarian"|"specific_number"|"status_prize_frame"|"timing"|"outro",
+  "gatilho_usado": "sensorial"|"manifesto_tese"|"revelacao"|"quebra_expectativa"|"historia_da_planta"|"observacao_de_quem_entende"|"comportamento_do_jardim",
   "score_viralidade": int (0-10),
   "changes": [{"from": string, "to": string, "reason": string}],
   "rationale": string (1 frase: por que essa versao vai engajar mais)

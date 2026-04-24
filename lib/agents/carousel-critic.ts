@@ -125,7 +125,7 @@ Avalia rigorosamente e atribui score por DIMENSAO (soma vira o total 0-100).
 ## RUBRICA (preencha cada bucket SEPARADAMENTE — nao chute o total)
 
 ### HOOK da capa (0-25)
-- 25: capa obriga swipe (information gap, contrarian, numero especifico, status)
+- 25: capa obriga swipe (sensorial, manifesto, revelacao, quebra de expectativa)
 - 20: hook forte mas generico (sem numero ou gap)
 - 15: hook correto mas previsivel
 - 10: hook fraco, inspiracional vazio

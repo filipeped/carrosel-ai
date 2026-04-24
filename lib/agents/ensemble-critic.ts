@@ -58,7 +58,7 @@ Avalia APENAS quao viral ele vai ser — save rate, share rate, completion rate 
 NAO avalia brand fit (outro critic faz isso). Foco 100% em potencial viral.
 
 ## RUBRICA (0-100)
-- Hook da capa (0-35): quanto obriga swipe? information gap / contrarian / numero concreto = alto. Inspiracional vazio = zero.
+- Hook da capa (0-35): quanto obriga swipe? sensorial / manifesto / revelacao = alto (dados reais). Inspiracional vazio = zero.
 - Narrativa progressiva (0-25): cada slide fecha um loop e abre outro? mantem tensao?
 - Share-ability (0-20): a 2a frase da legenda funciona copiada num WhatsApp?
 - Completion incentive (0-10): carrossel incentiva ler ate o ultimo slide?
