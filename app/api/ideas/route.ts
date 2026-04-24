@@ -108,7 +108,8 @@ de curador ou COMPORTAMENTO do jardim, aprova. Se eh pitch disfarcado ou poesia 
 
 REGRA 1: se a pessoa nao consegue explicar a ideia pro conjuge em 5 segundos, a ideia nao serve.
 REGRA 2: se a ideia parece "eu vendo paisagismo", a ideia nao serve. Tem que parecer "eu amo jardim e quero te mostrar algo que voce nao reparou".
-REGRA 3: evite linguagem de OBRA (gesso, alvenaria, pedreiro, retrabalho). Nao eh errado, mas vira vibe de consultor, nao de curador.`;
+REGRA 3: evite linguagem de OBRA (gesso, alvenaria, pedreiro, retrabalho). Nao eh errado, mas vira vibe de consultor, nao de curador.
+REGRA 4: PROIBIDO "paisagismo nao eh a ultima etapa", "nao deixe pro final", "antes de plantar/executar/comecar", "o momento certo de". Tudo isso eh VENDA DISFARÇADA de timing. Curador nao fala de timing — fala de BELEZA, TEXTURA, COMPORTAMENTO.`;
 // ---------------------------------------------------------------------------
 // System: gerar 12 ideias virais JA CURADAS
 // ---------------------------------------------------------------------------
@@ -149,7 +150,7 @@ RETORNE JSON PURO:
       "formula": "manifesto|revelacao|sensorial|historia-planta|observacao|comportamento|quebra-expectativa",
       "contexto": string,
       "gatilho_principal": "manifesto|revelacao|sensorial|historia|observacao|comportamento|quebra",
-      "gancho": string (por que alguem apaixonado por jardim salva essa — nao generico)
+      "gancho": string (explica por que essa ideia PRENDE — IMPORTANTE: varie a estrutura entre as 12. Use formatos DIFERENTES: pergunta provocativa, confissao de quem viveu, dado concreto, observacao curta, contraste antes/depois. PROIBIDO repetir a formula 'Salva pra/porque/como' — max 2 das 12 podem usar a palavra 'salva'. Cada gancho deve parecer escrito por pessoa diferente.)
     }
   ]
 }
@@ -171,6 +172,7 @@ export async function POST(req: NextRequest) {
     const gen = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 2800,
+      temperature: 0.55,
       messages: [
         { role: "system", content: buildGenerateSystem(voiceRefs) },
         {
@@ -203,6 +205,11 @@ export async function POST(req: NextRequest) {
       "antes do arquiteto", "projeto 3d",
       "retrabalho", "r$", "custa 3x", "custa o dobro", "me manda", "no direct",
       "em que fase", "a pergunta que voce devia",
+      // V10: termos comerciais disfarçados que o filtro anterior não pegava
+      "ultima etapa", "última etapa", "nao adie", "não adie", "deixou pra depois",
+      "deixou pro final", "antes de plantar", "antes de executar", "antes de comecar",
+      "antes de começar", "nao deixe", "não deixe", "hora certa", "momento certo de",
+      "fase da obra", "etapa da obra", "conecta todas as outras",
     ];
     const INSPIRATIONAL_TERMS = [
       "abrac", "floresce", "acolhe", "reflete", "respira natureza", "envolve em",
@@ -224,6 +231,11 @@ export async function POST(req: NextRequest) {
       for (const t of COMMERCIAL_TERMS) if (titulo.includes(t)) s -= 5;
       for (const t of INSPIRATIONAL_TERMS) if (titulo.includes(t)) s -= 4;
       if (NUM_LIST_REGEX.test(titulo)) s -= 6;  // lista numerada forcada
+      // V10: penaliza hooks repetitivos (formula "Salva pra/porque/como")
+      const gancho = String(c.gancho || "").toLowerCase();
+      const salvaCount = (gancho.match(/salva /g) || []).length;
+      if (salvaCount >= 2) s -= 3;  // hook muito dependente de "salva"
+      if (gancho.length < 40) s -= 2;  // hook muito curto = generico
       return s;
     };
     const sorted = [...candidatas].sort((a, b) => scoreHeuristic(b) - scoreHeuristic(a));
