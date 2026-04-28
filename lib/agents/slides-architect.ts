@@ -18,7 +18,7 @@ export type SlideOutline = {
 };
 
 export type ArchitectPlan = {
-  slideCount: 7 | 8 | 9 | 10;
+  slideCount: 6 | 7 | 8 | 9 | 10;
   outline: SlideOutline[];
   rationale: string;
   recommended_hook_framework: HookFrameworkKey;
@@ -69,7 +69,7 @@ PRIORIZE sensorial e manifesto_tese — sao os que mais performam no perfil (dad
 ## RETORNE JSON PURO
 
 {
-  "slideCount": 7|8|9|10,
+  "slideCount": 6|7|8|9|10,
   "outline": [
     { "slideIdx": 0, "type": "cover", "purpose": "...", "imageHint": "..." },
     { "slideIdx": 1, "type": "plantDetail"|"inspiration", "purpose": "...", "imageHint": "..." },
@@ -108,8 +108,8 @@ Decide slideCount (7-10) e retorna outline completo. JSON puro.`;
     const raw = resp.choices[0]?.message?.content || "";
     const parsed = extractJson(raw) as Partial<ArchitectPlan>;
 
-    const slideCount = ([7, 8, 9, 10] as const).includes(parsed.slideCount as 7 | 8 | 9 | 10)
-      ? (parsed.slideCount as 7 | 8 | 9 | 10)
+    const slideCount = ([6, 7, 8, 9, 10] as const).includes(parsed.slideCount as 6 | 7 | 8 | 9 | 10)
+      ? (parsed.slideCount as 6 | 7 | 8 | 9 | 10)
       : 8;
 
     // Valida outline
@@ -147,7 +147,7 @@ Decide slideCount (7-10) e retorna outline completo. JSON puro.`;
     };
   } catch (err) {
     console.error("[slides-architect] falhou:", (err as Error).message);
-    const slideCount: 8 = 8;
+    const slideCount: 6 = 6;
     const outline: SlideOutline[] = Array.from({ length: slideCount }).map((_, i) => {
       let type: SlideOutline["type"] = "inspiration";
       if (i === 0) type = "cover";

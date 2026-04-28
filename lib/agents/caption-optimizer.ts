@@ -157,7 +157,7 @@ Suas tarefas:
 2. Substituir palavras/frases proibidas flagadas
 3. Aplicar vocabulario premium onde natural
 4. Se caber, reforcar sutilmente o Big Domino ("decidir com clareza" / "antes de investir") — nao forcar
-5. Verificar tamanho (max 60 palavras, ideal 30-50)
+5. Verificar tamanho (max 50 palavras, ideal 36-45)
 6. Verificar estrutura (hook + 1-2 frases + fecho)
 7. Hashtags: manter 3-5, todas minusculas, sem acento/camelCase
 

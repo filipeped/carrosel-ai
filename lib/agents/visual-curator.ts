@@ -83,7 +83,7 @@ export async function visualCurator(params: {
   slideCount?: number;
   avoidTeses?: string[];   // teses ja usadas recentemente — nao repetir
 }): Promise<CuratorGroup> {
-  const { candidates, slideCount = 8, avoidTeses = [] } = params;
+  const { candidates, slideCount = 6, avoidTeses = [] } = params;
   const target = Math.max(6, Math.min(10, slideCount));
 
   if (candidates.length < target) {

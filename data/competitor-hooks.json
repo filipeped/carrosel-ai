@@ -5,19 +5,49 @@
   "own_top_hooks": {
     "note": "Hooks reais do @digitalpaisagismo ranqueados por engajamento. Fonte de verdade pra calibrar o modelo.",
     "data": [
-      { "hook": "Onde o verde encontra a arquitetura, ate o corredor lateral vira cenario", "framework": "sensorial", "engagement": 609, "likes": 605, "date": "2026-04-21" },
-      { "hook": "Arquitetura define a forma. Paisagismo define a sensacao", "framework": "manifesto_tese", "engagement": 286, "likes": 282, "date": "2026-04-22" },
-      { "hook": "Com verde ao redor, a piscina vira o destino da casa", "framework": "sensorial", "engagement": 190, "likes": 188, "date": "2026-04-20" },
-      { "hook": "A maioria das areas externas e pensada depois que tudo acaba", "framework": "revelacao", "engagement": 75, "likes": 74, "date": "2026-04-22" },
-      { "hook": "Quando o caminho ate a porta ja faz parte do projeto", "framework": "sensorial", "engagement": 46, "likes": 46, "date": "2026-04-19" }
+      {
+        "hook": "Onde o verde encontra a arquitetura, ate o corredor lateral vira cenario",
+        "framework": "sensorial",
+        "engagement": 609,
+        "likes": 605,
+        "date": "2026-04-21"
+      },
+      {
+        "hook": "Arquitetura define a forma. Paisagismo define a sensacao",
+        "framework": "manifesto_tese",
+        "engagement": 286,
+        "likes": 282,
+        "date": "2026-04-22"
+      },
+      {
+        "hook": "Com verde ao redor, a piscina vira o destino da casa",
+        "framework": "sensorial",
+        "engagement": 190,
+        "likes": 188,
+        "date": "2026-04-20"
+      },
+      {
+        "hook": "A maioria das areas externas e pensada depois que tudo acaba",
+        "framework": "revelacao",
+        "engagement": 75,
+        "likes": 74,
+        "date": "2026-04-22"
+      },
+      {
+        "hook": "Quando o caminho ate a porta ja faz parte do projeto",
+        "framework": "sensorial",
+        "engagement": 46,
+        "likes": 46,
+        "date": "2026-04-19"
+      }
     ]
   },
   "framework_weights": {
-    "note": "Pesos baseados em engajamento real. sensorial e manifesto_tese dominam os top posts.",
-    "sensorial": 0.40,
-    "manifesto_tese": 0.25,
-    "revelacao": 0.10,
-    "quebra_expectativa": 0.10,
+    "note": "Pesos rebalanceados V11: revelacao subiu baseado em dados reais. sensorial e manifesto_tese continuam fortes mas revelacao mostrou performance superior no perfil.",
+    "sensorial": 0.3,
+    "manifesto_tese": 0.2,
+    "revelacao": 0.2,
+    "quebra_expectativa": 0.15,
     "historia_da_planta": 0.05,
     "observacao_de_quem_entende": 0.05,
     "comportamento_do_jardim": 0.05
@@ -27,27 +57,63 @@
       "handle": "@obrasdepaisagismo",
       "style": "tecnico-visual",
       "top_hooks": [
-        { "hook": "A arvore que transforma entrada em chegada", "framework": "sensorial", "estimate": "medio" },
-        { "hook": "5 plantas que substituem muro sem parecer cerca", "framework": "revelacao", "estimate": "alto" },
-        { "hook": "Por que pergola vazia parece abandonada", "framework": "observacao_de_quem_entende", "estimate": "medio" }
+        {
+          "hook": "A arvore que transforma entrada em chegada",
+          "framework": "sensorial",
+          "estimate": "medio"
+        },
+        {
+          "hook": "5 plantas que substituem muro sem parecer cerca",
+          "framework": "revelacao",
+          "estimate": "alto"
+        },
+        {
+          "hook": "Por que pergola vazia parece abandonada",
+          "framework": "observacao_de_quem_entende",
+          "estimate": "medio"
+        }
       ]
     },
     {
       "handle": "@benediktopaisagismo",
       "style": "autoral-classico",
       "top_hooks": [
-        { "hook": "O detalhe que separa jardim bonito de jardim atemporal", "framework": "observacao_de_quem_entende", "estimate": "alto" },
-        { "hook": "Arquitetura sem paisagismo eh casa, nao lar", "framework": "manifesto_tese", "estimate": "medio" },
-        { "hook": "3 escolhas que valem mais do que qualquer planta", "framework": "revelacao", "estimate": "alto" }
+        {
+          "hook": "O detalhe que separa jardim bonito de jardim atemporal",
+          "framework": "observacao_de_quem_entende",
+          "estimate": "alto"
+        },
+        {
+          "hook": "Arquitetura sem paisagismo eh casa, nao lar",
+          "framework": "manifesto_tese",
+          "estimate": "medio"
+        },
+        {
+          "hook": "3 escolhas que valem mais do que qualquer planta",
+          "framework": "revelacao",
+          "estimate": "alto"
+        }
       ]
     },
     {
       "handle": "@rafaeloliveirapaisagismo",
       "style": "projeto-completo",
       "top_hooks": [
-        { "hook": "Fachada viva nao envelhece", "framework": "manifesto_tese", "estimate": "medio" },
-        { "hook": "O erro de plantar antes de iluminar", "framework": "revelacao", "estimate": "alto" },
-        { "hook": "Jardim de alto padrao tem uma coisa em comum", "framework": "revelacao", "estimate": "alto" }
+        {
+          "hook": "Fachada viva nao envelhece",
+          "framework": "manifesto_tese",
+          "estimate": "medio"
+        },
+        {
+          "hook": "O erro de plantar antes de iluminar",
+          "framework": "revelacao",
+          "estimate": "alto"
+        },
+        {
+          "hook": "Jardim de alto padrao tem uma coisa em comum",
+          "framework": "revelacao",
+          "estimate": "alto"
+        }
       ]
     },
     {
@@ -55,14 +121,46 @@
       "style": "mix",
       "note": "Hooks que apareceram em varios perfis e geraram save alto (observacao 2025-2026)",
       "top_hooks": [
-        { "hook": "A maioria chama paisagista tarde demais", "framework": "revelacao", "estimate": "alto" },
-        { "hook": "Por que sua area externa parece vazia", "framework": "observacao_de_quem_entende", "estimate": "alto" },
-        { "hook": "O valor real de um jardim projetado", "framework": "manifesto_tese", "estimate": "medio" },
-        { "hook": "A vista de dentro da casa muda tudo", "framework": "sensorial", "estimate": "medio" },
-        { "hook": "Nao eh o jardim que esta errado. Eh a ordem.", "framework": "quebra_expectativa", "estimate": "alto" },
-        { "hook": "Irrigacao automatica nao eh luxo. Eh economia.", "framework": "quebra_expectativa", "estimate": "alto" },
-        { "hook": "Algumas palmeiras so mostram pra que vieram depois do 3o verao", "framework": "historia_da_planta", "estimate": "alto" },
-        { "hook": "Jardim bom nao eh no primeiro mes. Eh no segundo verao.", "framework": "comportamento_do_jardim", "estimate": "alto" }
+        {
+          "hook": "A maioria chama paisagista tarde demais",
+          "framework": "revelacao",
+          "estimate": "alto"
+        },
+        {
+          "hook": "Por que sua area externa parece vazia",
+          "framework": "observacao_de_quem_entende",
+          "estimate": "alto"
+        },
+        {
+          "hook": "O valor real de um jardim projetado",
+          "framework": "manifesto_tese",
+          "estimate": "medio"
+        },
+        {
+          "hook": "A vista de dentro da casa muda tudo",
+          "framework": "sensorial",
+          "estimate": "medio"
+        },
+        {
+          "hook": "Nao eh o jardim que esta errado. Eh a ordem.",
+          "framework": "quebra_expectativa",
+          "estimate": "alto"
+        },
+        {
+          "hook": "Irrigacao automatica nao eh luxo. Eh economia.",
+          "framework": "quebra_expectativa",
+          "estimate": "alto"
+        },
+        {
+          "hook": "Algumas palmeiras so mostram pra que vieram depois do 3o verao",
+          "framework": "historia_da_planta",
+          "estimate": "alto"
+        },
+        {
+          "hook": "Jardim bom nao eh no primeiro mes. Eh no segundo verao.",
+          "framework": "comportamento_do_jardim",
+          "estimate": "alto"
+        }
       ]
     }
   ],

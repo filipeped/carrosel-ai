@@ -141,7 +141,7 @@ REGRA DURA: NUNCA transforme legenda em anuncio. Frases proibidas:
 Se a copy cair nesse tom, reescreve como curador apaixonado.
 
 REGRAS DURAS:
-- TAMANHO: MAXIMO 60 PALAVRAS. Nao eh sugestao, eh limite duro — contar cada palavra. Ideal 30-50.
+- TAMANHO: MAXIMO 50 PALAVRAS. Nao eh sugestao, eh limite duro — contar cada palavra. Ideal 36-45.
   Instagram corta em ~125 caracteres no feed — as 2 primeiras frases fazem tudo.
   Estrutura OBRIGATORIA: (1) hook de 1 linha + (2) 1-2 frases curtas + (3) pergunta/fecho de 1 linha. 3 paragrafos MAXIMO, separados por linha em branco (\\n\\n).
   Nao enumerar, nao explicar tecnica em detalhe, nao fazer 4 paragrafos, nao usar "—" pra listar. Cortar ate doer. Se tiver 70 palavras, CORTA.

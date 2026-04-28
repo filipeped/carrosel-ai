@@ -451,7 +451,7 @@ export async function runSmartCarousel(
     persist?: boolean;
     userBrief?: string;
     skipAgents?: boolean;
-    slideCount?: number;        // 7-10 quando dinamico; default 8
+    slideCount?: number;        // 6-10 quando dinamico; default 6
     approachFocus?: string;     // per-variant: direta_emocional, contrarian_forte, etc
     presetSelection?: SmartSelection;       // reusa selecao de imagens ja analisadas
     presetAnalysis?: { persona?: string; enrichedPrompt?: string; mainDor?: string };

@@ -430,7 +430,7 @@ IMPLICAÇÃO PRATICA:
 ## Formato Instagram 2026
 
 LEGENDA:
-- Max 60 palavras (ideal 30-50)
+- Max 50 palavras (ideal 36-45)
 - ANCORAGEM CONCRETA: toda legenda DEVE mencionar pelo menos 1 planta especifica OU 1 espaco concreto (piscina, corredor, fachada, deck, entrada). Posts com ancoragem concreta tem 6x mais engajamento (dados reais). Hooks genericos sem mencao = avg 34 eng vs 200+ com mencao.
 - PRIMEIRA LINHA: max 120 caracteres (IG corta em 125)
 - Estrutura: hook 1 linha + 1-2 frases + fecho/CTA
