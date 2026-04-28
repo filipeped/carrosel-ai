@@ -311,15 +311,6 @@ export function Step3({
 
   async function postarNoInstagram() {
     if (!renderedUrls?.length) return;
-    // Warning: melhor horário 9h-12h BRT (dados reais: 5-10x mais engajamento)
-    const nowBRT = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-    const hour = nowBRT.getHours();
-    if (hour < 9 || hour >= 12) {
-      const ok = window.confirm(
-        `⚠️ Horário atual: ${hour}h (BRT)\n\nMelhor horário pra postar: 9h-12h (5-10x mais engajamento).\n\nDeseja publicar agora mesmo assim?`
-      );
-      if (!ok) return;
-    }
     setBusyPost(true);
     setPostResult(null);
     try {
