@@ -21,7 +21,7 @@ export const BRAND_PUBLIC = {
       "Quem ama um jardim bem pensado. Perfil aspiracional: casa em construcao, reforma, ou casa pronta querendo transformar a area externa. Varia de classe media alta a alto padrao. O que une eh o GOSTO e a VONTADE, nao a renda.",
     emObra: 0.7,
     casaPronta: 0.3,
-    ticketConsultoria: "R$97",
+    ticketConsultoria: "R$50",
     ticketProjeto: "R$1.850+",
     decisao: "Casal decide em conjunto. Muitas vezes a arquiteta ou o arquiteto estao envolvidos — parceiros, nao concorrentes.",
   },
@@ -45,7 +45,7 @@ export const VOCABULARIO_PREMIUM: Record<string, string> = {
   barato: "acessível",
   caro: "investimento alto",
   "fazer o jardim": "desenvolver o projeto",
-  "custa R$97": "o investimento é R$97",
+  "custa R$50": "o investimento é R$50",
   "paleta vegetal": "espécies selecionadas",
 };
 
@@ -459,13 +459,13 @@ CARROSSEL (6 slides):
 ## Objetivo do post
 
 Funil passivo. O post NAO vende — qualifica e aquece:
-Save/Share → DM → WhatsApp → agente de vendas v36 → consultoria R$97 → projeto R$1.850+
+Save/Share → DM → WhatsApp → agente de vendas v36 → consultoria R$50 → projeto R$1.850+
 
 ## Anti-alucinação
 
 - Planta citada DEVE existir no banco vegetacoes (via plant-identifier Nivel 4)
 - Elemento visual DEVE aparecer em descricao_visual da foto
-- Nunca inventar preço além de R$97 (consultoria) e R$1.850+ (projeto)`;
+- Nunca inventar preço além de R$50 (consultoria) e R$1.850+ (projeto)`;
 }
 
 /**

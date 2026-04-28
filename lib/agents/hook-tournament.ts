@@ -64,10 +64,10 @@ Cada hook eh 1 frase curta (title da capa, 3-10 palavras) + um topLabel UPPERCAS
 Os hooks que MAIS performam no perfil sao SENSORIAIS e MANIFESTOS.
 Respeite esta distribuicao nos 20 hooks:
 
-- sensorial: 8 hooks (40%) — textura, luz, som, cenario, vivencia do espaco
-- manifesto_tese: 5 hooks (25%) — afirmacao forte que posiciona a marca
-- revelacao: 2 hooks (10%) — padrao/segredo que so quem ve muitos jardins percebe
-- quebra_expectativa: 2 hooks (10%) — contraria intuicao visual
+- sensorial: 6 hooks (30%) — textura, luz, som, cenario, vivencia do espaco
+- manifesto_tese: 4 hooks (20%) — afirmacao forte que posiciona a marca
+- revelacao: 4 hooks (20%) — padrao/segredo que so quem ve muitos jardins percebe
+- quebra_expectativa: 3 hooks (15%) — contraria intuicao visual
 - historia_da_planta: 1 hook (5%) — tempo, crescimento, transformacao da planta
 - observacao_de_quem_entende: 1 hook (5%) — olhar tecnico traduzido em detalhe visivel
 - comportamento_do_jardim: 1 hook (5%) — como o jardim age ao longo do tempo

@@ -124,7 +124,7 @@ Cliente alto padrão quase sempre tem arquiteto. **NUNCA tratar como concorrênc
 - "haha", "kkk", "bora" (gíria — usar "Vamos")
 
 ### Preço
-- "custa R$97" → **"o investimento é R$97"**
+- "custa R$50" → **"o investimento é R$50"**
 - "barato/caro" → **"valor"** ou **"investimento"**
 - "paleta vegetal" → **"espécies selecionadas"**
 - "jardim bonito" → **"paisagismo integrado"**
@@ -146,7 +146,7 @@ Cliente alto padrão quase sempre tem arquiteto. **NUNCA tratar como concorrênc
 
 ### Legenda
 
-- **Tamanho**: máximo **60 palavras** (ideal 30-50)
+- **Tamanho**: máximo **50 palavras** (ideal 36-45)
 - **Estrutura**: hook 1 linha + 1-2 frases + fechamento/CTA
 - **3 abordagens** a gerar:
   - `direta_emocional` — afirmação factual curta que conecta emocionalmente
@@ -178,7 +178,7 @@ Cliente alto padrão quase sempre tem arquiteto. **NUNCA tratar como concorrênc
 
 - Nunca inventar planta — usar só do banco `vegetacoes` (via plant-identifier Nível 4)
 - Nunca inventar elemento — só citar o que aparece em `descricao_visual` da foto
-- Nunca inventar preço além dos autorizados (R$97 consultoria, R$1.850+ projeto)
+- Nunca inventar preço além dos autorizados (R$50 consultoria, R$1.850+ projeto)
 
 ---
 
@@ -187,7 +187,7 @@ Cliente alto padrão quase sempre tem arquiteto. **NUNCA tratar como concorrênc
 Posts servem como **funil passivo**:
 1. Dono de casa salva pra mostrar ao cônjuge/arquiteto
 2. Arquiteto salva como repertório
-3. Esses saves → DMs → WhatsApp → agente de vendas v36 → consultoria R$97 → projeto R$1.850+
+3. Esses saves → DMs → WhatsApp → agente de vendas v36 → consultoria R$50 → projeto R$1.850+
 
 O post **não vende**, ele **qualifica** e **aquece** antes do agente de vendas assumir.
 

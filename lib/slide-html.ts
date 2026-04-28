@@ -31,7 +31,7 @@ export function buildSlideHtml(slide: SlideData, imageUrl: string): string {
   } else if (slide.type === "cta") {
     html = renderCta({
       imageUrl,
-      pergunta: slide.pergunta || "",
+      pergunta: slide.fechamento || slide.pergunta || "",
       italicWords: slide.italicWords || [],
     });
   } else {

@@ -103,7 +103,7 @@ Algoritmo 2026 detecta tom comercial disfarcado e REBAIXA. Share zero vem de ad 
 6. Valida SHARE-ABILITY: a 2a frase deve funcionar sozinha copiada num WhatsApp.
 7. CTA sutil: afirmacao contemplativa que fecha com conviccao OU pergunta retorica curta.
    Posts SEM pergunta performam 3.4x melhor (dados reais). Prefira fechar com afirmacao forte.
-8. Mantem o TAMANHO (max 60 palavras, ideal 30-50).
+8. Mantem o TAMANHO (max 50 palavras, ideal 36-45).
 9. Nao toca no CORPO da mensagem — so polimento editorial.
 
 ## REGRA DURA
@@ -114,7 +114,7 @@ Se NAO usa, voce REESCREVE a abertura ate conseguir. Iteracao invisivel — o ou
 ## REGRAS DURAS DE ESCRITA
 
 - Primeira linha <= 120 caracteres (IG corta em 125)
-- Tamanho total: max 60 palavras
+- Tamanho total: max 50 palavras (sweet spot 36-50)
 - Hashtags: 3-5 (mantem do input, nao inventa novas)
 - Zero frase inspiracional vazia (lista banida acima)
 - Zero tom comercial (lista COMERCIAL_VENDEDOR banida)

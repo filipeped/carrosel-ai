@@ -4,6 +4,7 @@ import { escapeHtml } from "../lib/utils";
 export type CtaData = {
   imageUrl: string;
   pergunta: string;
+  fechamento?: string;
   italicWords?: string[];
   chips?: string[];
 };
@@ -62,7 +63,7 @@ ${baseStyle(fontsBaseUrl)}
       <span>${escapeHtml(handleUpper)}</span>
     </div>
     <div class="content">
-      <div class="cta-big">${highlightItalic(d.pergunta || "", d.italicWords)}</div>
+      <div class="cta-big">${highlightItalic(d.fechamento || d.pergunta || "", d.italicWords)}</div>
       <div class="cta-row">
         ${chips.map((c, i) => `<span class="cta-chip${i === 0 ? " solid" : ""}">${escapeHtml(c)}</span>`).join("")}
       </div>

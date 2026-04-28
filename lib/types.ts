@@ -36,6 +36,7 @@ export type SlideData = {
   nomePopular?: string | null;
   nomeCientifico?: string | null;
   pergunta?: string;
+  fechamento?: string;
 };
 
 export type Selection = {

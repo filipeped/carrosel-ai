@@ -3,6 +3,11 @@ import { getAi, MODEL } from "./claude";
 import { getSupabase, ImageBankRow } from "./supabase";
 import { extractJson } from "./utils";
 
+
+// Incrementar quando mudar o prompt de analise visual.
+// Imagens com versao antiga serao re-analisadas automaticamente.
+const ANALYSIS_VERSION = 2;
+
 export type AnaliseVisual = {
   qualidade: number;         // 0-10
   composicao: number;        // 0-10
@@ -102,7 +107,7 @@ export async function analyzeAndCache(
   const toAnalyze: ImageBankRow[] = [];
   for (const img of images) {
     const existing = (img as any).analise_visual;
-    if (existing && typeof existing === "object" && existing.qualidade !== undefined) {
+    if (existing && typeof existing === "object" && existing.qualidade !== undefined && (existing._version || 0) >= ANALYSIS_VERSION) {
       result.push({ ...img, analise_visual: existing as AnaliseVisual });
     } else {
       toAnalyze.push(img);
@@ -115,7 +120,7 @@ export async function analyzeAndCache(
     const analyzed = await Promise.all(
       batch.map(async (img) => {
         try {
-          const analise = await analyzeOne(img.url);
+          const analise = { ...await analyzeOne(img.url), _version: ANALYSIS_VERSION };
           // tenta cachear — se coluna nao existir, erro silencioso
           try {
             await supabase

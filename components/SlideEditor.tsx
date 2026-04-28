@@ -231,7 +231,7 @@ export function SlideEditor({
 
         {slide.type === "cta" && (
           <>
-            <Field label="Pergunta" value={slide.pergunta} onChange={(v) => onChange({ pergunta: v })} big />
+            <Field label="Fechamento" value={slide.fechamento || slide.pergunta} onChange={(v) => onChange({ fechamento: v })} big />
             <Field
               label="Palavras em italico"
               value={(slide.italicWords || []).join(", ")}

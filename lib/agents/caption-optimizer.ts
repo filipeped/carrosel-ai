@@ -129,6 +129,14 @@ export function cleanHashtags(tags: string[]): { final: string[]; changes: strin
   // Remove duplicatas preservando ordem
   cleaned = Array.from(new Set(cleaned));
 
+  // Remove tier 3 hashtags (baixo desempenho comprovado)
+  const TIER3_BANNED = ["#digitalpaisagismo", "#projetopaisagistico"];
+  const tier3Removed = cleaned.filter((t) => TIER3_BANNED.includes(t));
+  if (tier3Removed.length) {
+    cleaned = cleaned.filter((t) => !TIER3_BANNED.includes(t));
+    changes.push(`removeu tier 3: ${tier3Removed.join(", ")}`);
+  }
+
   // Max 5 (regra 2026)
   if (cleaned.length > 5) {
     const cut = cleaned.slice(5);

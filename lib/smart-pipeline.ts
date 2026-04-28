@@ -140,7 +140,7 @@ export async function rankAndSelect(
   }));
   withAder.forEach((x) => {
     let s = composite(x.img, 1, x.ader);
-    if (x.repeated) s -= 2.5; // penalidade (score base tipicamente 3-7, 2.5 e significativo)
+    if (x.repeated) s -= 4.0; // penalidade (score base tipicamente 3-7, 2.5 e significativo)
     x.score = s;
   });
   withAder.sort((a, b) => b.score - a.score);
@@ -242,7 +242,7 @@ Ordem: [0]cover, [1..${lastIdx - 1}]plantDetail|inspiration, [${lastIdx}]cta.
 cover: { type:"cover", imageIdx:0, topLabel, numeral:null, title, italicWords:[] }
 plantDetail: { type:"plantDetail", imageIdx, nomePopular, nomeCientifico, title:null, subtitle:null, topLabel:null }
 inspiration: { type:"inspiration", imageIdx, title, subtitle, topLabel, nomePopular:null, nomeCientifico:null }
-cta: { type:"cta", imageIdx:${lastIdx}, pergunta, italicWords:[] }
+cta: { type:"cta", imageIdx:${lastIdx}, fechamento, italicWords:[] }
 
 # FILOSOFIA DO CARROSSEL
 
@@ -260,7 +260,7 @@ concretas; CTA final convida a contemplacao — nao pitch.
   "3 coisas que...". Prefira afirmacao/tese direta.
 - plantDetail SO se a planta aparece VISIVELMENTE na imagem — caso contrario use
   inspiration. Preferir inspiration pra desenvolver a TESE mesmo em slides internos.
-- CTA: pergunta aberta contemplativa — nao "me manda no direct", nao "em que fase"
+- CTA: fechamento contemplativo (afirmacao forte OU pergunta retorica curta) — nao "me manda no direct", nao "em que fase"
 
 REGRAS DE COERENCIA (CRITICAS):
 - A descricao_visual de cada imagem e SUA FONTE DE VERDADE. Nao invente elementos.
@@ -386,7 +386,7 @@ export function validateSlidesAgainstImages(
     return {
       type: "inspiration",
       imageIdx: fixedIdx,
-      title: heroLabel ? capFirst(heroLabel) : "Composicao vegetal",
+      title: heroLabel ? capFirst(heroLabel) : (img.descricao ? capFirst(img.descricao.split(",")[0].trim().substring(0, 40)) : "Paisagismo integrado"),
       subtitle,
       topLabel: "COMPOSIÇÃO",
       nomePopular: null,
@@ -458,7 +458,7 @@ export async function runSmartCarousel(
     presetAllAnalyzed?: AnalyzedImage[];
   } = {},
 ) {
-  const slideCount = Math.max(6, Math.min(10, opts.slideCount ?? 8));
+  const slideCount = Math.max(6, Math.min(10, opts.slideCount ?? 6));
   let selection: SmartSelection;
   let allAnalyzed: AnalyzedImage[];
   let analysis: { persona?: string; enrichedPrompt?: string; mainDor?: string } | undefined;

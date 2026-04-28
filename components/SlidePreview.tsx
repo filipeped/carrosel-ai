@@ -54,7 +54,7 @@ export function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: 
       } else if (slide.type === "cta") {
         out = renderCta({
           imageUrl,
-          pergunta: slide.pergunta || "",
+          pergunta: slide.fechamento || slide.pergunta || "",
           italicWords: slide.italicWords || [],
         }, origin);
       } else {
