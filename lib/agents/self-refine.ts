@@ -16,6 +16,7 @@ type SlideLike = {
   subtitle?: string | null;
   topLabel?: string | null;
   pergunta?: string | null;
+  fechamento?: string | null;
   nomePopular?: string | null;
   nomeCientifico?: string | null;
   imageIdx?: number;

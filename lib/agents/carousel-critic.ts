@@ -48,7 +48,7 @@ type SlideLike = {
 };
 
 function flattenSlideText(s: SlideLike): string {
-  return [s.topLabel, s.title, s.subtitle, s.pergunta, s.nomePopular, s.nomeCientifico]
+  return [s.topLabel, s.title, s.subtitle, s.fechamento, s.pergunta, s.nomePopular, s.nomeCientifico]
     .filter(Boolean)
     .join(" | ");
 }

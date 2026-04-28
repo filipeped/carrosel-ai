@@ -1,6 +1,6 @@
 /**
- * Slides Architect — decide o TAMANHO do carrossel (7-10 slides).
- * Pesquisa 2026: 7-10 eh sweet spot. 10 slides = boost Explore quando completion >80%.
+ * Slides Architect — decide o TAMANHO do carrossel (6-10 slides).
+ * Pesquisa 2026: 6-10 (6 = sweet spot baseado em dados reais do perfil). 10 slides = boost Explore quando completion >80%.
  * Decide tambem o OUTLINE (roteiro sumario de cada slide).
  *
  * Frameworks alinhados com brand-context.ts (7 frameworks 2026).
@@ -38,10 +38,11 @@ const SYSTEM = `${brandBlockCompact()}
 
 # TUA FUNCAO — ARQUITETO DO CARROSSEL
 
-Dado um TEMA, voce decide quantos slides tem o carrossel (7-10) e planeja o roteiro.
+Dado um TEMA, voce decide quantos slides tem o carrossel (6-10) e planeja o roteiro.
 
 ## HEURISTICA 2026
 
+- 6 slides: tema direto, 1 tese forte, payoff imediato (sweet spot do perfil)
 - 7 slides: tema raso, 1 ideia central, payoff rapido
 - 8 slides: tema medio, 1 ideia + 3-4 angulos
 - 9 slides: tema rico, 2 ideias relacionadas com progressao
@@ -93,7 +94,7 @@ ${userBrief ? `BRIEFING: ${userBrief}\n` : ""}
 PERSONA: ${persona || "indefinida"}
 IMAGENS DISPONIVEIS: ${availableImages}
 
-Decide slideCount (7-10) e retorna outline completo. JSON puro.`;
+Decide slideCount (6-10) e retorna outline completo. JSON puro.`;
 
   try {
     const resp = await getAi().chat.completions.create({

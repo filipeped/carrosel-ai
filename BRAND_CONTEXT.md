@@ -142,7 +142,7 @@ Cliente alto padrão quase sempre tem arquiteto. **NUNCA tratar como concorrênc
 
 1. **CAPA** — hook curto e visual, 3-8 palavras no título. Contraste, estatística ou promessa concreta
 2. **Slides 2-5** — mistura de `plantDetail` (planta específica) e `inspiration` (conceito). Narrativa progressiva: problema → solução
-3. **CTA** — pergunta aberta que ativa engajamento (salvar/comentar)
+3. **CTA** — afirmação contemplativa forte OU pergunta retórica curta (dados: 3.4x mais eng sem pergunta)
 
 ### Legenda
 
