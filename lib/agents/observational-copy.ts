@@ -29,7 +29,7 @@ function buildSchema(slideCount: number): string {
     ${Array.from({ length: slideCount - 2 })
       .map((_, i) => `{ "type": "inspiration", "imageIdx": ${i + 1}, "title": string, "subtitle": string, "topLabel": string, "nomePopular": null, "nomeCientifico": null }`)
       .join(",\n    ")},
-    { "type": "cta", "imageIdx": ${lastIdx}, "pergunta": string, "italicWords": string[] }
+    { "type": "cta", "imageIdx": ${lastIdx}, "fechamento": string, "italicWords": string[] }
   ]
 }
 
@@ -172,7 +172,7 @@ ATENCAO: saida comeca com { e termina com }. Zero texto antes ou depois. Zero ou
         return {
           type: "cta",
           imageIdx: slideCount - 1,
-          pergunta: "O que voce repara primeiro?",
+          fechamento: "O que voce repara primeiro?",
           italicWords: [],
         } as SlideSpec;
       }

@@ -14,7 +14,7 @@ IMPORTANTE: retorne um OBJETO JSON com a chave "slides" contendo array de ${slid
 FILOSOFIA: carrossel eh TESE defendida em ${slideCount} slides, nao lista numerada.
 - Capa afirma uma CRENCA ou observacao forte (ex: "Sua casa eh unica. Seu jardim tambem deveria ser.")
 - Slides internos sustentam a tese com observacoes concretas ou especies reais
-- CTA contempla a tese — pergunta aberta, nao pitch
+- CTA contempla a tese — afirmacao contemplativa ou pergunta retorica, nao pitch
 
 Formato:
 {
@@ -30,7 +30,7 @@ Formato:
     { "type": "inspiration", "imageIdx": number, "title": string, "subtitle": string, "topLabel": string, "nomePopular": null, "nomeCientifico": null }
 
 [${lastIdx}] CTA FINAL:
-    { "type": "cta", "imageIdx": ${lastIdx}, "pergunta": string, "italicWords": string[] }
+    { "type": "cta", "imageIdx": ${lastIdx}, "fechamento": string, "italicWords": string[] }
 
 REGRAS DURAS:
 - slides[0].type DEVE ser "cover"; slides[${lastIdx}].type DEVE ser "cta"
@@ -38,8 +38,8 @@ REGRAS DURAS:
   Numero dificilmente cobre N itens exatos — fica vazio, perde credibilidade.
 - plantDetail SO se a planta aparece VISIVELMENTE na imagem; se duvida, use inspiration.
 - imageIdx: 0..${lastIdx} das imagens; distribua bem, evite repetir
-- italicWords: 1-3 palavras do title/pergunta pra italico decorativo
-- CTA: pergunta aberta contemplativa, nao pitch de DM`;
+- italicWords: 1-3 palavras do title/fechamento pra italico decorativo
+- CTA: afirmacao contemplativa forte (dados: sem pergunta=3.4x mais eng) OU pergunta retorica. Nao pitch de DM`;
 }
 
 export async function POST(req: NextRequest) {

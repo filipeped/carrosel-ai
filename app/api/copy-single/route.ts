@@ -19,7 +19,7 @@ function schemaFor(type: SlideKind): string {
   if (type === "plantDetail")
     return `{ "type": "plantDetail", "nomePopular": string, "nomeCientifico": string }`;
   if (type === "cta")
-    return `{ "type": "cta", "pergunta": string, "italicWords": string[] }`;
+    return `{ "type": "cta", "fechamento": string, "italicWords": string[] }`;
   return `{ "type": "inspiration", "topLabel": string, "title": string, "subtitle": string }`;
 }
 
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
             if (s.type === "cover") return `  [${i}] CAPA: "${s.title || ""}"`;
             if (s.type === "plantDetail")
               return `  [${i}] PLANTA: ${s.nomePopular} (${s.nomeCientifico})`;
-            if (s.type === "cta") return `  [${i}] CTA: "${s.pergunta || ""}"`;
+            if (s.type === "cta") return `  [${i}] CTA: "${s.fechamento || s.pergunta || ""}"`;
             return `  [${i}] INSPIRACAO: "${s.title || ""}" - ${s.subtitle || ""}`;
           })
           .join("\n")

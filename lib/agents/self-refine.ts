@@ -63,7 +63,7 @@ Tudo acima do limiar: MANTEM exato.
 - Mantem mesmo imageIdx em cada slide (ordem das imagens nao muda)
 - Mantem tipos de slide (cover/plantDetail/inspiration/cta)
 - Se o slide original eh plantDetail com nomePopular/nomeCientifico especifico, MANTEM a planta
-- So muda TEXTO (title, subtitle, topLabel, pergunta, italicWords)
+- So muda TEXTO (title, subtitle, topLabel, fechamento, italicWords)
 
 ## RETORNE JSON PURO
 
@@ -73,7 +73,7 @@ Tudo acima do limiar: MANTEM exato.
     { "type": "plantDetail", "imageIdx": 1, "nomePopular": "...", "nomeCientifico": "...", "title": null, "subtitle": null, "topLabel": null },
     { "type": "inspiration", "imageIdx": 2, "title": "...", "subtitle": "...", "topLabel": "...", "nomePopular": null, "nomeCientifico": null },
     ...
-    { "type": "cta", "imageIdx": N-1, "pergunta": "...", "italicWords": [...] }
+    { "type": "cta", "imageIdx": N-1, "fechamento": "...", "italicWords": [...] }
   ],
   "changes_summary": string (1-2 frases: o que voce mudou e por que)
 }`;

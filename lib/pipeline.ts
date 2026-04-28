@@ -58,7 +58,7 @@ function buildCopySchema(slideCount: number): string {
   return `Retorne OBJETO JSON { "slides": [ ...${slideCount} items... ] } sem markdown.
 [0] cover: { type:"cover", imageIdx:0, topLabel, numeral:null, title, italicWords:[] }
 [1..${lastIdx - 1}] plantDetail OU inspiration (prefira inspiration pra desenvolver tese)
-[${lastIdx}] cta: { type:"cta", imageIdx:${lastIdx}, pergunta, italicWords:[] }
+[${lastIdx}] cta: { type:"cta", imageIdx:${lastIdx}, fechamento, italicWords:[] }
 
 FILOSOFIA: carrossel eh TESE defendida em ${slideCount} slides, nao lista numerada.
 Capa afirma crenca; slides sustentam com observacoes concretas; CTA contempla.
@@ -170,7 +170,7 @@ async function _runCaption(
   imageUrls?: string[],
 ): Promise<{ options: CaptionOption[] }> {
   const summary = slides
-    .map((s, i) => `  [${i + 1}] ${s.type}: ${s.title || s.nomePopular || s.pergunta || ""}`)
+    .map((s, i) => `  [${i + 1}] ${s.type}: ${s.title || s.nomePopular || s.fechamento || s.pergunta || ""}`)
     .join("\n");
 
   const userContent: Array<

@@ -53,7 +53,7 @@ Dado um TEMA, voce decide quantos slides tem o carrossel (7-10) e planeja o rote
 
 - Slide 0: CAPA com HOOK (1 dos 7 frameworks)
 - Slides 1..N-2: MIOLO alternando plantDetail (planta especifica) e inspiration (conceito/micro-ensaio)
-- Slide N-1: CTA (pergunta aberta — NAO call de DM)
+- Slide N-1: CTA (afirmacao contemplativa — NAO call de DM)
 
 ## 7 FRAMEWORKS DE HOOK 2026 (recomenda 1 pra capa)
 PRIORIZE sensorial e manifesto_tese — sao os que mais performam no perfil (dados reais).
@@ -127,7 +127,7 @@ Decide slideCount (7-10) e retorna outline completo. JSON puro.`;
             i === 0
               ? "capa com hook forte"
               : i === slideCount - 1
-              ? "CTA pergunta aberta"
+              ? "CTA fechamento contemplativo"
               : `slide ${i}: progressao da narrativa`,
         };
       });

@@ -84,7 +84,7 @@ const BENCHMARKS = `## BENCHMARKS DE CALIBRACAO (use pra ancorar teu score)
 ### Score 95 (excelente — referencia)
 Capa: "O barulho da agua na pedra basalto muda o som da casa inteira"
 Narrativa: 4 slides sensoriais com progressao clara (luz, textura, som, tempo). Cada slide abre detalhe concreto. Tom de curador apaixonado — zero venda.
-CTA: "Que jardim voce tem olhado sem realmente enxergar?" (pergunta aberta contemplativa)
+CTA: "Que jardim voce tem olhado sem realmente enxergar?" (fechamento contemplativo)
 Breakdown: hook=23 narrativa=24 persona=20 vocab=14 cta=14 = 95
 
 ### Score 80 (bom, mas 1-2 dimensoes com gap)
@@ -155,7 +155,7 @@ Avalia rigorosamente e atribui score por DIMENSAO (soma vira o total 0-100).
 - 0: multiplas violacoes
 
 ### CTA ativo (0-15)
-- 15: CTA concreto de DM ("me manda X no direct") ou pergunta forte que gera comment
+- 15: CTA contemplativo forte (afirmacao com conviccao ou pergunta retorica que gera reflexao)
 - 12: CTA direto mas passivo ("salve pra nao esquecer")
 - 8: CTA generico ("comente o que achou")
 - 4: CTA fraco ("curta se gostou")

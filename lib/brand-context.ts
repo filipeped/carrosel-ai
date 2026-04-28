@@ -441,7 +441,7 @@ LEGENDA:
 CARROSSEL (6 slides):
 - [0] Capa: hook 8-10 palavras, "information gap" (promete payoff)
 - [1-4] Miolo: narrativa progressiva. Alterna plantDetail (planta do banco) e inspiration (conceito)
-- [5] CTA: 1 das 3 abordagens — pergunta aberta OU "me manda X no DM"
+- [5] CTA: fechamento contemplativo — afirmacao forte OU pergunta retorica (sem pitch de DM)
 
 ## 5 padrões vencedores de hook (usar na capa)
 

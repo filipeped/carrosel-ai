@@ -58,4 +58,4 @@ ESTILO NO SLIDE:
 FORMATO DOS 6 SLIDES:
 - CAPA: titulo 3-8 palavras. Contraste, estatistica ou promessa concreta. Micro-label em caixa alta.
 - SLIDES 2-5: plantDetail (popular + cientifico) OU inspiration (titulo curto + subtitulo 1 linha). Narrativa progressiva.
-- CTA: pergunta aberta que ativa save/comment. Pode reforçar Big Domino sutilmente.`;
+- CTA: afirmacao contemplativa forte OU pergunta retorica curta (sem pergunta = 3.4x mais eng). Pode reforçar Big Domino sutilmente.`;

@@ -40,7 +40,7 @@ Criterios pra alto score:
 - Hook nos primeiros 120 caracteres (IG corta no feed em ~125)
 - Revelacao, sensorial, historia ou observacao (gatilhos de curador) ganham pontos
 - Imagem/textura/som concreto em vez de promessa vaga
-- Fecho contemplativo (pergunta aberta organica) > CTA comercial
+- Fecho contemplativo (afirmacao forte ou pergunta retorica) > CTA comercial
 - Vocabulario premium sem forçar
 - Zero linguagem proibida
 - SHARE-ABILITY: 2a frase funciona copiada num WhatsApp
