@@ -120,37 +120,59 @@ export async function pollRenderJob(
   const { onProgress, intervalMs = 1500, maxWaitMs = 5 * 60_000, signal } = opts;
   const start = Date.now();
 
+  let networkErrors = 0;
+  const MAX_NETWORK_ERRORS = 20; // tolera ate ~30s offline antes de desistir
+
   while (true) {
     if (signal?.aborted) throw new DOMException("aborted", "AbortError");
     if (Date.now() - start > maxWaitMs) {
       throw new Error(`timeout (${Math.round(maxWaitMs / 1000)}s) esperando render`);
     }
 
-    const r = await fetch(`/api/render/status/${jobId}`, { cache: "no-store" });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
-      throw new Error(err.error || "poll falhou");
+    let data: Record<string, unknown>;
+    try {
+      const r = await fetch(`/api/render/status/${jobId}`, { cache: "no-store" });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+        throw new Error(err.error || "poll falhou");
+      }
+      data = await r.json();
+      networkErrors = 0; // reset on success
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // "Load failed", "Failed to fetch", "NetworkError" = browser suspended tab
+      if (/load failed|failed to fetch|networkerror|network/i.test(msg)) {
+        networkErrors++;
+        if (networkErrors >= MAX_NETWORK_ERRORS) {
+          throw new Error("rede indisponivel por muito tempo — render pode ter concluido, reabra o app");
+        }
+        // wait longer when backgrounded — Chrome throttles timers anyway
+        await new Promise((resolve) => setTimeout(resolve, intervalMs * 2));
+        continue;
+      }
+      throw e; // non-network error, propagate
     }
-    const data = await r.json();
-    const slidesReady = Math.round(((data.progress || 0) / 100) * (data.total_slides || 1));
+
+    const slidesReady = Math.round(((Number(data.progress) || 0) / 100) * (Number(data.total_slides) || 1));
     onProgress?.({
-      progress: data.progress || 0,
-      status: data.status,
+      progress: Number(data.progress) || 0,
+      status: data.status as ProgressUpdate["status"],
       slidesReady,
-      totalSlides: data.total_slides || 0,
+      totalSlides: Number(data.total_slides) || 0,
     });
 
     if (data.status === "done") {
       clearActiveJob();
+      const result = data.result as { slides: RenderedSlide[]; elapsed_ms: number };
       return {
         jobId,
-        slides: data.result.slides,
-        elapsed_ms: data.result.elapsed_ms,
+        slides: result.slides,
+        elapsed_ms: result.elapsed_ms,
       };
     }
     if (data.status === "error") {
       clearActiveJob();
-      throw new Error(data.error || "render falhou no servidor");
+      throw new Error((data.error as string) || "render falhou no servidor");
     }
 
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
