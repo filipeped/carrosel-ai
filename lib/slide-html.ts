@@ -3,6 +3,10 @@ import { renderCover } from "../templates/cover";
 import { renderPlantDetail } from "../templates/plantDetail";
 import { renderInspiration } from "../templates/inspiration";
 import { renderCta } from "../templates/cta";
+import { renderBeforeAfter } from "../templates/beforeAfter";
+import { renderMythBuster } from "../templates/mythBuster";
+import { renderListItem } from "../templates/listItem";
+import { renderProblemSolution } from "../templates/problemSolution";
 import { getFontFaceCss } from "./fonts";
 
 /**
@@ -33,6 +37,32 @@ export function buildSlideHtml(slide: SlideData, imageUrl: string): string {
       imageUrl,
       pergunta: slide.fechamento || slide.pergunta || "",
       italicWords: slide.italicWords || [],
+    });
+  } else if (slide.type === "beforeAfter") {
+    html = renderBeforeAfter({
+      imageUrl,
+      phase: slide.phase || "PROCESSO",
+      caption: slide.caption,
+    });
+  } else if (slide.type === "mythBuster") {
+    html = renderMythBuster({
+      imageUrl,
+      mito: slide.mito || "",
+      verdade: slide.verdade || "",
+    });
+  } else if (slide.type === "listItem") {
+    html = renderListItem({
+      imageUrl,
+      numeral: slide.numeral || "",
+      nomePopular: slide.nomePopular || "",
+      nomeCientifico: slide.nomeCientifico || undefined,
+      dica: slide.dica,
+    });
+  } else if (slide.type === "problemSolution") {
+    html = renderProblemSolution({
+      imageUrl,
+      problema: slide.problema || "",
+      solucao: slide.solucao || "",
     });
   } else {
     html = renderInspiration({

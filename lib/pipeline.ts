@@ -8,7 +8,15 @@ import { extractJson } from "./utils";
 import { getBrandVoiceReferences } from "./brand-voice";
 
 export type SlideSpec = {
-  type: "cover" | "inspiration" | "plantDetail" | "cta";
+  type:
+    | "cover"
+    | "inspiration"
+    | "plantDetail"
+    | "cta"
+    | "beforeAfter"
+    | "mythBuster"
+    | "listItem"
+    | "problemSolution";
   imageIdx: number;
   topLabel?: string;
   numeral?: string | null;
@@ -18,6 +26,18 @@ export type SlideSpec = {
   nomePopular?: string | null;
   nomeCientifico?: string | null;
   pergunta?: string;
+  fechamento?: string;
+  // beforeAfter
+  phase?: "ANTES" | "DEPOIS" | "PROCESSO";
+  caption?: string;
+  // mythBuster
+  mito?: string;
+  verdade?: string;
+  // listItem
+  dica?: string;
+  // problemSolution
+  problema?: string;
+  solucao?: string;
 };
 
 export type ExtractedFilters = {

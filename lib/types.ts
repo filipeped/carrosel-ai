@@ -23,7 +23,22 @@ export type ImageRow = {
   analise_visual?: AnaliseVisual;
 };
 
-export type SlideKind = "cover" | "inspiration" | "plantDetail" | "cta";
+export type SlideKind =
+  | "cover"
+  | "inspiration"
+  | "plantDetail"
+  | "cta"
+  | "beforeAfter"
+  | "mythBuster"
+  | "listItem"
+  | "problemSolution";
+
+export type CarouselFormat =
+  | "classic"
+  | "transformation"
+  | "myths"
+  | "listicle"
+  | "problemSolution";
 
 export type SlideData = {
   type: SlideKind;
@@ -37,6 +52,17 @@ export type SlideData = {
   nomeCientifico?: string | null;
   pergunta?: string;
   fechamento?: string;
+  // beforeAfter
+  phase?: "ANTES" | "DEPOIS" | "PROCESSO";
+  caption?: string;
+  // mythBuster
+  mito?: string;
+  verdade?: string;
+  // listItem (numeral, nomePopular, nomeCientifico ja existem)
+  dica?: string;
+  // problemSolution
+  problema?: string;
+  solucao?: string;
 };
 
 export type Selection = {

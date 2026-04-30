@@ -339,12 +339,120 @@ function renderCta(d) {
   </div>`);
 }
 
+function renderBeforeAfter(d) {
+  const phase = d.phase === "ANTES" || d.phase === "DEPOIS" || d.phase === "PROCESSO" ? d.phase : "PROCESSO";
+  const palette = phase === "ANTES"
+    ? { bg: "rgba(76,50,30,0.92)", ink: "#f1ede3", border: "rgba(241,237,227,0.5)" }
+    : phase === "DEPOIS"
+    ? { bg: "rgba(214,231,196,0.95)", ink: "#0a0d0b", border: "rgba(10,13,11,0.5)" }
+    : { bg: "rgba(20,32,24,0.88)", ink: "#f1ede3", border: "rgba(241,237,227,0.45)" };
+  return wrap(`<div class="slide">
+    <div class="bg"><img src="${escapeHtml(d.imageUrl)}" width="1080" height="1350"/></div>
+    <div class="veil veil-bottom"></div>
+    <div class="chrome">
+      <div class="meta-top"><span></span><span class="rule"></span><span>TRANSFORMACAO</span></div>
+      <div class="content">
+        <div style="display:flex;align-items:center;gap:12px;align-self:flex-start;padding:14px 22px;border-radius:4px;background:${palette.bg};border:1px solid ${palette.border};font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:6px;text-transform:uppercase;color:${palette.ink};margin-bottom:24px">
+          <span style="display:flex;width:10px;height:10px;border-radius:50%;background:${palette.ink}"></span>
+          <span>${escapeHtml(phase)}</span>
+        </div>
+        ${d.caption ? `<div style="display:block;font-family:'Fraunces',serif;font-weight:400;font-size:56px;line-height:1.06;letter-spacing:-1px;color:#fff;max-width:720px">${escapeHtml(d.caption)}</div>` : ""}
+      </div>
+      <div class="meta-bottom"><span>${HANDLE_UP}</span><span>PROJETO 3D</span></div>
+    </div>
+  </div>`);
+}
+
+function renderMythBuster(d) {
+  return wrap(`<div class="slide">
+    <div class="bg"><img src="${escapeHtml(d.imageUrl)}" width="1080" height="1350"/></div>
+    <div class="veil veil-cover"></div>
+    <div class="chrome">
+      <div class="meta-top"><span></span><span class="rule"></span><span>MITO E VERDADE</span></div>
+      <div class="content">
+        <div style="display:flex;flex-direction:column;gap:24px;width:100%">
+          <div style="display:flex;flex-direction:column;padding:30px 32px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);background:rgba(60,22,22,0.88)">
+            <div style="display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:5px;text-transform:uppercase;margin-bottom:14px;color:rgba(255,255,255,0.85)">
+              <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.6);color:#fff">x</span>
+              <span>MITO</span>
+            </div>
+            <div style="display:block;font-family:'Fraunces',serif;font-weight:400;font-size:34px;line-height:1.18;letter-spacing:-0.4px;color:#fff">${escapeHtml(d.mito || "")}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;padding:30px 32px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);background:rgba(214,231,196,0.94);color:#0a0d0b">
+            <div style="display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:5px;text-transform:uppercase;margin-bottom:14px;color:rgba(10,13,11,0.85)">
+              <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;background:rgba(10,13,11,0.15);border:1px solid rgba(10,13,11,0.6);color:#0a0d0b">v</span>
+              <span>VERDADE</span>
+            </div>
+            <div style="display:block;font-family:'Fraunces',serif;font-weight:400;font-size:34px;line-height:1.18;letter-spacing:-0.4px;color:#0a0d0b">${escapeHtml(d.verdade || "")}</div>
+          </div>
+        </div>
+      </div>
+      <div class="meta-bottom"><span>${HANDLE_UP}</span><span>PAISAGISMO REAL</span></div>
+    </div>
+  </div>`);
+}
+
+function renderListItem(d) {
+  const numeral = String(d.numeral || "").trim().slice(0, 3);
+  return wrap(`<div class="slide">
+    <div class="bg"><img src="${escapeHtml(d.imageUrl)}" width="1080" height="1350"/></div>
+    <div class="veil veil-bottom"></div>
+    <div class="chrome">
+      <div class="meta-top"><span></span><span class="rule"></span><span>LISTA PRATICA</span></div>
+      <div class="content">
+        <div style="display:flex;align-items:flex-end;gap:32px;width:100%">
+          ${numeral ? `<div style="display:flex;font-family:'Fraunces',serif;font-weight:300;font-style:italic;font-size:220px;line-height:0.85;letter-spacing:-6px;color:#d6e7c4;margin-bottom:-12px">${escapeHtml(numeral)}</div>` : ""}
+          <div style="display:flex;flex-direction:column;flex:1">
+            <div style="display:block;font-family:'Fraunces',serif;font-weight:400;font-size:64px;line-height:1.02;letter-spacing:-1.4px;color:#fff">${escapeHtml(d.nomePopular || "")}</div>
+            ${d.nomeCientifico ? `<div style="display:block;font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:22px;line-height:1.2;color:rgba(255,255,255,0.92);margin-top:8px">${escapeHtml(d.nomeCientifico)}</div>` : ""}
+          </div>
+        </div>
+        ${d.dica ? `<div style="display:block;font-family:'Archivo',sans-serif;font-size:18px;line-height:1.5;color:rgba(255,255,255,0.92);max-width:720px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.25)">${escapeHtml(d.dica)}</div>` : ""}
+      </div>
+      <div class="meta-bottom"><span>${HANDLE_UP}</span><span>SALVE PARA CONSULTAR</span></div>
+    </div>
+  </div>`);
+}
+
+function renderProblemSolution(d) {
+  return wrap(`<div class="slide">
+    <div class="bg"><img src="${escapeHtml(d.imageUrl)}" width="1080" height="1350"/></div>
+    <div class="veil veil-cover"></div>
+    <div class="chrome">
+      <div class="meta-top"><span></span><span class="rule"></span><span>DIAGNOSTICO</span></div>
+      <div class="content">
+        <div style="display:flex;flex-direction:column;gap:22px;width:100%">
+          <div style="display:flex;flex-direction:column;padding:30px 32px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);background:rgba(54,18,18,0.9)">
+            <div style="display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:5px;text-transform:uppercase;margin-bottom:14px;color:rgba(255,255,255,0.88)">
+              <span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.55);color:#fff">x</span>
+              <span>PROBLEMA</span>
+            </div>
+            <div style="display:block;font-family:'Fraunces',serif;font-weight:400;font-size:32px;line-height:1.18;letter-spacing:-0.4px;color:#fff">${escapeHtml(d.problema || "")}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;padding:30px 32px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);background:rgba(214,231,196,0.95);color:#0a0d0b">
+            <div style="display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:5px;text-transform:uppercase;margin-bottom:14px;color:rgba(10,13,11,0.85)">
+              <span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;background:rgba(10,13,11,0.12);border:1px solid rgba(10,13,11,0.55);color:#0a0d0b">v</span>
+              <span>SOLUCAO</span>
+            </div>
+            <div style="display:block;font-family:'Fraunces',serif;font-weight:400;font-size:32px;line-height:1.18;letter-spacing:-0.4px;color:#0a0d0b">${escapeHtml(d.solucao || "")}</div>
+          </div>
+        </div>
+      </div>
+      <div class="meta-bottom"><span>${HANDLE_UP}</span><span>PAISAGISMO INTEGRADO</span></div>
+    </div>
+  </div>`);
+}
+
 function buildSlideHtml(slide, imageDataUrl) {
   const data = { ...slide, imageUrl: imageDataUrl };
   switch (slide.type) {
     case "cover": return renderCover(data);
     case "plantDetail": return renderPlantDetail(data);
     case "cta": return renderCta(data);
+    case "beforeAfter": return renderBeforeAfter(data);
+    case "mythBuster": return renderMythBuster(data);
+    case "listItem": return renderListItem(data);
+    case "problemSolution": return renderProblemSolution(data);
     default: return renderInspiration(data);
   }
 }

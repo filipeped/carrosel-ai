@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { ImageRow, Selection, SlideData } from "@/lib/types";
+import type { ImageRow, Selection, SlideData, CarouselFormat } from "@/lib/types";
 import { useProgressSim, useWakeLock, usePageVisible } from "@/lib/hooks";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Steps } from "@/components/Steps";
@@ -27,6 +27,7 @@ export default function Home() {
   // abaixo — evita React error #418 (hydration mismatch).
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [prompt, setPrompt] = useState<string>("");
+  const [format, setFormat] = useState<CarouselFormat>("classic");
   const [loading, setLoading] = useState(false);
   const [currentFlow, setCurrentFlow] = useState<"search" | "copy" | null>(null);
   const [error, setError] = useState("");
@@ -43,6 +44,7 @@ export default function Home() {
     if (stored) {
       if (stored.step === 2 || stored.step === 3) setStep(stored.step);
       if (typeof stored.prompt === "string") setPrompt(stored.prompt);
+      if (typeof stored.format === "string") setFormat(stored.format as CarouselFormat);
       if (stored.selection) setSelection(stored.selection);
       if (Array.isArray(stored.slides)) setSlides(stored.slides);
       if (Array.isArray(stored.allImages)) setAllImages(stored.allImages);
@@ -57,10 +59,10 @@ export default function Home() {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ step, prompt, selection, slides, allImages, carrosselId }),
+        JSON.stringify({ step, prompt, format, selection, slides, allImages, carrosselId }),
       );
     } catch {}
-  }, [step, prompt, selection, slides, allImages, carrosselId, hydrated]);
+  }, [step, prompt, format, selection, slides, allImages, carrosselId, hydrated]);
 
   function resetToStart() {
     setStep(1);
@@ -185,7 +187,7 @@ export default function Home() {
       const r = await fetch("/api/search-smart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: effective, candidateCount: 24 }),
+        body: JSON.stringify({ prompt: effective, candidateCount: 24, format }),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -217,11 +219,27 @@ export default function Home() {
     setCurrentFlow("copy");
     setError("");
     try {
-      const ordered = [selection.cover, ...selection.inner, selection.cta];
+      const baseOrdered = [selection.cover, ...selection.inner, selection.cta];
+      // Formatos novos podem precisar de >6 imagens (listicle=9, transformation=8).
+      // Quando nao-classico, expande com alternatives bem rankeadas.
+      const FORMAT_COUNTS: Record<string, number> = {
+        transformation: 8, myths: 7, listicle: 9, problemSolution: 7,
+      };
+      const expectedCount = FORMAT_COUNTS[format] || 6;
+      let ordered = baseOrdered;
+      if (format !== "classic" && baseOrdered.length < expectedCount) {
+        const inners = [...selection.inner, ...selection.alternatives];
+        const middleCount = expectedCount - 2;
+        const middle = inners.slice(0, middleCount);
+        while (middle.length < middleCount && inners.length) {
+          middle.push(inners[middle.length % inners.length]);
+        }
+        ordered = [selection.cover, ...middle, selection.cta];
+      }
       const r = await fetch("/api/copy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, images: ordered }),
+        body: JSON.stringify({ prompt, images: ordered, format }),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -399,6 +417,8 @@ export default function Home() {
           onSearch={doSmartSearch}
           onCuradoria={doCuradoria}
           curadoriaLoading={loading && currentFlow === "search" && !prompt.trim()}
+          format={format}
+          setFormat={setFormat}
         />
       )}
       {step === 2 && selection && (

@@ -36,6 +36,10 @@ export function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: 
       const { renderPlantDetail } = await import("@/templates/plantDetail");
       const { renderInspiration } = await import("@/templates/inspiration");
       const { renderCta } = await import("@/templates/cta");
+      const { renderBeforeAfter } = await import("@/templates/beforeAfter");
+      const { renderMythBuster } = await import("@/templates/mythBuster");
+      const { renderListItem } = await import("@/templates/listItem");
+      const { renderProblemSolution } = await import("@/templates/problemSolution");
       let out = "";
       if (slide.type === "cover") {
         out = renderCover({
@@ -56,6 +60,32 @@ export function SlidePreview({ slide, imageUrl }: { slide: SlideData; imageUrl: 
           imageUrl,
           pergunta: slide.fechamento || slide.pergunta || "",
           italicWords: slide.italicWords || [],
+        }, origin);
+      } else if (slide.type === "beforeAfter") {
+        out = renderBeforeAfter({
+          imageUrl,
+          phase: slide.phase || "PROCESSO",
+          caption: slide.caption,
+        }, origin);
+      } else if (slide.type === "mythBuster") {
+        out = renderMythBuster({
+          imageUrl,
+          mito: slide.mito || "",
+          verdade: slide.verdade || "",
+        }, origin);
+      } else if (slide.type === "listItem") {
+        out = renderListItem({
+          imageUrl,
+          numeral: slide.numeral || "",
+          nomePopular: slide.nomePopular || "",
+          nomeCientifico: slide.nomeCientifico || undefined,
+          dica: slide.dica,
+        }, origin);
+      } else if (slide.type === "problemSolution") {
+        out = renderProblemSolution({
+          imageUrl,
+          problema: slide.problema || "",
+          solucao: slide.solucao || "",
         }, origin);
       } else {
         out = renderInspiration({

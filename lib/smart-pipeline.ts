@@ -4,9 +4,11 @@ import { searchImages as _searchImages } from "./pipeline";
 import { analyzeAndCache, enrichImagesWithPlantId, AnaliseVisual } from "./image-analysis";
 import { analyzePrompt } from "./agents/prompt-analyst";
 import { critiqueCarousel } from "./agents/carousel-critic";
+import { planSlides, type SlideOutline } from "./agents/slides-architect";
 import { extractJson } from "./utils";
-import { getSupabase, ImageBankRow } from "./supabase";
+import { getSupabase, ImageBankRow, VegetacaoRow } from "./supabase";
 import type { SlideSpec } from "./pipeline";
+import type { CarouselFormat } from "./types";
 import { getRecentlyUsedImageIds, saveCarrossel } from "./history";
 import { getBrandVoiceReferences } from "./brand-voice";
 
@@ -443,6 +445,196 @@ export async function searchAndSelect(
   return { selection, allAnalyzed: analyzed, analysis };
 }
 
+/**
+ * Busca plantas no banco `vegetacoes` para o formato listicle.
+ * Heuristica: extrai termos do prompt (luminosidade, clima, ambiente) e usa
+ * ILIKE em campos chave. Volta um pool maior pra IA escolher os melhores.
+ */
+export async function fetchVegetacoesForListicle(
+  prompt: string,
+  count = 14,
+): Promise<VegetacaoRow[]> {
+  const supabase = getSupabase();
+  const p = norm(prompt);
+
+  // Sinais de luminosidade
+  let lumFilter: string | null = null;
+  if (/sombra|meia.?sombra|sem sol/.test(p)) lumFilter = "sombra";
+  else if (/sol pleno|sol forte|cheio de sol/.test(p)) lumFilter = "sol";
+
+  let query = supabase.from("vegetacoes").select("*").limit(count * 2);
+  if (lumFilter) query = query.ilike("luminosidade", `%${lumFilter}%`);
+
+  // Filtros extras se prompt menciona contexto
+  if (/tropical|florida|colorida/.test(p)) query = query.ilike("categorias", `%tropical%`);
+  if (/seco|cactus|suculenta/.test(p)) query = query.ilike("categorias", `%suculenta%`);
+  if (/folhagem|verde|massa/.test(p)) query = query.ilike("categorias", `%folhagem%`);
+
+  const { data } = await query;
+  const rows = (data || []) as VegetacaoRow[];
+  // Filtra entradas sem nome popular (item incompleto nao serve)
+  return rows.filter((r) => r.nome_popular && r.nome_popular.trim().length > 0).slice(0, count);
+}
+
+/**
+ * Valida slides de formatos NAO-CLASSICOS — apenas fixa imageIdx por posicao.
+ * Sem downgrade pra inspiration porque os novos types nao tem alucinacao de especie.
+ */
+export function validateFormattedSlides(
+  slides: SlideSpec[],
+  imagesOrdered: AnalyzedImage[],
+): SlideSpec[] {
+  return slides.map((s, i) => {
+    const fixedIdx = i;
+    const img = imagesOrdered[fixedIdx];
+    if (!img) return { ...s, imageIdx: fixedIdx };
+    return { ...s, imageIdx: fixedIdx };
+  });
+}
+
+const FORMAT_SYSTEMS: Record<Exclude<CarouselFormat, "classic">, string> = {
+  transformation: `Voce escreve copy pra carrossel de TRANSFORMACAO (antes/depois) do @digitalpaisagismo.
+ESTRUTURA: capa + 6 slides beforeAfter (2 ANTES, 2 PROCESSO, 2 DEPOIS) + cta.
+Cada slide beforeAfter tem uma "phase" e uma "caption" curta (max 14 palavras).
+A caption descreve em 1 frase o que aquele momento mostra, sem clichê. Sem "—", sem ":".`,
+
+  myths: `Voce escreve copy pra carrossel de MITOS do @digitalpaisagismo.
+ESTRUTURA: capa + 5 slides mythBuster + cta.
+Cada slide mythBuster tem "mito" (crenca falsa, max 14 palavras) e "verdade" (correcao tecnica honesta, max 18 palavras).
+Os 5 mitos devem ser DIFERENTES e cobrir aspectos variados: rega, sol, manutencao, escolha de especies, planejamento, irrigacao automatizada, projeto 3D etc.
+Tom: curador que corrige sem soberba. Sem "—", sem ":".`,
+
+  listicle: `Voce escreve copy pra carrossel LISTA PRATICA do @digitalpaisagismo.
+ESTRUTURA: capa + 7 slides listItem + cta.
+RECEBE uma lista de plantas reais do banco da empresa. ESCOLHE as 7 mais aderentes ao tema e gera UMA dica curta (max 16 palavras) pra cada.
+NAO INVENTE plantas. Use SO o que aparece na lista fornecida.
+Cada listItem: numeral "01"-"07", nomePopular, nomeCientifico, dica.
+A capa anuncia o numero (ex: "7 plantas...") e o beneficio claro.
+CTA: convite a salvar pra consultar depois. Sem "—", sem ":".`,
+
+  problemSolution: `Voce escreve copy pra carrossel PROBLEMA → SOLUCAO do @digitalpaisagismo.
+ESTRUTURA: capa + 5 slides problemSolution + cta.
+Cada slide tem "problema" (dor concreta, max 14 palavras) e "solucao" (resposta tecnica direta, max 18 palavras).
+Os 5 problemas devem cobrir aspectos variados do jardim: rega, escolha de especies, manutencao, drenagem, integracao com a casa, planejamento.
+Tom: especialista que diagnostica e resolve. Sem "—", sem ":".`,
+};
+
+function buildFormatSchema(format: Exclude<CarouselFormat, "classic">, slideCount: number): string {
+  const lastIdx = slideCount - 1;
+  const common = `Retorne JSON: { "slides": [${slideCount} items] } sem markdown.
+[0] cover: { type:"cover", imageIdx:0, topLabel, numeral${format === "listicle" ? '' : ':null'}, title, italicWords:[] }
+[${lastIdx}] cta: { type:"cta", imageIdx:${lastIdx}, fechamento, italicWords:[] }`;
+
+  if (format === "transformation") {
+    return `${common}
+[1..${lastIdx - 1}] beforeAfter: { type:"beforeAfter", imageIdx, phase:"ANTES"|"PROCESSO"|"DEPOIS", caption }
+A sequencia deve ser: ANTES, ANTES, PROCESSO, PROCESSO, DEPOIS, DEPOIS (slides 1-6).
+Caption: 1 frase curta de ate 14 palavras descrevendo o momento.`;
+  }
+
+  if (format === "myths") {
+    return `${common}
+[1..${lastIdx - 1}] mythBuster: { type:"mythBuster", imageIdx, mito, verdade }
+Mito: max 14 palavras. Verdade: max 18 palavras. Sem "—", sem ":".`;
+  }
+
+  if (format === "listicle") {
+    return `${common}
+[1..${lastIdx - 1}] listItem: { type:"listItem", imageIdx, numeral:"01"|"02"|..., nomePopular, nomeCientifico, dica }
+numeral: string "01" a "0${lastIdx - 1}" em ordem.
+A capa pode ter numeral string numerico (ex: "7") indicando o tamanho da lista.
+dica: max 16 palavras, frase de cuidado/uso pratico.`;
+  }
+
+  // problemSolution
+  return `${common}
+[1..${lastIdx - 1}] problemSolution: { type:"problemSolution", imageIdx, problema, solucao }
+Problema: max 14 palavras. Solucao: max 18 palavras. Sem "—", sem ":".`;
+}
+
+/**
+ * Quantos slides cada formato gera (sincronizado com buildFormatOutline em slides-architect).
+ */
+export const FORMAT_SLIDE_COUNTS: Record<Exclude<CarouselFormat, "classic">, number> = {
+  transformation: 8,
+  myths: 7,
+  listicle: 9,
+  problemSolution: 7,
+};
+
+/**
+ * Gera copy pros formatos NAO-CLASSICOS.
+ * Pra listicle, busca plantas em `vegetacoes` e injeta no contexto.
+ * imagesOrdered: imagens na ordem dos slots (slot 0 = capa, slot N-1 = cta).
+ * Se imagesOrdered tiver menos imagens que slideCount, repete ciclicamente.
+ */
+export async function generateCopyForFormat(
+  prompt: string,
+  imagesOrdered: AnalyzedImage[],
+  format: Exclude<CarouselFormat, "classic">,
+  outline: SlideOutline[],
+): Promise<{ slides: SlideSpec[] }> {
+  const slideCount = outline.length;
+  const schema = buildFormatSchema(format, slideCount);
+
+  const imgSummary = Array.from({ length: slideCount })
+    .map((_, i) => {
+      const im = imagesOrdered[i % Math.max(1, imagesOrdered.length)];
+      if (!im) return `[${i}] (sem imagem)`;
+      const a = im.analise_visual;
+      return `[${i}] ${a?.descricao_visual || im.descricao || "(sem descricao)"} | mood: ${(a?.mood_real || []).join(", ")}`;
+    })
+    .join("\n");
+
+  let extraContext = "";
+  if (format === "listicle") {
+    const vegs = await fetchVegetacoesForListicle(prompt, 14);
+    if (vegs.length === 0) {
+      throw new Error("Nenhuma planta encontrada no banco vegetacoes para este tema");
+    }
+    const vegList = vegs
+      .map(
+        (v, i) =>
+          `${i + 1}. ${v.nome_popular} (${v.nome_cientifico || "?"}) | luminosidade: ${v.luminosidade || "?"} | categorias: ${v.categorias || "?"} | altura: ${v.altura || "?"}`,
+      )
+      .join("\n");
+    extraContext = `\n\nPLANTAS DISPONIVEIS NO BANCO (escolha as 7 mais aderentes ao tema):
+${vegList}
+
+Use SOMENTE plantas dessa lista. Nao invente especies. nomeCientifico DEVE ser o exato da lista.`;
+  }
+
+  const userMsg = `Tema: "${prompt}"
+
+Imagens disponiveis (1 por slide, fonte de verdade):
+${imgSummary}
+
+Outline planejado:
+${outline.map((o) => `[${o.slideIdx}] ${o.type}${o.phase ? ` (${o.phase})` : ""} — ${o.purpose}`).join("\n")}
+${extraContext}
+
+${schema}`;
+
+  const voiceRefs = await getBrandVoiceReferences();
+  const formatSystem = FORMAT_SYSTEMS[format];
+  const fullSystem = voiceRefs
+    ? `${BRAND_VOICE}\n\n${formatSystem}\n\n${voiceRefs}\n\nNos textos do slide: sem emoji, sem hashtag.\n\n${schema}`
+    : `${BRAND_VOICE}\n\n${formatSystem}\n\n${schema}`;
+
+  const r = await getAi().chat.completions.create({
+    model: MODEL,
+    max_tokens: 2800,
+    messages: [
+      { role: "system", content: fullSystem },
+      { role: "user", content: userMsg },
+    ],
+  });
+  const raw = r.choices[0]?.message?.content || "";
+  let parsed: any = extractJson(raw);
+  if (Array.isArray(parsed)) parsed = { slides: parsed };
+  return parsed;
+}
+
 export async function runSmartCarousel(
   prompt: string,
   opts: {
@@ -453,12 +645,27 @@ export async function runSmartCarousel(
     skipAgents?: boolean;
     slideCount?: number;        // 6-10 quando dinamico; default 6
     approachFocus?: string;     // per-variant: direta_emocional, contrarian_forte, etc
+    format?: CarouselFormat;    // "classic" (default) ou novo formato
     presetSelection?: SmartSelection;       // reusa selecao de imagens ja analisadas
     presetAnalysis?: { persona?: string; enrichedPrompt?: string; mainDor?: string };
     presetAllAnalyzed?: AnalyzedImage[];
   } = {},
 ) {
-  const slideCount = Math.max(6, Math.min(10, opts.slideCount ?? 6));
+  const format: CarouselFormat = opts.format ?? "classic";
+  const isClassic = format === "classic";
+
+  // Pra formatos novos, architect retorna outline deterministico (slideCount fixo).
+  // Pra classic, mantem comportamento existente (slideCount via opts).
+  let outline: SlideOutline[] | undefined;
+  let slideCount: number;
+  if (isClassic) {
+    slideCount = Math.max(6, Math.min(10, opts.slideCount ?? 6));
+  } else {
+    const plan = await planSlides({ prompt, format });
+    slideCount = plan.slideCount;
+    outline = plan.outline;
+  }
+
   let selection: SmartSelection;
   let allAnalyzed: AnalyzedImage[];
   let analysis: { persona?: string; enrichedPrompt?: string; mainDor?: string } | undefined;
@@ -475,23 +682,50 @@ export async function runSmartCarousel(
     allAnalyzed = searched.allAnalyzed;
     analysis = searched.analysis;
   }
-  const { slides: rawSlides } = await generateCopyFromAnalysis(prompt, selection, {
-    slideCount,
-    approachFocus: opts.approachFocus,
-  });
-  const ordered = [selection.cover, ...selection.inner, selection.cta].slice(0, slideCount);
-  let slides = validateSlidesAgainstImages(rawSlides, ordered);
 
-  // AGENTE 2: Carousel Critic — avalia e opcionalmente regenera se score baixo
+  // Pra classic: 6 imagens fixas (cover + 4 inner + cta).
+  // Pra formatos novos com >6 slides: expande com alternatives (bem rankeadas tambem).
+  const baseOrdered = [selection.cover, ...selection.inner, selection.cta];
+  let ordered: AnalyzedImage[];
+  if (isClassic) {
+    ordered = baseOrdered.slice(0, slideCount);
+  } else {
+    // Mantém cover no slot 0, cta no ultimo, e preenche miolo com inner + alternatives.
+    const inners = [...selection.inner, ...selection.alternatives];
+    const middleCount = Math.max(0, slideCount - 2);
+    const middle = inners.slice(0, middleCount);
+    // Se ainda falta, repete inner em ciclo (fallback raro)
+    while (middle.length < middleCount) middle.push(inners[middle.length % inners.length]);
+    ordered = [selection.cover, ...middle, selection.cta];
+  }
+
+  let slides: SlideSpec[];
+
+  if (isClassic) {
+    const { slides: rawSlides } = await generateCopyFromAnalysis(prompt, selection, {
+      slideCount,
+      approachFocus: opts.approachFocus,
+    });
+    slides = validateSlidesAgainstImages(rawSlides, ordered);
+  } else {
+    const { slides: rawSlides } = await generateCopyForFormat(
+      prompt,
+      ordered,
+      format as Exclude<CarouselFormat, "classic">,
+      outline!,
+    );
+    slides = validateFormattedSlides(rawSlides, ordered);
+  }
+
+  // AGENTE 2: Carousel Critic — so roda em classic (critic pressupoe types antigos).
   let critique: Awaited<ReturnType<typeof critiqueCarousel>> | undefined;
-  if (!opts.skipAgents) {
+  if (isClassic && !opts.skipAgents) {
     try {
       critique = await critiqueCarousel({
         slides,
         prompt,
         persona: analysis?.persona,
       });
-      // Se score < 65, faz 1 regen com feedback
       if (critique.score < 65 && critique.issues.length) {
         const retry = await generateCopyFromAnalysis(prompt, selection, {
           slideCount,
@@ -524,5 +758,6 @@ export async function runSmartCarousel(
     imagens: ordered,
     analysis,
     critique,
+    format,
   };
 }

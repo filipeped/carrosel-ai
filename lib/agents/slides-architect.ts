@@ -9,12 +9,22 @@
 import { getAi, MODEL } from "../claude";
 import { extractJson } from "../utils";
 import { brandBlockCompact, type HookFrameworkKey } from "../brand-context";
+import type { CarouselFormat } from "../types";
 
 export type SlideOutline = {
   slideIdx: number;
-  type: "cover" | "plantDetail" | "inspiration" | "cta";
+  type:
+    | "cover"
+    | "plantDetail"
+    | "inspiration"
+    | "cta"
+    | "beforeAfter"
+    | "mythBuster"
+    | "listItem"
+    | "problemSolution";
   purpose: string;     // 1 frase: o que esse slide faz na narrativa
   imageHint?: string;  // que tipo de imagem casa (opcional)
+  phase?: "ANTES" | "DEPOIS" | "PROCESSO"; // beforeAfter only
 };
 
 export type ArchitectPlan = {
@@ -22,6 +32,7 @@ export type ArchitectPlan = {
   outline: SlideOutline[];
   rationale: string;
   recommended_hook_framework: HookFrameworkKey;
+  format: CarouselFormat;
 };
 
 const VALID_FRAMEWORKS: HookFrameworkKey[] = [
@@ -81,13 +92,123 @@ PRIORIZE sensorial e manifesto_tese — sao os que mais performam no perfil (dad
   "recommended_hook_framework": "sensorial"|"manifesto_tese"|"revelacao"|"quebra_expectativa"|"historia_da_planta"|"observacao_de_quem_entende"|"comportamento_do_jardim"
 }`;
 
+/**
+ * Outline deterministico pros formatos NAO-CLASSICOS.
+ * Cada formato tem estrutura propria (tamanho fixo + types fixos por slot).
+ * Hook framework default por formato baseado em performance esperada.
+ */
+function buildFormatOutline(format: CarouselFormat): {
+  slideCount: 6 | 7 | 8 | 9 | 10;
+  outline: SlideOutline[];
+  hookFramework: HookFrameworkKey;
+  rationale: string;
+} | null {
+  if (format === "classic") return null;
+
+  if (format === "transformation") {
+    // 8 slides: cover + 2 ANTES + 2 PROCESSO + 2 DEPOIS + cta
+    const phases: Array<"ANTES" | "PROCESSO" | "DEPOIS"> = [
+      "ANTES", "ANTES", "PROCESSO", "PROCESSO", "DEPOIS", "DEPOIS",
+    ];
+    const outline: SlideOutline[] = [
+      { slideIdx: 0, type: "cover", purpose: "capa com hook de transformacao" },
+      ...phases.map<SlideOutline>((phase, i) => ({
+        slideIdx: i + 1,
+        type: "beforeAfter",
+        purpose: `${phase}: ${phase === "ANTES" ? "estado inicial do espaco" : phase === "PROCESSO" ? "execucao em andamento" : "resultado finalizado"}`,
+        phase,
+        imageHint: phase === "ANTES" ? "area sem paisagismo, terreno bruto" : phase === "PROCESSO" ? "execucao, plantio, montagem" : "jardim pronto, cena finalizada",
+      })),
+      { slideIdx: 7, type: "cta", purpose: "fechamento contemplativo sobre transformacao" },
+    ];
+    return {
+      slideCount: 8,
+      outline,
+      hookFramework: "quebra_expectativa",
+      rationale: "transformation 8 slides (cover + 2 ANTES + 2 PROCESSO + 2 DEPOIS + cta)",
+    };
+  }
+
+  if (format === "myths") {
+    // 7 slides: cover + 5 myth + cta
+    const outline: SlideOutline[] = [
+      { slideIdx: 0, type: "cover", purpose: "capa anunciando lista de mitos" },
+      ...Array.from({ length: 5 }).map<SlideOutline>((_, i) => ({
+        slideIdx: i + 1,
+        type: "mythBuster",
+        purpose: `mito ${i + 1}: derruba uma crenca comum sobre paisagismo`,
+      })),
+      { slideIdx: 6, type: "cta", purpose: "fechamento provocando reflexao sobre os mitos" },
+    ];
+    return {
+      slideCount: 7,
+      outline,
+      hookFramework: "revelacao",
+      rationale: "myths 7 slides (cover + 5 mitos + cta)",
+    };
+  }
+
+  if (format === "listicle") {
+    // 9 slides: cover + 7 itens + cta
+    const outline: SlideOutline[] = [
+      { slideIdx: 0, type: "cover", purpose: "capa com numero e beneficio claro da lista" },
+      ...Array.from({ length: 7 }).map<SlideOutline>((_, i) => ({
+        slideIdx: i + 1,
+        type: "listItem",
+        purpose: `item ${i + 1} da lista: planta com nome e dica curta`,
+      })),
+      { slideIdx: 8, type: "cta", purpose: "convite a salvar o post pra consultar depois" },
+    ];
+    return {
+      slideCount: 9,
+      outline,
+      hookFramework: "manifesto_tese",
+      rationale: "listicle 9 slides (cover + 7 itens + cta)",
+    };
+  }
+
+  if (format === "problemSolution") {
+    // 7 slides: cover + 5 problema/solucao + cta
+    const outline: SlideOutline[] = [
+      { slideIdx: 0, type: "cover", purpose: "capa com hook de dor (problema comum no jardim)" },
+      ...Array.from({ length: 5 }).map<SlideOutline>((_, i) => ({
+        slideIdx: i + 1,
+        type: "problemSolution",
+        purpose: `problema ${i + 1} e como resolver`,
+      })),
+      { slideIdx: 6, type: "cta", purpose: "fechamento provocando reflexao sobre os problemas" },
+    ];
+    return {
+      slideCount: 7,
+      outline,
+      hookFramework: "observacao_de_quem_entende",
+      rationale: "problemSolution 7 slides (cover + 5 problema/solucao + cta)",
+    };
+  }
+
+  return null;
+}
+
 export async function planSlides(params: {
   prompt: string;
   userBrief?: string;
   persona?: string;
   availableImages?: number;
+  format?: CarouselFormat;
 }): Promise<ArchitectPlan> {
-  const { prompt, userBrief, persona, availableImages = 12 } = params;
+  const { prompt, userBrief, persona, availableImages = 12, format = "classic" } = params;
+
+  // Formatos nao-classicos tem estrutura fixa — short-circuit sem chamar LLM
+  const fixed = buildFormatOutline(format);
+  if (fixed) {
+    return {
+      slideCount: fixed.slideCount,
+      outline: fixed.outline,
+      rationale: fixed.rationale,
+      recommended_hook_framework: fixed.hookFramework,
+      format,
+    };
+  }
 
   const userMsg = `TEMA: "${prompt}"
 ${userBrief ? `BRIEFING: ${userBrief}\n` : ""}
@@ -145,6 +266,7 @@ Decide slideCount (6-10) e retorna outline completo. JSON puro.`;
       outline,
       rationale: typeof parsed.rationale === "string" ? parsed.rationale : "default plan (LLM invalid)",
       recommended_hook_framework: validFramework,
+      format,
     };
   } catch (err) {
     console.error("[slides-architect] falhou:", (err as Error).message);
@@ -163,8 +285,9 @@ Decide slideCount (6-10) e retorna outline completo. JSON puro.`;
     return {
       slideCount,
       outline,
-      rationale: "fallback: architect offline, usando 8 slides default",
+      rationale: "fallback: architect offline, usando 6 slides default",
       recommended_hook_framework: "sensorial",
+      format,
     };
   }
 }

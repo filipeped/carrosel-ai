@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAi, MODEL, BRAND_VOICE } from "@/lib/claude";
 import { extractJson } from "@/lib/utils";
+import type { CarouselFormat } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -44,8 +45,21 @@ REGRAS DURAS:
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, images, userBrief, slideCount: rawSlideCount } = await req.json();
+    const body = await req.json();
+    const { prompt, images, userBrief, slideCount: rawSlideCount } = body;
+    const format: CarouselFormat = body.format || "classic";
     if (!images?.length) return NextResponse.json({ error: "images required" }, { status: 400 });
+
+    // Despacha pra pipeline de formato novo (transformation/myths/listicle/problemSolution)
+    if (format !== "classic") {
+      const { generateCopyForFormat, validateFormattedSlides } = await import("@/lib/smart-pipeline");
+      const { planSlides } = await import("@/lib/agents/slides-architect");
+      const plan = await planSlides({ prompt: prompt || "", format });
+      const result = await generateCopyForFormat(prompt || "", images, format as Exclude<CarouselFormat, "classic">, plan.outline);
+      const slides = validateFormattedSlides(result.slides, images);
+      return NextResponse.json({ slides, format, slideCount: plan.slideCount });
+    }
+
     // Slide count: respeita request OU usa count das imagens (clamped 6-10)
     const slideCount = Math.max(6, Math.min(10, rawSlideCount || images.length));
     const SCHEMA = buildSchema(slideCount);

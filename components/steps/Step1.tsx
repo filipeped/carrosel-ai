@@ -2,10 +2,19 @@
 import { useEffect, useState } from "react";
 import { useProgressSim } from "@/lib/hooks";
 import { ProgressBar } from "../ProgressBar";
+import type { CarouselFormat } from "@/lib/types";
 
 const IDEAS_KEY = "carrosel:ideas:v1";
 
 type Idea = { titulo: string; hook: string; gatilho?: string };
+
+const FORMAT_OPTIONS: { value: CarouselFormat; label: string; hint: string }[] = [
+  { value: "classic", label: "Classico (atual)", hint: "Capa + tese + plantas/conceitos + CTA. Sweet spot do perfil." },
+  { value: "transformation", label: "Transformacao (antes/depois)", hint: "Capa + 6 fases (ANTES, PROCESSO, DEPOIS) + CTA. Geram salvamento." },
+  { value: "myths", label: "Mitos (verdade vs mentira)", hint: "Capa + 5 mitos com correcao + CTA. Geram comentarios." },
+  { value: "listicle", label: "Lista pratica", hint: "Capa + 7 plantas com dica + CTA. Salvamentos altos." },
+  { value: "problemSolution", label: "Problema / Solucao", hint: "Capa + 5 diagnosticos + CTA. Geram marcacoes." },
+];
 
 function loadStoredIdeas(): Idea[] | null {
   if (typeof window === "undefined") return null;
@@ -26,6 +35,8 @@ export function Step1({
   onSearch,
   onCuradoria,
   curadoriaLoading,
+  format,
+  setFormat,
 }: {
   prompt: string;
   setPrompt: (s: string) => void;
@@ -33,7 +44,10 @@ export function Step1({
   onSearch: (overridePrompt?: string) => void;
   onCuradoria?: () => void;
   curadoriaLoading?: boolean;
+  format: CarouselFormat;
+  setFormat: (f: CarouselFormat) => void;
 }) {
+  const formatHint = FORMAT_OPTIONS.find((f) => f.value === format)?.hint || "";
   // FIX hydration: state inicial SEMPRE vazio (match SSR).
   // Hidrata do localStorage em useEffect apos mount. Evita React #418.
   const [ideas, setIdeas] = useState<Idea[] | null>(null);
@@ -255,6 +269,21 @@ export function Step1({
 
   return (
     <div className="max-w-3xl">
+      <label className="block mb-2 text-sm opacity-80">Formato do carrossel</label>
+      <select
+        value={format}
+        onChange={(e) => setFormat(e.target.value as CarouselFormat)}
+        className="w-full bg-black/30 border border-white/15 rounded p-3 text-sm mb-1"
+        disabled={loading}
+      >
+        {FORMAT_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value} className="bg-[#131612]">
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <div className="text-xs opacity-60 mb-4 leading-relaxed">{formatHint}</div>
+
       <label className="block mb-2 text-sm opacity-80">Tema do carrossel</label>
       <textarea
         value={prompt}
