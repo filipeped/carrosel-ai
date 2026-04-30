@@ -116,6 +116,10 @@ export function SlideEditor({
             <option value="plantDetail">Planta</option>
             <option value="inspiration">Inspiracao</option>
             <option value="cta">CTA</option>
+            <option value="beforeAfter">Antes/Depois</option>
+            <option value="mythBuster">Mito vs Verdade</option>
+            <option value="listItem">Item de Lista</option>
+            <option value="problemSolution">Problema/Solucao</option>
           </select>
         </div>
         <div className="flex items-center gap-2">
@@ -237,6 +241,47 @@ export function SlideEditor({
               value={(slide.italicWords || []).join(", ")}
               onChange={(v) => onChange({ italicWords: v.split(",").map((x) => x.trim()).filter(Boolean) })}
             />
+          </>
+        )}
+
+        {slide.type === "beforeAfter" && (
+          <>
+            <div>
+              <label className="block text-xs opacity-60 mb-1">Fase</label>
+              <select
+                value={slide.phase || "PROCESSO"}
+                onChange={(e) => onChange({ phase: e.target.value as "ANTES" | "PROCESSO" | "DEPOIS" })}
+                className="w-full bg-black/30 border border-white/15 rounded px-3 py-2 text-sm"
+              >
+                <option value="ANTES">ANTES</option>
+                <option value="PROCESSO">PROCESSO</option>
+                <option value="DEPOIS">DEPOIS</option>
+              </select>
+            </div>
+            <Field label="Caption (max 14 palavras)" value={slide.caption ?? ""} onChange={(v) => onChange({ caption: v })} big />
+          </>
+        )}
+
+        {slide.type === "mythBuster" && (
+          <>
+            <Field label="Mito (max 14 palavras)" value={slide.mito ?? ""} onChange={(v) => onChange({ mito: v })} big />
+            <Field label="Verdade (max 18 palavras)" value={slide.verdade ?? ""} onChange={(v) => onChange({ verdade: v })} big />
+          </>
+        )}
+
+        {slide.type === "listItem" && (
+          <>
+            <Field label="Numeral (01-07)" value={slide.numeral ?? ""} onChange={(v) => onChange({ numeral: v || null })} />
+            <Field label="Nome popular" value={slide.nomePopular ?? ""} onChange={(v) => onChange({ nomePopular: v })} big />
+            <Field label="Nome cientifico" value={slide.nomeCientifico ?? ""} onChange={(v) => onChange({ nomeCientifico: v })} />
+            <Field label="Dica (max 16 palavras)" value={slide.dica ?? ""} onChange={(v) => onChange({ dica: v })} />
+          </>
+        )}
+
+        {slide.type === "problemSolution" && (
+          <>
+            <Field label="Problema (max 14 palavras)" value={slide.problema ?? ""} onChange={(v) => onChange({ problema: v })} big />
+            <Field label="Solucao (max 18 palavras)" value={slide.solucao ?? ""} onChange={(v) => onChange({ solucao: v })} big />
           </>
         )}
       </div>

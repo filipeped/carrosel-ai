@@ -190,7 +190,36 @@ async function _runCaption(
   imageUrls?: string[],
 ): Promise<{ options: CaptionOption[] }> {
   const summary = slides
-    .map((s, i) => `  [${i + 1}] ${s.type}: ${s.title || s.nomePopular || s.fechamento || s.pergunta || ""}`)
+    .map((s, i) => {
+      let content = "";
+      switch (s.type) {
+        case "cover":
+        case "inspiration":
+          content = s.title || "";
+          break;
+        case "plantDetail":
+          content = `${s.nomePopular || ""}${s.nomeCientifico ? ` (${s.nomeCientifico})` : ""}`;
+          break;
+        case "cta":
+          content = s.fechamento || s.pergunta || "";
+          break;
+        case "beforeAfter":
+          content = `${s.phase || "PROCESSO"}, ${s.caption || ""}`;
+          break;
+        case "mythBuster":
+          content = `MITO: ${s.mito || ""} / VERDADE: ${s.verdade || ""}`;
+          break;
+        case "listItem":
+          content = `${s.numeral || ""} ${s.nomePopular || ""}${s.dica ? `, ${s.dica}` : ""}`;
+          break;
+        case "problemSolution":
+          content = `PROBLEMA: ${s.problema || ""} / SOLUCAO: ${s.solucao || ""}`;
+          break;
+        default:
+          content = s.title || s.nomePopular || s.fechamento || s.pergunta || "";
+      }
+      return `  [${i + 1}] ${s.type}: ${content}`;
+    })
     .join("\n");
 
   const userContent: Array<

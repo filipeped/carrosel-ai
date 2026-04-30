@@ -11,7 +11,15 @@ export const maxDuration = 30;
  * Onde allSlides é o array atual dos 6 pra dar contexto de coerencia.
  */
 
-type SlideKind = "cover" | "inspiration" | "plantDetail" | "cta";
+type SlideKind =
+  | "cover"
+  | "inspiration"
+  | "plantDetail"
+  | "cta"
+  | "beforeAfter"
+  | "mythBuster"
+  | "listItem"
+  | "problemSolution";
 
 function schemaFor(type: SlideKind): string {
   if (type === "cover")
@@ -20,7 +28,27 @@ function schemaFor(type: SlideKind): string {
     return `{ "type": "plantDetail", "nomePopular": string, "nomeCientifico": string }`;
   if (type === "cta")
     return `{ "type": "cta", "fechamento": string, "italicWords": string[] }`;
+  if (type === "beforeAfter")
+    return `{ "type": "beforeAfter", "phase": "ANTES"|"PROCESSO"|"DEPOIS", "caption": string (max 14 palavras) }`;
+  if (type === "mythBuster")
+    return `{ "type": "mythBuster", "mito": string (max 14 palavras), "verdade": string (max 18 palavras) }`;
+  if (type === "listItem")
+    return `{ "type": "listItem", "numeral": string ("01"-"07"), "nomePopular": string, "nomeCientifico": string, "dica": string (max 16 palavras) }`;
+  if (type === "problemSolution")
+    return `{ "type": "problemSolution", "problema": string (max 14 palavras), "solucao": string (max 18 palavras) }`;
   return `{ "type": "inspiration", "topLabel": string, "title": string, "subtitle": string }`;
+}
+
+function summarizeSlide(s: any, i: number, isCurrent: boolean): string {
+  if (isCurrent) return `  [${i}] <ESTE — vou regenerar>`;
+  if (s.type === "cover") return `  [${i}] CAPA: "${s.title || ""}"`;
+  if (s.type === "plantDetail") return `  [${i}] PLANTA: ${s.nomePopular} (${s.nomeCientifico})`;
+  if (s.type === "cta") return `  [${i}] CTA: "${s.fechamento || s.pergunta || ""}"`;
+  if (s.type === "beforeAfter") return `  [${i}] ${s.phase || "PROCESSO"}: "${s.caption || ""}"`;
+  if (s.type === "mythBuster") return `  [${i}] MITO/VERDADE: "${s.mito || ""}" / "${s.verdade || ""}"`;
+  if (s.type === "listItem") return `  [${i}] LISTA #${s.numeral || ""}: ${s.nomePopular || ""}, ${s.dica || ""}`;
+  if (s.type === "problemSolution") return `  [${i}] PROBLEMA/SOLUCAO: "${s.problema || ""}" / "${s.solucao || ""}"`;
+  return `  [${i}] INSPIRACAO: "${s.title || ""}" - ${s.subtitle || ""}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -36,16 +64,7 @@ export async function POST(req: NextRequest) {
     const plantas = (image.plantas || []).slice(0, 5).join(", ");
 
     const contextoCarrossel = Array.isArray(allSlides)
-      ? allSlides
-          .map((s, i: number) => {
-            if (i === slideIndex) return `  [${i}] <ESTE — vou regenerar>`;
-            if (s.type === "cover") return `  [${i}] CAPA: "${s.title || ""}"`;
-            if (s.type === "plantDetail")
-              return `  [${i}] PLANTA: ${s.nomePopular} (${s.nomeCientifico})`;
-            if (s.type === "cta") return `  [${i}] CTA: "${s.fechamento || s.pergunta || ""}"`;
-            return `  [${i}] INSPIRACAO: "${s.title || ""}" - ${s.subtitle || ""}`;
-          })
-          .join("\n")
+      ? allSlides.map((s, i: number) => summarizeSlide(s, i, i === slideIndex)).join("\n")
       : "";
 
     const briefBlock = userBrief?.trim()
