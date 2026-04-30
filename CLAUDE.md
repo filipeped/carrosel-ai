@@ -56,7 +56,34 @@ UPDATE image_bank SET analise_visual = NULL WHERE analise_visual IS NOT NULL;
 
 ### Templates de slide (`templates/`)
 
-`base.ts` exporta `baseStyle()` + `BRAND_HANDLE`. 4 renderers retornam string HTML: `renderCover`, `renderPlantDetail`, `renderInspiration`, `renderCta`. Fontes (Fraunces / Archivo / JetBrains Mono) são **self-hosted** em `/public/fonts/*.woff2` e injetadas via `@font-face` inline no iframe (evita SecurityError cssRules de CORS do Google Fonts).
+`base.ts` exporta `baseStyle()` + `BRAND_HANDLE`. 8 renderers retornam string HTML:
+- **Classic** (sempre disponivel): `renderCover`, `renderPlantDetail`, `renderInspiration`, `renderCta`
+- **Formatos novos** (selecionados via UI): `renderBeforeAfter`, `renderMythBuster`, `renderListItem`, `renderProblemSolution`
+
+Fontes (Fraunces / Archivo / JetBrains Mono) são **self-hosted** em `/public/fonts/*.woff2` e injetadas via `@font-face` inline no iframe (evita SecurityError cssRules de CORS do Google Fonts).
+
+### Formatos de carrossel (`CarouselFormat`)
+
+5 formatos selecionaveis na UI (dropdown no `Step1`). State `format` persiste em localStorage e flui: **Step1 → page.tsx → /api/search-smart + /api/copy → smart-pipeline.ts → slides-architect.ts**.
+
+| Format | slideCount | Outline | Hook framework default |
+|---|---|---|---|
+| `classic` | 6-10 (LLM decide) | cover + plantDetail/inspiration mix + cta | sensorial |
+| `transformation` | 8 (fixo) | cover + 2 ANTES + 2 PROCESSO + 2 DEPOIS + cta | quebra_expectativa |
+| `myths` | 7 (fixo) | cover + 5 mythBuster + cta | revelacao |
+| `listicle` | 9 (fixo) | cover + 7 listItem + cta | manifesto_tese |
+| `problemSolution` | 7 (fixo) | cover + 5 problemSolution + cta | observacao_de_quem_entende |
+
+**Architect short-circuita LLM** quando format != classic (`buildFormatOutline` retorna outline deterministico). `runSmartCarousel` despacha pra `generateCopyFromAnalysis` (classic) ou `generateCopyForFormat` (resto). Critic (`carousel-critic`) só roda em classic — pressupõe types antigos.
+
+**Listicle integra `vegetacoes`** via `fetchVegetacoesForListicle(prompt, count)` — heuristica ILIKE em luminosidade/categorias. LLM escolhe 7 plantas mais aderentes do pool e gera `dica` curta. `nomeCientifico` deve bater com o banco (anti-alucinação).
+
+**Imagens p/ formatos com >6 slides**: `runSmartCarousel` expande `[cover, ...inner, cta]` (6) com `selection.alternatives` ate completar slideCount. UI faz o mesmo no `confirmAndGenerateCopy` antes de mandar pra `/api/copy`.
+
+**3 lugares com switch type→renderer** (atualizar TODOS ao adicionar formato novo):
+1. `lib/slide-html.ts:buildSlideHtml` — server-side via Puppeteer
+2. `components/SlidePreview.tsx` — preview client-side (Step3 modal)
+3. `vps-render-service/server.js:buildSlideHtml` + renderers inline — VPS deploy separado
 
 ### Persistência
 
