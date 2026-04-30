@@ -55,7 +55,13 @@ export async function POST(req: NextRequest) {
       const { generateCopyForFormat, validateFormattedSlides } = await import("@/lib/smart-pipeline");
       const { planSlides } = await import("@/lib/agents/slides-architect");
       const plan = await planSlides({ prompt: prompt || "", format });
-      const result = await generateCopyForFormat(prompt || "", images, format as Exclude<CarouselFormat, "classic">, plan.outline);
+      const result = await generateCopyForFormat(
+        prompt || "",
+        images,
+        format as Exclude<CarouselFormat, "classic">,
+        plan.outline,
+        plan.recommended_hook_framework,
+      );
       const slides = validateFormattedSlides(result.slides, images);
       return NextResponse.json({ slides, format, slideCount: plan.slideCount });
     }

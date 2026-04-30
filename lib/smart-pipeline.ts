@@ -477,46 +477,207 @@ export async function fetchVegetacoesForListicle(
 }
 
 /**
- * Valida slides de formatos NAO-CLASSICOS — apenas fixa imageIdx por posicao.
- * Sem downgrade pra inspiration porque os novos types nao tem alucinacao de especie.
+ * Sanitiza texto de slide:
+ * - Remove "—" (travessao) e substitui por virgula
+ * - Remove ":" (dois pontos) e substitui por virgula
+ * - Remove emojis nao permitidos
+ * - Trim whitespace
+ */
+const SLIDE_EMOJI_RE = /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu;
+const SLIDE_ARROWS = /[→↑↓←➤➡]/g;
+
+function sanitizeSlideText(s: string | undefined | null, maxWords?: number): string {
+  if (!s) return "";
+  let out = String(s)
+    .replace(/\s—\s|—/g, ", ")
+    .replace(/\s:\s|:(?!\/\/)(?!\d)/g, ", ") // mantem : em URLs e horarios
+    .replace(SLIDE_EMOJI_RE, "")
+    .replace(SLIDE_ARROWS, "")
+    .replace(/\s+,/g, ",")
+    .replace(/\s+/g, " ")
+    .trim();
+  // Trunca por contagem de palavras (mantem frase coerente)
+  if (maxWords && out.split(/\s+/).length > maxWords) {
+    const words = out.split(/\s+/).slice(0, maxWords);
+    out = words.join(" ").replace(/[,.;:]+$/, "") + ".";
+  }
+  return out;
+}
+
+/**
+ * Valida slides de formatos NAO-CLASSICOS:
+ * - Fixa imageIdx por posicao
+ * - Sanitiza textos (remove "—", ":", emojis, trunca por word count)
+ * - Listicle: forca numeral "01"-"0N" em ordem nos itens
  */
 export function validateFormattedSlides(
   slides: SlideSpec[],
   imagesOrdered: AnalyzedImage[],
 ): SlideSpec[] {
+  let listItemCounter = 0;
+  let totalListItems = 0;
+  // Conta listItems pra forcar numeral coerente
+  for (const s of slides) if (s.type === "listItem") totalListItems++;
+
   return slides.map((s, i) => {
     const fixedIdx = i;
-    const img = imagesOrdered[fixedIdx];
-    if (!img) return { ...s, imageIdx: fixedIdx };
-    return { ...s, imageIdx: fixedIdx };
+    const cleaned: SlideSpec = { ...s, imageIdx: fixedIdx };
+
+    if (s.type === "cover") {
+      cleaned.title = sanitizeSlideText(s.title, 12);
+      // Listicle: capa precisa de numeral igual ao total de itens
+      if (totalListItems > 0 && !cleaned.numeral) {
+        cleaned.numeral = String(totalListItems);
+      }
+    } else if (s.type === "cta") {
+      cleaned.fechamento = sanitizeSlideText(s.fechamento || s.pergunta, 18);
+    } else if (s.type === "beforeAfter") {
+      cleaned.caption = sanitizeSlideText(s.caption, 14);
+      // Garante phase valido
+      if (!["ANTES", "PROCESSO", "DEPOIS"].includes(cleaned.phase || "")) {
+        cleaned.phase = "PROCESSO";
+      }
+    } else if (s.type === "mythBuster") {
+      cleaned.mito = sanitizeSlideText(s.mito, 14);
+      cleaned.verdade = sanitizeSlideText(s.verdade, 18);
+    } else if (s.type === "listItem") {
+      listItemCounter++;
+      // Forca numeral coerente ("01", "02", ...)
+      cleaned.numeral = String(listItemCounter).padStart(2, "0");
+      cleaned.nomePopular = sanitizeSlideText(s.nomePopular, 5);
+      cleaned.nomeCientifico = sanitizeSlideText(s.nomeCientifico, 5);
+      cleaned.dica = sanitizeSlideText(s.dica, 16);
+    } else if (s.type === "problemSolution") {
+      cleaned.problema = sanitizeSlideText(s.problema, 14);
+      cleaned.solucao = sanitizeSlideText(s.solucao, 18);
+    } else if (s.type === "inspiration") {
+      cleaned.title = sanitizeSlideText(s.title, 12);
+      cleaned.subtitle = sanitizeSlideText(s.subtitle, 22);
+    }
+
+    return cleaned;
   });
 }
+
+/**
+ * Bloco compartilhado por todos os formatos novos: regras viralidade IG 2026.
+ * Baseado em BRAND_CONTEXT.md (saves > shares > comments, ancoragem concreta,
+ * anti-clichê, anti-comercial-vendedor).
+ */
+const FORMAT_VIRAL_RULES = `## REGRAS DE VIRALIDADE IG 2026 (DURAS)
+
+ALGORITMO 2026 prioriza nesta ordem:
+1. SHARES via DM (super-sinal #1) — texto que da vontade de mandar pro arquiteto/conjugue
+2. SAVES — listas praticas, dicas concretas
+3. COMMENTS — afirmacoes provocativas que geram debate
+4. RETENTION — slide 2 segura ou perde tudo
+
+ANCORAGEM CONCRETA (obrigatorio):
+- Sempre cite planta especifica (palmeira, frangipani, ipe) OU espaco real (deck, piscina, corredor, fachada).
+- Sem ancoragem = post genérico = avg 34 eng. Com ancoragem = avg 200+ eng.
+
+CTA AFIRMATIVO (NAO PERGUNTA):
+- Posts SEM pergunta: avg 247 eng. Posts COM pergunta: avg 73 eng (3.4x menos).
+- Prefira afirmacao contemplativa que fecha com conviccao.
+- Ex bom: "Esse e o detalhe que muda a casa inteira."
+- Ex ruim: "Voce concorda? Comenta ai!"
+
+PROIBIDO em qualquer texto de slide:
+- Caractere "—" (travessao) e ":" (dois pontos). Use virgula ou ponto.
+- Cliches: "incrivel", "imperdivel", "voce nao vai acreditar", "top", "sem complicacao", "exuberante", "coeso", "certinho"
+- Inspiracional vazio: "abraça", "floresce", "respira natureza", "convida o olhar", "pulsa vida", "toca o coracao"
+- Comercial vendedor: "contratar paisagista", "antes de chamar", "projeto 3D", "decisoes antes", "me manda no direct"
+- Emoji nao permitido: 😍 🔥 💯 🤩 ❤️ 🙌 💪 🚀 (use 0 emoji nos slides — emoji eh so de legenda)
+
+ANTI-ALUCINACAO:
+- Nao cite elemento (piscina, pergolado, deck) que nao aparece na descricao_visual da imagem do slot.
+- Nao invente especie de planta que nao esta na lista do banco fornecida.
+
+VOCABULARIO PREMIUM:
+- "quintal" -> "area externa"
+- "jardim bonito" -> "paisagismo integrado"
+- "orcamento" -> "investimento"
+- "fazer o jardim" -> "desenvolver o projeto"`;
 
 const FORMAT_SYSTEMS: Record<Exclude<CarouselFormat, "classic">, string> = {
   transformation: `Voce escreve copy pra carrossel de TRANSFORMACAO (antes/depois) do @digitalpaisagismo.
 ESTRUTURA: capa + 6 slides beforeAfter (2 ANTES, 2 PROCESSO, 2 DEPOIS) + cta.
-Cada slide beforeAfter tem uma "phase" e uma "caption" curta (max 14 palavras).
-A caption descreve em 1 frase o que aquele momento mostra, sem clichê. Sem "—", sem ":".`,
+
+POR QUE ESSE FORMATO VIRALIZA: transformacoes geram SAVES e SHARES altos. Pessoas mostram pro conjugue/arquiteto pra validar. Foque no contraste visual da mudanca, nao na tecnica.
+
+CAPA: hook de "quebra de expectativa" (afirmacao curta que contraria intuicao). Ex bom: "Antes de plantar, planejar muda tudo." Ex ruim: "Confira essa transformacao incrivel."
+
+Cada slide beforeAfter tem "phase" e "caption" curta (max 14 palavras).
+- Slides ANTES: caption observa o que ESTAVA ali (ex: "Area sem definicao, sol direto o dia todo.")
+- Slides PROCESSO: caption descreve a decisao tecnica (ex: "Plantio de ancoras de massa antes do paisagismo fino.")
+- Slides DEPOIS: caption afirma o ganho (ex: "Sombra natural na piscina sem perder a vista.")
+
+CTA: afirmacao contemplativa sobre transformacao planejada vs improvisada. NAO PERGUNTA.
+
+${FORMAT_VIRAL_RULES}`,
 
   myths: `Voce escreve copy pra carrossel de MITOS do @digitalpaisagismo.
 ESTRUTURA: capa + 5 slides mythBuster + cta.
-Cada slide mythBuster tem "mito" (crenca falsa, max 14 palavras) e "verdade" (correcao tecnica honesta, max 18 palavras).
-Os 5 mitos devem ser DIFERENTES e cobrir aspectos variados: rega, sol, manutencao, escolha de especies, planejamento, irrigacao automatizada, projeto 3D etc.
-Tom: curador que corrige sem soberba. Sem "—", sem ":".`,
+
+POR QUE ESSE FORMATO VIRALIZA: mitos geram COMMENTS (debate) e SHARES (envia pra quem caiu no mito). O algoritmo 2026 valoriza comentario.
+
+CAPA: hook de "revelacao" (revela padrao que so quem ve muito jardim percebe). Ex bom: "5 verdades que arquiteta nenhuma te conta antes da obra." Ex ruim: "Mitos sobre paisagismo!"
+
+Cada slide tem:
+- mito: crenca falsa comum, max 14 palavras, ANCORADA em planta/espaco real (ex: "Suculenta nao precisa de sol direto")
+- verdade: correcao tecnica honesta, max 18 palavras (ex: "Suculenta de janela e sol pleno sao especies diferentes, mistura mata as duas.")
+
+Os 5 mitos DEVEM ser DIFERENTES e cobrir aspectos variados (rega, sol, manutencao, escolha de especies, planejamento, drenagem, irrigacao). Sem repetir tema.
+
+Tom: curador que corrige sem soberba. NAO use "voce esta errado". Use "a verdade e mais especifica".
+
+CTA: afirmacao contemplativa. NAO PERGUNTA tipo "Qual desses voce caiu?". Prefira afirmacao tipo "Saber a diferenca eh metade do projeto."
+
+${FORMAT_VIRAL_RULES}`,
 
   listicle: `Voce escreve copy pra carrossel LISTA PRATICA do @digitalpaisagismo.
 ESTRUTURA: capa + 7 slides listItem + cta.
-RECEBE uma lista de plantas reais do banco da empresa. ESCOLHE as 7 mais aderentes ao tema e gera UMA dica curta (max 16 palavras) pra cada.
-NAO INVENTE plantas. Use SO o que aparece na lista fornecida.
-Cada listItem: numeral "01"-"07", nomePopular, nomeCientifico, dica.
-A capa anuncia o numero (ex: "7 plantas...") e o beneficio claro.
-CTA: convite a salvar pra consultar depois. Sem "—", sem ":".`,
 
-  problemSolution: `Voce escreve copy pra carrossel PROBLEMA → SOLUCAO do @digitalpaisagismo.
+POR QUE ESSE FORMATO VIRALIZA: listas praticas sao o conteudo MAIS SALVO no Instagram. Save = sinal forte pro algoritmo. Pessoa salva pra consultar na floricultura.
+
+RECEBE uma lista de plantas reais do banco da empresa. ESCOLHE as 7 mais aderentes ao tema e gera UMA dica curta (max 16 palavras) pra cada.
+
+ATENCAO ANTI-ALUCINACAO:
+- Use SO plantas que aparecem na lista fornecida.
+- nomeCientifico DEVE ser EXATAMENTE o que esta na lista (case sensitive, sem inventar).
+- Se a lista tem 5 plantas, escolha 5 (nao force 7 inventando).
+
+CAPA: hook de "manifesto/tese" — afirma um beneficio concreto pra quem ama plantas.
+- numeral OBRIGATORIO: o numero exato de itens (ex: "7", "5"). Sem numero a capa perde poder.
+- title: ancorado no beneficio (ex: "Plantas que sobrevivem sem sol direto.").
+- Sem clickbait ("voce nao vai acreditar"). Sem promessa vazia ("as melhores").
+
+Cada listItem:
+- numeral: "01" a "07" em ordem
+- nomePopular: copia da lista
+- nomeCientifico: copia EXATA da lista
+- dica: max 16 palavras, frase pratica de cuidado/uso (ex: "Tolera sombra plena, mas perde cor sem 2h de luz indireta.")
+
+CTA: afirmacao contemplativa que reforca SAVE (ex: "Esses sao os nomes que voce vai querer lembrar na floricultura."). NAO PERGUNTA.
+
+${FORMAT_VIRAL_RULES}`,
+
+  problemSolution: `Voce escreve copy pra carrossel PROBLEMA -> SOLUCAO do @digitalpaisagismo.
 ESTRUTURA: capa + 5 slides problemSolution + cta.
-Cada slide tem "problema" (dor concreta, max 14 palavras) e "solucao" (resposta tecnica direta, max 18 palavras).
-Os 5 problemas devem cobrir aspectos variados do jardim: rega, escolha de especies, manutencao, drenagem, integracao com a casa, planejamento.
-Tom: especialista que diagnostica e resolve. Sem "—", sem ":".`,
+
+POR QUE ESSE FORMATO VIRALIZA: pessoas se identificam com problema concreto e MARCAM amigos que tem o mesmo. Marcacoes = alcance organico.
+
+CAPA: hook de "observacao de quem entende" — revela um padrao que so paisagista ve. Ex bom: "Seu jardim morre nos primeiros 6 meses por um motivo so." Ex ruim: "Veja como resolver!"
+
+Cada slide tem:
+- problema: dor concreta, max 14 palavras, ANCORADA (ex: "Folha amarela na frangipani sem sintoma de doenca.")
+- solucao: resposta tecnica direta, max 18 palavras (ex: "Excesso de rega no inverno. Espacar pra cada 12 dias soluciona em 3 semanas.")
+
+Os 5 problemas DEVEM ser DIFERENTES (rega, escolha de especies, manutencao, drenagem, integracao com a casa, planejamento).
+
+CTA: afirmacao contemplativa sobre diagnostico cedo (ex: "Identificar o problema certo eh metade da solucao."). NAO PERGUNTA.
+
+${FORMAT_VIRAL_RULES}`,
 };
 
 function buildFormatSchema(format: Exclude<CarouselFormat, "classic">, slideCount: number): string {
@@ -567,12 +728,14 @@ export const FORMAT_SLIDE_COUNTS: Record<Exclude<CarouselFormat, "classic">, num
  * Pra listicle, busca plantas em `vegetacoes` e injeta no contexto.
  * imagesOrdered: imagens na ordem dos slots (slot 0 = capa, slot N-1 = cta).
  * Se imagesOrdered tiver menos imagens que slideCount, repete ciclicamente.
+ * hookFramework: 1 dos 7 frameworks 2026 do brand-context (recomendado pro architect).
  */
 export async function generateCopyForFormat(
   prompt: string,
   imagesOrdered: AnalyzedImage[],
   format: Exclude<CarouselFormat, "classic">,
   outline: SlideOutline[],
+  hookFramework?: string,
 ): Promise<{ slides: SlideSpec[] }> {
   const slideCount = outline.length;
   const schema = buildFormatSchema(format, slideCount);
@@ -617,9 +780,12 @@ ${schema}`;
 
   const voiceRefs = await getBrandVoiceReferences();
   const formatSystem = FORMAT_SYSTEMS[format];
+  const hookBlock = hookFramework
+    ? `\n\n## HOOK FRAMEWORK RECOMENDADO PRA CAPA: ${hookFramework}\nUse esse framework especifico no title da capa. Frameworks 2026 com melhor performance: sensorial (avg 282 eng), manifesto_tese (avg 155 eng).\n`
+    : "";
   const fullSystem = voiceRefs
-    ? `${BRAND_VOICE}\n\n${formatSystem}\n\n${voiceRefs}\n\nNos textos do slide: sem emoji, sem hashtag.\n\n${schema}`
-    : `${BRAND_VOICE}\n\n${formatSystem}\n\n${schema}`;
+    ? `${BRAND_VOICE}\n\n${formatSystem}${hookBlock}\n\n${voiceRefs}\n\nNos textos do slide: sem emoji, sem hashtag.\n\n${schema}`
+    : `${BRAND_VOICE}\n\n${formatSystem}${hookBlock}\n\n${schema}`;
 
   const r = await getAi().chat.completions.create({
     model: MODEL,
@@ -658,12 +824,14 @@ export async function runSmartCarousel(
   // Pra classic, mantem comportamento existente (slideCount via opts).
   let outline: SlideOutline[] | undefined;
   let slideCount: number;
+  let hookFramework: string | undefined;
   if (isClassic) {
     slideCount = Math.max(6, Math.min(10, opts.slideCount ?? 6));
   } else {
     const plan = await planSlides({ prompt, format });
     slideCount = plan.slideCount;
     outline = plan.outline;
+    hookFramework = plan.recommended_hook_framework;
   }
 
   let selection: SmartSelection;
@@ -713,6 +881,7 @@ export async function runSmartCarousel(
       ordered,
       format as Exclude<CarouselFormat, "classic">,
       outline!,
+      hookFramework,
     );
     slides = validateFormattedSlides(rawSlides, ordered);
   }
