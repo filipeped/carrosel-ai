@@ -57,9 +57,39 @@ export function Step1({
 }) {
   const formatHint = FORMAT_OPTIONS.find((f) => f.value === format)?.hint || "";
   const [sugerirLoading, setSugerirLoading] = useState(false);
+  const [catalogIaLoading, setCatalogIaLoading] = useState(false);
+  const [catalogRationale, setCatalogRationale] = useState<string>("");
   const lastSuggestedFor = useRef<string>("");
   const userTouchedPlantas = useRef<boolean>(false);
   const sugerirDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function sugerirCatalogIa() {
+    if (!prompt.trim()) {
+      setIdeasErr("Digite um tema antes de pedir pra IA escolher.");
+      return;
+    }
+    setCatalogIaLoading(true);
+    setCatalogRationale("");
+    setIdeasErr("");
+    try {
+      const r = await fetch("/api/sugerir-catalog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      if (Array.isArray(d.plantas) && d.plantas.length === 6) {
+        setPlantasEscolhidas(d.plantas);
+        userTouchedPlantas.current = true;
+        if (d.rationale) setCatalogRationale(String(d.rationale));
+      }
+    } catch (e) {
+      setIdeasErr((e as Error).message);
+    } finally {
+      setCatalogIaLoading(false);
+    }
+  }
   // FIX hydration: state inicial SEMPRE vazio (match SSR).
   // Hidrata do localStorage em useEffect apos mount. Evita React #418.
   const [ideas, setIdeas] = useState<Idea[] | null>(null);
@@ -359,12 +389,49 @@ export function Step1({
           </span>
         </label>
         {format === "catalog" ? (
-          <PlantGallery
-            selected={plantasEscolhidas}
-            onChange={setPlantasEscolhidas}
-            prompt={prompt}
-            disabled={loading}
-          />
+          <>
+            {/* Botao destacado: IA escolhe 6 plantas pelo tema */}
+            <div className="mb-4 border border-[#d6e7c4]/30 bg-[#d6e7c4]/5 rounded-lg p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="text-sm font-medium text-[#d6e7c4] mb-1">
+                    ✨ Deixa a IA escolher pelo tema
+                  </div>
+                  <div className="text-[11px] opacity-60 leading-relaxed">
+                    Le seu tema, escolhe 6 plantas reais do banco que combinam, e ja
+                    seleciona pra voce. Voce pode trocar qualquer uma na galeria abaixo.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={sugerirCatalogIa}
+                  disabled={catalogIaLoading || loading || !prompt.trim()}
+                  className="bg-[#d6e7c4] text-black px-4 py-2 min-h-[44px] rounded text-xs tracking-wider uppercase disabled:opacity-40"
+                >
+                  {catalogIaLoading ? "Curando..." : "Curar 6 plantas"}
+                </button>
+              </div>
+              {catalogRationale && (
+                <div className="mt-3 text-[11px] opacity-80 italic border-t border-[#d6e7c4]/20 pt-2">
+                  <strong className="not-italic opacity-60 text-[10px] uppercase tracking-widest mr-1">
+                    Curadoria IA:
+                  </strong>
+                  {catalogRationale}
+                </div>
+              )}
+            </div>
+
+            <PlantGallery
+              selected={plantasEscolhidas}
+              onChange={(next) => {
+                userTouchedPlantas.current = true;
+                setPlantasEscolhidas(next);
+                if (catalogRationale) setCatalogRationale("");
+              }}
+              prompt={prompt}
+              disabled={loading || catalogIaLoading}
+            />
+          </>
         ) : (
           <>
             <PlantPicker
