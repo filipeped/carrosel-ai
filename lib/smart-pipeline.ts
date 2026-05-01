@@ -61,6 +61,25 @@ function composite(img: AnalyzedImage, semanticScore = 1, aderencia = 1): number
 }
 
 /**
+ * Mede overlap entre `image_bank.plantas[]` e nomes_populares de plantas escolhidas.
+ * Retorna 0..1 — fracao de plantas escolhidas que aparecem na imagem.
+ * Usado pra boost no ranking em modo plant-first.
+ */
+function overlapPlantas(img: AnalyzedImage, plantasEscolhidas: VegetacaoRow[]): number {
+  if (!plantasEscolhidas?.length) return 0;
+  const imgPlantas = (img.plantas || []).map(norm);
+  const desc = norm(img.analise_visual?.descricao_visual || "");
+  const haystack = imgPlantas.join(" | ") + " | " + desc;
+  let hits = 0;
+  for (const p of plantasEscolhidas) {
+    const nomeNorm = norm(p.nome_popular || "");
+    if (!nomeNorm) continue;
+    if (haystack.includes(nomeNorm)) hits++;
+  }
+  return hits / plantasEscolhidas.length;
+}
+
+/**
  * Mede quao aderente uma imagem e ao tema.
  * Conta interseccao entre palavras do tema (lowercase, 4+ chars) e
  * palavras da analise_visual (descricao_visual, hero_element, palavras_chave).
@@ -125,6 +144,7 @@ Retorne JSON puro:
 export async function rankAndSelect(
   prompt: string,
   analyzed: AnalyzedImage[],
+  plantasEscolhidas?: VegetacaoRow[],
 ): Promise<SmartSelection> {
   if (analyzed.length < 6) {
     throw new Error(`Apenas ${analyzed.length} imagens disponiveis — minimo 6`);
@@ -134,15 +154,19 @@ export async function rankAndSelect(
   const recentIds = await getRecentlyUsedImageIds(20);
 
   // Score composto: cover_potential + composicao + qualidade + semantic + aderencia - penalidade_repeticao
+  // Quando ha plantas escolhidas, soma boost por overlap em image_bank.plantas (sem filtro estrito)
+  const hasPlantas = !!plantasEscolhidas?.length;
   const withAder = analyzed.map((im) => ({
     img: im,
     ader: aderenciaTema(prompt, im),
     score: 0,
     repeated: recentIds.has(im.id),
+    plantBoost: hasPlantas ? overlapPlantas(im, plantasEscolhidas!) : 0,
   }));
   withAder.forEach((x) => {
     let s = composite(x.img, 1, x.ader);
     if (x.repeated) s -= 4.0; // penalidade (score base tipicamente 3-7, 2.5 e significativo)
+    if (x.plantBoost > 0) s += 1.5 * x.plantBoost; // ate +1.5 quando todas plantas batem
     x.score = s;
   });
   withAder.sort((a, b) => b.score - a.score);
@@ -281,7 +305,11 @@ Copy deve ser sofisticado, sem clichê. Citar luz, textura, materiais quando pre
 export async function generateCopyFromAnalysis(
   prompt: string,
   selection: SmartSelection,
-  opts: { slideCount?: number; approachFocus?: string } = {},
+  opts: {
+    slideCount?: number;
+    approachFocus?: string;
+    plantasEscolhidas?: VegetacaoRow[];
+  } = {},
 ): Promise<{ slides: SlideSpec[] }> {
   const ordered = [selection.cover, ...selection.inner, selection.cta];
   const slideCount = Math.max(6, Math.min(10, opts.slideCount ?? ordered.length));
@@ -305,7 +333,22 @@ export async function generateCopyFromAnalysis(
     ? `\n\nFOCO DE ABORDAGEM: "${opts.approachFocus}" — tempera o tom dos slides de acordo.`
     : "";
 
-  const userMsg = `Tema pedido pelo usuario: "${prompt}"${approachBlock}
+  const plantasBlock = opts.plantasEscolhidas?.length
+    ? `\n\nPLANTAS PROTAGONISTAS (escolhidas pelo usuario, fonte de verdade):
+${opts.plantasEscolhidas
+  .map(
+    (v, i) =>
+      `${i + 1}. ${v.nome_popular}${v.nome_cientifico ? ` (${v.nome_cientifico})` : ""}${v.luminosidade ? ` | luminosidade: ${v.luminosidade}` : ""}${v.altura ? ` | altura: ${v.altura}` : ""}${v.categorias ? ` | categorias: ${v.categorias}` : ""}`,
+  )
+  .join("\n")}
+
+REGRAS pra plantas:
+- Em plantDetail, use SOMENTE plantas dessa lista. nomePopular e nomeCientifico devem bater EXATAMENTE.
+- Cite pelo menos 2 dessas plantas ao longo do carrossel (cover/inspiration podem mencionar nomes; plantDetail confirma).
+- Se uma planta da lista nao esta visivel em nenhuma imagem, voce ainda pode mencionar pelo nome em inspiration (texto), mas nao crie plantDetail dela.`
+    : "";
+
+  const userMsg = `Tema pedido pelo usuario: "${prompt}"${approachBlock}${plantasBlock}
 
 Imagens disponiveis e o que cada uma MOSTRA (fonte de verdade):
 ${imgSummary}
@@ -314,7 +357,7 @@ Hints de curadoria: ${selection.rationale || "-"}
 
 ${schema}
 
-Verifique: cada elemento que voce citar no copy TEM que estar na descricao/plantas/materiais da imagem correspondente. Alucinacao = falha grave.`;
+Verifique: cada elemento que voce citar no copy TEM que estar na descricao/plantas/materiais da imagem correspondente OU na lista de plantas protagonistas. Alucinacao = falha grave.`;
 
   // Injeta tom real do perfil (top-20 posts) pra copy dos slides tb imitar ritmo
   const voiceRefs = await getBrandVoiceReferences();
@@ -355,7 +398,21 @@ function norm(s: string): string {
 export function validateSlidesAgainstImages(
   slides: SlideSpec[],
   imagesOrdered: AnalyzedImage[],
+  plantasEscolhidas?: VegetacaoRow[],
 ): SlideSpec[] {
+  // Em modo plant-first, planta da lista escolhida tambem e considerada valida
+  // mesmo que nao apareca na foto (foto serve de pano de fundo).
+  const validSci = new Set(
+    (plantasEscolhidas || [])
+      .map((p) => norm(p.nome_cientifico || ""))
+      .filter(Boolean),
+  );
+  const validPop = new Set(
+    (plantasEscolhidas || [])
+      .map((p) => norm(p.nome_popular || ""))
+      .filter(Boolean),
+  );
+
   return slides.map((s, i) => {
     // FORCA imageIdx = posicao do slide. Evita duplicacao de foto entre
     // slides diferentes (ex.: IA alucinava plantDetail com imageIdx=5 e
@@ -378,6 +435,12 @@ export function validateSlidesAgainstImages(
     const tokens = [...nomeSci.split(/\s+/), ...nomePop.split(/[-\s]+/)].filter((t) => t.length >= 4);
     const hit = tokens.some((t) => pool.includes(t));
     if (hit) return { ...s, imageIdx: fixedIdx };
+
+    // Plant-first: se a planta esta na lista escolhida, valida mesmo que nao
+    // apareca na foto (a foto vira pano de fundo da especie protagonista).
+    if (validSci.size > 0 && (validSci.has(nomeSci) || validPop.has(nomePop))) {
+      return { ...s, imageIdx: fixedIdx };
+    }
 
     // Fallback: converte em inspiration com titulo conceitual (nao o nome da especie alucinada)
     const heroLabel = (img.analise_visual?.hero_element || "").trim();
@@ -404,7 +467,12 @@ function capFirst(s: string): string {
 
 export async function searchAndSelect(
   prompt: string,
-  opts: { candidateCount?: number; userBrief?: string; skipAgents?: boolean } = {},
+  opts: {
+    candidateCount?: number;
+    userBrief?: string;
+    skipAgents?: boolean;
+    plantasEscolhidas?: VegetacaoRow[];
+  } = {},
 ): Promise<{
   selection: SmartSelection;
   allAnalyzed: AnalyzedImage[];
@@ -430,7 +498,7 @@ export async function searchAndSelect(
   // enriquece (busca_semantica so retorna fonte/id/descricao/url/tipo_area/estilo/similarity/analise_visual)
   const enriched = await enrichFromImageBank(imagens);
   const analyzed = await analyzeAndCache(enriched);
-  const selection = await rankAndSelect(prompt, analyzed);
+  const selection = await rankAndSelect(prompt, analyzed, opts.plantasEscolhidas);
 
   // Enriquece só as 6 selecionadas (cover + 4 inner + cta) com identificacao
   // profissional de plantas. RAG + Vision focado + validacao cruzada.
@@ -446,11 +514,12 @@ export async function searchAndSelect(
 }
 
 /**
- * Busca plantas no banco `vegetacoes` para o formato listicle.
+ * Busca plantas no banco `vegetacoes` aderentes ao tema do prompt.
  * Heuristica: extrai termos do prompt (luminosidade, clima, ambiente) e usa
- * ILIKE em campos chave. Volta um pool maior pra IA escolher os melhores.
+ * ILIKE em campos chave. Usado pelo /api/sugerir-plantas (UI) e como fallback
+ * quando o body nao traz plantas pre-selecionadas.
  */
-export async function fetchVegetacoesForListicle(
+export async function fetchVegetacoesForPrompt(
   prompt: string,
   count = 14,
 ): Promise<VegetacaoRow[]> {
@@ -465,10 +534,11 @@ export async function fetchVegetacoesForListicle(
   let query = supabase.from("vegetacoes").select("*").limit(count * 2);
   if (lumFilter) query = query.ilike("luminosidade", `%${lumFilter}%`);
 
-  // Filtros extras se prompt menciona contexto
-  if (/tropical|florida|colorida/.test(p)) query = query.ilike("categorias", `%tropical%`);
-  if (/seco|cactus|suculenta/.test(p)) query = query.ilike("categorias", `%suculenta%`);
-  if (/folhagem|verde|massa/.test(p)) query = query.ilike("categorias", `%folhagem%`);
+  // Filtros extras se prompt menciona contexto.
+  // Usa prefixos curtos pra casar singular E plural no banco real (ex: "Tropicais", "Suculentas").
+  if (/tropical|florida|colorida/.test(p)) query = query.ilike("categorias", `%tropic%`);
+  if (/seco|cactus|suculenta/.test(p)) query = query.ilike("categorias", `%suculent%`);
+  if (/folhagem|verde|massa/.test(p)) query = query.ilike("categorias", `%folha%`);
 
   const { data } = await query;
   const rows = (data || []) as VegetacaoRow[];
@@ -513,11 +583,19 @@ function sanitizeSlideText(s: string | undefined | null, maxWords?: number): str
 export function validateFormattedSlides(
   slides: SlideSpec[],
   imagesOrdered: AnalyzedImage[],
+  plantasEscolhidas?: VegetacaoRow[],
 ): SlideSpec[] {
   let listItemCounter = 0;
   let totalListItems = 0;
   // Conta listItems pra forcar numeral coerente
   for (const s of slides) if (s.type === "listItem") totalListItems++;
+
+  // Set normalizado dos nomes_cientificos validos pra cross-ref anti-alucinacao
+  const validSci = new Set(
+    (plantasEscolhidas || [])
+      .map((p) => norm(p.nome_cientifico || ""))
+      .filter(Boolean),
+  );
 
   return slides.map((s, i) => {
     const fixedIdx = i;
@@ -547,6 +625,20 @@ export function validateFormattedSlides(
       cleaned.nomePopular = sanitizeSlideText(s.nomePopular, 5);
       cleaned.nomeCientifico = sanitizeSlideText(s.nomeCientifico, 5);
       cleaned.dica = sanitizeSlideText(s.dica, 16);
+
+      // Anti-alucinacao: se ha lista escolhida e LLM citou planta fora dela,
+      // tenta substituir pela do mesmo nome popular OU zera nome cientifico.
+      if (validSci.size > 0) {
+        const sciNorm = norm(cleaned.nomeCientifico || "");
+        const popNorm = norm(cleaned.nomePopular || "");
+        if (sciNorm && !validSci.has(sciNorm)) {
+          // Procura match por nome popular pra reusar o cientifico correto
+          const match = (plantasEscolhidas || []).find(
+            (p) => norm(p.nome_popular || "") === popNorm,
+          );
+          cleaned.nomeCientifico = match?.nome_cientifico || "";
+        }
+      }
     } else if (s.type === "problemSolution") {
       cleaned.problema = sanitizeSlideText(s.problema, 14);
       cleaned.solucao = sanitizeSlideText(s.solucao, 18);
@@ -736,6 +828,7 @@ export async function generateCopyForFormat(
   format: Exclude<CarouselFormat, "classic">,
   outline: SlideOutline[],
   hookFramework?: string,
+  plantasEscolhidas?: VegetacaoRow[],
 ): Promise<{ slides: SlideSpec[] }> {
   const slideCount = outline.length;
   const schema = buildFormatSchema(format, slideCount);
@@ -749,22 +842,41 @@ export async function generateCopyForFormat(
     })
     .join("\n");
 
-  let extraContext = "";
-  if (format === "listicle") {
-    const vegs = await fetchVegetacoesForListicle(prompt, 14);
-    if (vegs.length === 0) {
+  // Plant-first: usuario escolheu plantas? injeta lista pra TODOS os formatos.
+  // Senao, fallback pra heuristica do banco (mantem comportamento original do listicle).
+  let plantasParaContexto: VegetacaoRow[] = plantasEscolhidas || [];
+  if (!plantasParaContexto.length && format === "listicle") {
+    plantasParaContexto = await fetchVegetacoesForPrompt(prompt, 14);
+    if (plantasParaContexto.length === 0) {
       throw new Error("Nenhuma planta encontrada no banco vegetacoes para este tema");
     }
-    const vegList = vegs
+  }
+
+  let extraContext = "";
+  if (plantasParaContexto.length) {
+    const vegList = plantasParaContexto
       .map(
         (v, i) =>
           `${i + 1}. ${v.nome_popular} (${v.nome_cientifico || "?"}) | luminosidade: ${v.luminosidade || "?"} | categorias: ${v.categorias || "?"} | altura: ${v.altura || "?"}`,
       )
       .join("\n");
-    extraContext = `\n\nPLANTAS DISPONIVEIS NO BANCO (escolha as 7 mais aderentes ao tema):
+
+    if (format === "listicle") {
+      extraContext = `\n\nPLANTAS DISPONIVEIS NO BANCO (escolha as 7 mais aderentes ao tema):
 ${vegList}
 
 Use SOMENTE plantas dessa lista. Nao invente especies. nomeCientifico DEVE ser o exato da lista.`;
+    } else {
+      // Outros formatos: plantas sao protagonistas narrativas (texto livre, nao listItem).
+      extraContext = `\n\nPLANTAS PROTAGONISTAS (escolhidas pelo usuario, sao o foco narrativo):
+${vegList}
+
+REGRAS:
+- Mencione pelo menos 2 dessas plantas pelo nome popular ao longo do carrossel.
+- Se citar nome cientifico, use EXATAMENTE como esta na lista.
+- Nao invente especie fora dessa lista.
+- O texto dos slides (mito/verdade, problema/solucao, caption antes-depois) pode ancorar na planta especifica (ex: "Buxinho na cerca viva exige poda a cada 60 dias").`;
+    }
   }
 
   const userMsg = `Tema: "${prompt}"
@@ -815,6 +927,7 @@ export async function runSmartCarousel(
     presetSelection?: SmartSelection;       // reusa selecao de imagens ja analisadas
     presetAnalysis?: { persona?: string; enrichedPrompt?: string; mainDor?: string };
     presetAllAnalyzed?: AnalyzedImage[];
+    plantasEscolhidas?: VegetacaoRow[];     // plant-first: protagoniza copy + ranking
   } = {},
 ) {
   const format: CarouselFormat = opts.format ?? "classic";
@@ -828,7 +941,7 @@ export async function runSmartCarousel(
   if (isClassic) {
     slideCount = Math.max(6, Math.min(10, opts.slideCount ?? 6));
   } else {
-    const plan = await planSlides({ prompt, format });
+    const plan = await planSlides({ prompt, format, plantasEscolhidas: opts.plantasEscolhidas });
     slideCount = plan.slideCount;
     outline = plan.outline;
     hookFramework = plan.recommended_hook_framework;
@@ -845,6 +958,7 @@ export async function runSmartCarousel(
     const searched = await searchAndSelect(prompt, {
       ...opts,
       candidateCount: opts.candidateCount ?? Math.max(16, slideCount * 3),
+      plantasEscolhidas: opts.plantasEscolhidas,
     });
     selection = searched.selection;
     allAnalyzed = searched.allAnalyzed;
@@ -873,8 +987,9 @@ export async function runSmartCarousel(
     const { slides: rawSlides } = await generateCopyFromAnalysis(prompt, selection, {
       slideCount,
       approachFocus: opts.approachFocus,
+      plantasEscolhidas: opts.plantasEscolhidas,
     });
-    slides = validateSlidesAgainstImages(rawSlides, ordered);
+    slides = validateSlidesAgainstImages(rawSlides, ordered, opts.plantasEscolhidas);
   } else {
     const { slides: rawSlides } = await generateCopyForFormat(
       prompt,
@@ -882,8 +997,9 @@ export async function runSmartCarousel(
       format as Exclude<CarouselFormat, "classic">,
       outline!,
       hookFramework,
+      opts.plantasEscolhidas,
     );
-    slides = validateFormattedSlides(rawSlides, ordered);
+    slides = validateFormattedSlides(rawSlides, ordered, opts.plantasEscolhidas);
   }
 
   // AGENTE 2: Carousel Critic — so roda em classic (critic pressupoe types antigos).
@@ -899,8 +1015,9 @@ export async function runSmartCarousel(
         const retry = await generateCopyFromAnalysis(prompt, selection, {
           slideCount,
           approachFocus: opts.approachFocus,
+          plantasEscolhidas: opts.plantasEscolhidas,
         });
-        slides = validateSlidesAgainstImages(retry.slides, ordered);
+        slides = validateSlidesAgainstImages(retry.slides, ordered, opts.plantasEscolhidas);
       }
     } catch {
       /* fallback: mantem slides originais */

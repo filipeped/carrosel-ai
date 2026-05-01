@@ -76,7 +76,7 @@ Fontes (Fraunces / Archivo / JetBrains Mono) são **self-hosted** em `/public/fo
 
 **Architect short-circuita LLM** quando format != classic (`buildFormatOutline` retorna outline deterministico). `runSmartCarousel` despacha pra `generateCopyFromAnalysis` (classic) ou `generateCopyForFormat` (resto). Critic (`carousel-critic`) só roda em classic — pressupõe types antigos.
 
-**Listicle integra `vegetacoes`** via `fetchVegetacoesForListicle(prompt, count)` — heuristica ILIKE em luminosidade/categorias. LLM escolhe 7 plantas mais aderentes do pool e gera `dica` curta. `nomeCientifico` deve bater com o banco (anti-alucinação).
+**Todos os formatos podem integrar `vegetacoes`** via `fetchVegetacoesForPrompt(prompt, count)` — heuristica ILIKE em luminosidade/categorias. Usuário escolhe plantas no Step1 (chips com sugestão automática + autocomplete via `/api/buscar-plantas`); IDs viajam no body de `/api/search-smart` e `/api/copy`. LLM cita as plantas escolhidas com `nomeCientifico` validado contra o banco (anti-alucinação cross-ref em `validateFormattedSlides` e `validateSlidesAgainstImages`).
 
 **Imagens p/ formatos com >6 slides**: `runSmartCarousel` expande `[cover, ...inner, cta]` (6) com `selection.alternatives` ate completar slideCount. UI faz o mesmo no `confirmAndGenerateCopy` antes de mandar pra `/api/copy`.
 
