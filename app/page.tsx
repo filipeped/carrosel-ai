@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import type { ImageRow, Selection, SlideData, CarouselFormat } from "@/lib/types";
+import type { VegetacaoRow } from "@/lib/supabase";
 import { useProgressSim, useWakeLock, usePageVisible } from "@/lib/hooks";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Steps } from "@/components/Steps";
@@ -10,6 +12,7 @@ import { Step2 } from "@/components/steps/Step2";
 import { Step3 } from "@/components/steps/Step3";
 
 const STORAGE_KEY = "carrosel:state:v1";
+const PLANTAS_KEY = "carrosel:plantas:v1";
 
 function loadStoredState() {
   if (typeof window === "undefined") return null;
@@ -28,6 +31,7 @@ export default function Home() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [prompt, setPrompt] = useState<string>("");
   const [format, setFormat] = useState<CarouselFormat>("classic");
+  const [plantasEscolhidas, setPlantasEscolhidas] = useState<VegetacaoRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentFlow, setCurrentFlow] = useState<"search" | "copy" | null>(null);
   const [error, setError] = useState("");
@@ -50,6 +54,13 @@ export default function Home() {
       if (Array.isArray(stored.allImages)) setAllImages(stored.allImages);
       if (typeof stored.carrosselId === "string") setCarrosselId(stored.carrosselId);
     }
+    try {
+      const rawPlantas = localStorage.getItem(PLANTAS_KEY);
+      if (rawPlantas) {
+        const parsed = JSON.parse(rawPlantas);
+        if (Array.isArray(parsed)) setPlantasEscolhidas(parsed);
+      }
+    } catch {}
     setHydrated(true);
   }, []);
 
@@ -61,8 +72,9 @@ export default function Home() {
         STORAGE_KEY,
         JSON.stringify({ step, prompt, format, selection, slides, allImages, carrosselId }),
       );
+      localStorage.setItem(PLANTAS_KEY, JSON.stringify(plantasEscolhidas));
     } catch {}
-  }, [step, prompt, format, selection, slides, allImages, carrosselId, hydrated]);
+  }, [step, prompt, format, selection, slides, allImages, carrosselId, plantasEscolhidas, hydrated]);
 
   function resetToStart() {
     setStep(1);
@@ -71,10 +83,12 @@ export default function Home() {
     setAllImages([]);
     setError("");
     setCarrosselId(null);
+    setPlantasEscolhidas([]);
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("carrosel:caption:v1");
       localStorage.removeItem("carrosel:ideas:v1");   // Limpa ideias sugeridas
+      localStorage.removeItem(PLANTAS_KEY);
       // NAO limpa teses/obsImageIds — historico serve pra NAO repetir entre sessoes
     } catch {}
   }
@@ -187,7 +201,12 @@ export default function Home() {
       const r = await fetch("/api/search-smart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: effective, candidateCount: 24, format }),
+        body: JSON.stringify({
+          prompt: effective,
+          candidateCount: 24,
+          format,
+          plantas: plantasEscolhidas.map((p) => p.id),
+        }),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -239,7 +258,12 @@ export default function Home() {
       const r = await fetch("/api/copy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, images: ordered, format }),
+        body: JSON.stringify({
+          prompt,
+          images: ordered,
+          format,
+          plantas: plantasEscolhidas.map((p) => p.id),
+        }),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -323,18 +347,28 @@ export default function Home() {
       <header className="mb-5 sm:mb-8">
         {/* Linha 1: logo/titulo + menu mobile. Desktop: tambem stepper + navs inline */}
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="text-[10px] sm:text-xs tracking-[4px] uppercase opacity-60">
-              Digital Paisagismo
-            </div>
-            <h1
-              className="text-2xl sm:text-3xl md:text-4xl mt-0.5"
-              style={{ fontFamily: "Georgia, serif" }}
-            >
-              Gerador de <i>Carrossel</i>
-            </h1>
-            <div className="text-xs opacity-60 mt-1 leading-relaxed hidden sm:block">
-              IA escolhe a melhor foto pra capa e casa a copy com o que aparece em cada imagem.
+          <div className="min-w-0 flex-1 flex items-start gap-3">
+            <Image
+              src="/ig-avatar.jpg"
+              alt="Digital Paisagismo"
+              width={56}
+              height={56}
+              className="rounded-full shrink-0 mt-0.5"
+              priority
+            />
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-xs tracking-[4px] uppercase opacity-60">
+                Digital Paisagismo
+              </div>
+              <h1
+                className="text-2xl sm:text-3xl md:text-4xl mt-0.5"
+                style={{ fontFamily: "Georgia, serif" }}
+              >
+                Gerador de <i>Carrossel</i>
+              </h1>
+              <div className="text-xs opacity-60 mt-1 leading-relaxed hidden sm:block">
+                IA escolhe a melhor foto pra capa e casa a copy com o que aparece em cada imagem.
+              </div>
             </div>
           </div>
 
@@ -419,6 +453,8 @@ export default function Home() {
           curadoriaLoading={loading && currentFlow === "search" && !prompt.trim()}
           format={format}
           setFormat={setFormat}
+          plantasEscolhidas={plantasEscolhidas}
+          setPlantasEscolhidas={setPlantasEscolhidas}
         />
       )}
       {step === 2 && selection && (

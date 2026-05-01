@@ -1,8 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useProgressSim } from "@/lib/hooks";
 import { ProgressBar } from "../ProgressBar";
+import { PlantPicker } from "../PlantPicker";
 import type { CarouselFormat } from "@/lib/types";
+import type { VegetacaoRow } from "@/lib/supabase";
 
 const IDEAS_KEY = "carrosel:ideas:v1";
 
@@ -37,6 +39,8 @@ export function Step1({
   curadoriaLoading,
   format,
   setFormat,
+  plantasEscolhidas,
+  setPlantasEscolhidas,
 }: {
   prompt: string;
   setPrompt: (s: string) => void;
@@ -46,8 +50,14 @@ export function Step1({
   curadoriaLoading?: boolean;
   format: CarouselFormat;
   setFormat: (f: CarouselFormat) => void;
+  plantasEscolhidas: VegetacaoRow[];
+  setPlantasEscolhidas: (next: VegetacaoRow[]) => void;
 }) {
   const formatHint = FORMAT_OPTIONS.find((f) => f.value === format)?.hint || "";
+  const [sugerirLoading, setSugerirLoading] = useState(false);
+  const lastSuggestedFor = useRef<string>("");
+  const userTouchedPlantas = useRef<boolean>(false);
+  const sugerirDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   // FIX hydration: state inicial SEMPRE vazio (match SSR).
   // Hidrata do localStorage em useEffect apos mount. Evita React #418.
   const [ideas, setIdeas] = useState<Idea[] | null>(null);
@@ -65,6 +75,47 @@ export function Step1({
     if (stored) setIdeas(stored);
     setHydrated(true);
   }, []);
+
+  // Auto-sugere plantas quando o prompt muda — so se o usuario ainda nao mexeu
+  // no picker. Se ja tem chips, respeita a escolha do usuario.
+  useEffect(() => {
+    if (!hydrated) return;
+    const p = prompt.trim();
+    if (sugerirDebounce.current) clearTimeout(sugerirDebounce.current);
+    if (p.length < 6) return;
+    if (lastSuggestedFor.current === p) return;
+    if (userTouchedPlantas.current) return;
+    if (plantasEscolhidas.length > 0) return;
+
+    sugerirDebounce.current = setTimeout(async () => {
+      setSugerirLoading(true);
+      try {
+        const r = await fetch("/api/sugerir-plantas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: p, count: 10 }),
+        });
+        const d = await r.json();
+        if (Array.isArray(d.plantas) && d.plantas.length && !userTouchedPlantas.current) {
+          setPlantasEscolhidas(d.plantas);
+          lastSuggestedFor.current = p;
+        }
+      } catch {
+        /* silencioso — plantas sao opcionais */
+      } finally {
+        setSugerirLoading(false);
+      }
+    }, 800);
+    return () => {
+      if (sugerirDebounce.current) clearTimeout(sugerirDebounce.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prompt, hydrated]);
+
+  function handlePlantasChange(next: VegetacaoRow[]) {
+    userTouchedPlantas.current = true;
+    setPlantasEscolhidas(next);
+  }
 
   // Persiste ideias no localStorage — somem so quando "Recomecar".
   // So salva apos hydrated pra nao sobrescrever com null.
@@ -292,6 +343,29 @@ export function Step1({
         placeholder="Ex: entradas monumentais em condominios fechados..."
         className="w-full bg-black/30 border border-white/15 rounded p-3 text-sm"
       />
+
+      <div className="mt-4">
+        <label className="block mb-2 text-sm opacity-80 flex items-center justify-between">
+          <span>
+            Plantas no carrossel{" "}
+            <span className="opacity-50 font-normal">(opcional)</span>
+          </span>
+          <span className="text-[10px] opacity-50 uppercase tracking-widest">
+            do banco vegetacoes
+          </span>
+        </label>
+        <PlantPicker
+          value={plantasEscolhidas}
+          onChange={handlePlantasChange}
+          disabled={loading}
+          suggestionsLoading={sugerirLoading}
+        />
+        <div className="text-[11px] opacity-50 mt-1.5 leading-relaxed">
+          Sugestoes aparecem automaticamente quando voce digita o tema. Edite se quiser
+          guiar a copy pra plantas especificas.
+        </div>
+      </div>
+
       <div className="mt-4 grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
         {onCuradoria && (
           <button
