@@ -10,6 +10,7 @@ import { getAi, MODEL } from "../claude";
 import { extractJson } from "../utils";
 import { brandBlockCompact, type HookFrameworkKey } from "../brand-context";
 import type { CarouselFormat } from "../types";
+import type { VegetacaoRow } from "../supabase";
 
 export type SlideOutline = {
   slideIdx: number;
@@ -97,13 +98,24 @@ PRIORIZE sensorial e manifesto_tese — sao os que mais performam no perfil (dad
  * Cada formato tem estrutura propria (tamanho fixo + types fixos por slot).
  * Hook framework default por formato baseado em performance esperada.
  */
-function buildFormatOutline(format: CarouselFormat): {
+function buildFormatOutline(
+  format: CarouselFormat,
+  plantasEscolhidas?: VegetacaoRow[],
+): {
   slideCount: 6 | 7 | 8 | 9 | 10;
   outline: SlideOutline[];
   hookFramework: HookFrameworkKey;
   rationale: string;
 } | null {
   if (format === "classic") return null;
+
+  // Distribui plantas escolhidas pelos slots de miolo (cycling se faltar planta).
+  // O purpose ganha o nome da planta protagonista — ajuda o LLM a focar.
+  const pickPlanta = (idx: number): string => {
+    if (!plantasEscolhidas?.length) return "";
+    const p = plantasEscolhidas[idx % plantasEscolhidas.length];
+    return p ? ` [protagonista: ${p.nome_popular}${p.nome_cientifico ? ` (${p.nome_cientifico})` : ""}]` : "";
+  };
 
   if (format === "transformation") {
     // 8 slides: cover + 2 ANTES + 2 PROCESSO + 2 DEPOIS + cta
@@ -115,7 +127,7 @@ function buildFormatOutline(format: CarouselFormat): {
       ...phases.map<SlideOutline>((phase, i) => ({
         slideIdx: i + 1,
         type: "beforeAfter",
-        purpose: `${phase}: ${phase === "ANTES" ? "estado inicial do espaco" : phase === "PROCESSO" ? "execucao em andamento" : "resultado finalizado"}`,
+        purpose: `${phase}: ${phase === "ANTES" ? "estado inicial do espaco" : phase === "PROCESSO" ? "execucao em andamento" : "resultado finalizado"}${pickPlanta(i)}`,
         phase,
         imageHint: phase === "ANTES" ? "area sem paisagismo, terreno bruto" : phase === "PROCESSO" ? "execucao, plantio, montagem" : "jardim pronto, cena finalizada",
       })),
@@ -136,7 +148,7 @@ function buildFormatOutline(format: CarouselFormat): {
       ...Array.from({ length: 5 }).map<SlideOutline>((_, i) => ({
         slideIdx: i + 1,
         type: "mythBuster",
-        purpose: `mito ${i + 1}: derruba uma crenca comum sobre paisagismo`,
+        purpose: `mito ${i + 1}: derruba uma crenca comum sobre paisagismo${pickPlanta(i)}`,
       })),
       { slideIdx: 6, type: "cta", purpose: "fechamento provocando reflexao sobre os mitos" },
     ];
@@ -174,7 +186,7 @@ function buildFormatOutline(format: CarouselFormat): {
       ...Array.from({ length: 5 }).map<SlideOutline>((_, i) => ({
         slideIdx: i + 1,
         type: "problemSolution",
-        purpose: `problema ${i + 1} e como resolver`,
+        purpose: `problema ${i + 1} e como resolver${pickPlanta(i)}`,
       })),
       { slideIdx: 6, type: "cta", purpose: "fechamento provocando reflexao sobre os problemas" },
     ];
@@ -195,11 +207,12 @@ export async function planSlides(params: {
   persona?: string;
   availableImages?: number;
   format?: CarouselFormat;
+  plantasEscolhidas?: VegetacaoRow[];
 }): Promise<ArchitectPlan> {
-  const { prompt, userBrief, persona, availableImages = 12, format = "classic" } = params;
+  const { prompt, userBrief, persona, availableImages = 12, format = "classic", plantasEscolhidas } = params;
 
   // Formatos nao-classicos tem estrutura fixa — short-circuit sem chamar LLM
-  const fixed = buildFormatOutline(format);
+  const fixed = buildFormatOutline(format, plantasEscolhidas);
   if (fixed) {
     return {
       slideCount: fixed.slideCount,

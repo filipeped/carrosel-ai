@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAi, MODEL, BRAND_VOICE } from "@/lib/claude";
 import { extractJson } from "@/lib/utils";
+import { fetchVegetacoesByIds } from "@/lib/supabase";
 import type { CarouselFormat } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -50,19 +51,26 @@ export async function POST(req: NextRequest) {
     const format: CarouselFormat = body.format || "classic";
     if (!images?.length) return NextResponse.json({ error: "images required" }, { status: 400 });
 
+    // Plant-first: hidrata IDs em VegetacaoRow[] completo
+    const plantasIds: string[] = Array.isArray(body.plantas) ? body.plantas : [];
+    const plantasEscolhidas = plantasIds.length
+      ? await fetchVegetacoesByIds(plantasIds)
+      : undefined;
+
     // Despacha pra pipeline de formato novo (transformation/myths/listicle/problemSolution)
     if (format !== "classic") {
       const { generateCopyForFormat, validateFormattedSlides } = await import("@/lib/smart-pipeline");
       const { planSlides } = await import("@/lib/agents/slides-architect");
-      const plan = await planSlides({ prompt: prompt || "", format });
+      const plan = await planSlides({ prompt: prompt || "", format, plantasEscolhidas });
       const result = await generateCopyForFormat(
         prompt || "",
         images,
         format as Exclude<CarouselFormat, "classic">,
         plan.outline,
         plan.recommended_hook_framework,
+        plantasEscolhidas,
       );
-      const slides = validateFormattedSlides(result.slides, images);
+      const slides = validateFormattedSlides(result.slides, images, plantasEscolhidas);
       return NextResponse.json({ slides, format, slideCount: plan.slideCount });
     }
 
@@ -88,6 +96,16 @@ export async function POST(req: NextRequest) {
       ? `\n\nBRIEFING EXTRA DO USUARIO (PRIORIDADE ALTA — segue literalmente):\n"""\n${String(userBrief).slice(0, 1200).trim()}\n"""`
       : "";
 
+    // Plant-first: injeta lista de plantas escolhidas pelo usuario no contexto LLM
+    const plantasBlock = plantasEscolhidas?.length
+      ? `\n\nPLANTAS PROTAGONISTAS (escolhidas pelo usuario, fonte de verdade):\n${plantasEscolhidas
+          .map(
+            (v, i) =>
+              `${i + 1}. ${v.nome_popular}${v.nome_cientifico ? ` (${v.nome_cientifico})` : ""}${v.luminosidade ? ` | luminosidade: ${v.luminosidade}` : ""}${v.altura ? ` | altura: ${v.altura}` : ""}`,
+          )
+          .join("\n")}\n\nREGRAS:\n- Em plantDetail, use SOMENTE plantas dessa lista; nomeCientifico DEVE ser EXATO.\n- Cite pelo menos 2 dessas plantas ao longo do carrossel (em plantDetail ou no texto de inspiration).\n- Se uma planta da lista nao aparece em nenhuma foto, voce ainda pode mencionar pelo nome em inspiration (texto livre), mas nao crie plantDetail dela.`
+      : "";
+
     const strictOutputRule = `
 === SAIDA ===
 Tua resposta DEVE:
@@ -100,7 +118,7 @@ Tua resposta DEVE:
 - SO a chave "slides" com array de objetos`;
 
     const userPrompt = `Tema do usuario: "${prompt || "(sem tema — inspire-se nas imagens)"}"
-${briefBlock}
+${briefBlock}${plantasBlock}
 
 Imagens selecionadas (${images.length} no total). VISIVEL = o que a IA ja viu na foto (use isso pra nao inventar):
 ${imgDescs}
@@ -153,7 +171,7 @@ ${strictOutputRule}`;
     // Falha aqui = copy nao-validado. Escala erro em vez de silenciar.
     const { validateSlidesAgainstImages } = await import("@/lib/smart-pipeline");
     if (parsed.slides && Array.isArray(images)) {
-      parsed.slides = validateSlidesAgainstImages(parsed.slides, images as any);
+      parsed.slides = validateSlidesAgainstImages(parsed.slides, images as any, plantasEscolhidas);
     }
 
     return NextResponse.json(parsed);
