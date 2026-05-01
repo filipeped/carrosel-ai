@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ImageRow, Selection, SlideData, CarouselFormat } from "@/lib/types";
 import type { VegetacaoRow } from "@/lib/supabase";
+import type { CatalogAngle } from "@/lib/catalog-angles";
 import { useProgressSim, useWakeLock, usePageVisible } from "@/lib/hooks";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Steps } from "@/components/Steps";
@@ -13,6 +14,7 @@ import { Step3 } from "@/components/steps/Step3";
 
 const STORAGE_KEY = "carrosel:state:v1";
 const PLANTAS_KEY = "carrosel:plantas:v1";
+const ANGLE_KEY = "carrosel:angle:v1";
 
 function loadStoredState() {
   if (typeof window === "undefined") return null;
@@ -32,6 +34,7 @@ export default function Home() {
   const [prompt, setPrompt] = useState<string>("");
   const [format, setFormat] = useState<CarouselFormat>("classic");
   const [plantasEscolhidas, setPlantasEscolhidas] = useState<VegetacaoRow[]>([]);
+  const [selectedAngle, setSelectedAngle] = useState<CatalogAngle | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentFlow, setCurrentFlow] = useState<"search" | "copy" | null>(null);
   const [error, setError] = useState("");
@@ -60,6 +63,11 @@ export default function Home() {
         const parsed = JSON.parse(rawPlantas);
         if (Array.isArray(parsed)) setPlantasEscolhidas(parsed);
       }
+      const rawAngle = localStorage.getItem(ANGLE_KEY);
+      if (rawAngle) {
+        const parsed = JSON.parse(rawAngle);
+        if (parsed?.id) setSelectedAngle(parsed);
+      }
     } catch {}
     setHydrated(true);
   }, []);
@@ -73,8 +81,10 @@ export default function Home() {
         JSON.stringify({ step, prompt, format, selection, slides, allImages, carrosselId }),
       );
       localStorage.setItem(PLANTAS_KEY, JSON.stringify(plantasEscolhidas));
+      if (selectedAngle) localStorage.setItem(ANGLE_KEY, JSON.stringify(selectedAngle));
+      else localStorage.removeItem(ANGLE_KEY);
     } catch {}
-  }, [step, prompt, format, selection, slides, allImages, carrosselId, plantasEscolhidas, hydrated]);
+  }, [step, prompt, format, selection, slides, allImages, carrosselId, plantasEscolhidas, selectedAngle, hydrated]);
 
   function resetToStart() {
     setStep(1);
@@ -84,11 +94,13 @@ export default function Home() {
     setError("");
     setCarrosselId(null);
     setPlantasEscolhidas([]);
+    setSelectedAngle(null);
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("carrosel:caption:v1");
       localStorage.removeItem("carrosel:ideas:v1");   // Limpa ideias sugeridas
       localStorage.removeItem(PLANTAS_KEY);
+      localStorage.removeItem(ANGLE_KEY);
       // NAO limpa teses/obsImageIds — historico serve pra NAO repetir entre sessoes
     } catch {}
   }
@@ -205,6 +217,7 @@ export default function Home() {
         body: JSON.stringify({
           prompt,
           plantas: plantasEscolhidas.map((p) => p.id),
+          angle: selectedAngle || undefined,
         }),
       });
       const d = await r.json();
@@ -532,6 +545,8 @@ export default function Home() {
           setFormat={setFormat}
           plantasEscolhidas={plantasEscolhidas}
           setPlantasEscolhidas={setPlantasEscolhidas}
+          selectedAngle={selectedAngle}
+          setSelectedAngle={setSelectedAngle}
         />
       )}
       {step === 2 && selection && (

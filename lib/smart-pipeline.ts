@@ -518,27 +518,46 @@ export async function searchAndSelect(
  * Heuristica: extrai termos do prompt (luminosidade, clima, ambiente) e usa
  * ILIKE em campos chave. Usado pelo /api/sugerir-plantas (UI) e como fallback
  * quando o body nao traz plantas pre-selecionadas.
+ *
+ * Em modo angulo (catalog), `filter` substitui a heuristica com filtros explicitos:
+ * - filter.luminosidade: lista de termos a casar via ILIKE OR (ex: ["sombra", "luz difusa"])
+ * - filter.categorias: lista de termos a casar via ILIKE OR (ex: ["Cercas Vivas"])
  */
 export async function fetchVegetacoesForPrompt(
   prompt: string,
   count = 14,
+  filter?: { luminosidade?: string[]; categorias?: string[] },
 ): Promise<VegetacaoRow[]> {
   const supabase = getSupabase();
   const p = norm(prompt);
 
-  // Sinais de luminosidade
-  let lumFilter: string | null = null;
-  if (/sombra|meia.?sombra|sem sol/.test(p)) lumFilter = "sombra";
-  else if (/sol pleno|sol forte|cheio de sol/.test(p)) lumFilter = "sol";
+  let query = supabase.from("vegetacoes").select("*").limit(count * 4);
 
-  let query = supabase.from("vegetacoes").select("*").limit(count * 2);
-  if (lumFilter) query = query.ilike("luminosidade", `%${lumFilter}%`);
+  if (filter?.luminosidade?.length) {
+    // OR em luminosidade: pelo menos 1 dos termos casa
+    const ors = filter.luminosidade
+      .map((t) => `luminosidade.ilike.%${t}%`)
+      .join(",");
+    query = query.or(ors);
+  } else {
+    // Heuristica fallback (mantida pra modo sem angulo)
+    let lumFilter: string | null = null;
+    if (/sombra|meia.?sombra|sem sol/.test(p)) lumFilter = "sombra";
+    else if (/sol pleno|sol forte|cheio de sol/.test(p)) lumFilter = "sol";
+    if (lumFilter) query = query.ilike("luminosidade", `%${lumFilter}%`);
+  }
 
-  // Filtros extras se prompt menciona contexto.
-  // Usa prefixos curtos pra casar singular E plural no banco real (ex: "Tropicais", "Suculentas").
-  if (/tropical|florida|colorida/.test(p)) query = query.ilike("categorias", `%tropic%`);
-  if (/seco|cactus|suculenta/.test(p)) query = query.ilike("categorias", `%suculent%`);
-  if (/folhagem|verde|massa/.test(p)) query = query.ilike("categorias", `%folha%`);
+  if (filter?.categorias?.length) {
+    const ors = filter.categorias
+      .map((t) => `categorias.ilike.%${t}%`)
+      .join(",");
+    query = query.or(ors);
+  } else {
+    // Heuristica fallback de categorias (mantida pra modo sem angulo)
+    if (/tropical|florida|colorida/.test(p)) query = query.ilike("categorias", `%tropic%`);
+    if (/seco|cactus|suculenta/.test(p)) query = query.ilike("categorias", `%suculent%`);
+    if (/folhagem|verde|massa/.test(p)) query = query.ilike("categorias", `%folha%`);
+  }
 
   const { data } = await query;
   const rows = (data || []) as VegetacaoRow[];

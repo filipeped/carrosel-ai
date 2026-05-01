@@ -4,13 +4,14 @@ import { extractJson } from "@/lib/utils";
 import { fetchVegetacoesForPrompt } from "@/lib/smart-pipeline";
 import { fetchVegetacoesByIds } from "@/lib/supabase";
 import type { VegetacaoRow } from "@/lib/supabase";
+import type { CatalogAngle } from "@/lib/catalog-angles";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const SYSTEM = `Voce e curador botanico do @digitalpaisagismo (paisagismo de alto padrao).
+const SYSTEM_BASE = `Voce e curador botanico do @digitalpaisagismo (paisagismo de alto padrao).
 
-TAREFA: dado um TEMA e uma lista de plantas reais do banco, escolha EXATAMENTE 6 plantas que juntas formam um carrossel coeso pro Instagram.
+TAREFA: dado um TEMA (e opcionalmente um ANGULO viral) + lista de plantas reais do banco, escolha EXATAMENTE 6 plantas que juntas formam um carrossel coeso pro Instagram.
 
 REGRAS:
 - As 6 plantas DEVEM existir na lista fornecida (use o ID exato).
@@ -18,29 +19,31 @@ REGRAS:
 - Coerencia com o tema: se tema e "sombra", todas devem aceitar sombra. Se "tropical", aspecto tropical.
 - Publico alto padrao: prefira especies que sao usadas em projetos premium, nao plantas vulgares.
 - Ordem narrativa: planta 1 abre (capa, impacto visual); plantas 2-5 desenvolvem; planta 6 fecha (CTA, contemplativa).
+- Se um ANGULO foi fornecido, as 6 plantas DEVEM resolver o problema especifico do angulo (ex: angulo "corredor sem sol" -> todas toleram luz indireta).
 
 SAIDA: JSON puro, sem markdown.
 {
   "ids": ["uuid1", "uuid2", "uuid3", "uuid4", "uuid5", "uuid6"],
-  "rationale": "1-2 frases sobre por que esse conjunto faz sentido pro tema"
+  "rationale": "1-2 frases sobre por que esse conjunto faz sentido pro tema/angulo"
 }`;
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const prompt: string = (body?.prompt || "").trim();
+    const angle: CatalogAngle | null = body?.angle || null;
     if (!prompt) {
       return NextResponse.json({ error: "prompt obrigatorio" }, { status: 400 });
     }
 
-    // Pool maior pra IA escolher (60 plantas paisagisticas aderentes ao tema)
-    const pool = await fetchVegetacoesForPrompt(prompt, 60);
+    // Pool: se ha angulo, usa filtros do angulo; senao, heuristica do prompt
+    const pool = await fetchVegetacoesForPrompt(prompt, 60, angle?.filter);
     const filtered = pool.filter(
       (p) => p.imagem_principal && p.imagem_principal.startsWith("http"),
     );
     if (filtered.length < 6) {
       return NextResponse.json(
-        { error: `Banco retornou so ${filtered.length} plantas validas pro tema. Tenta tema mais aberto.` },
+        { error: `Banco retornou so ${filtered.length} plantas validas pro tema. Tenta angulo diferente ou tema mais aberto.` },
         { status: 400 },
       );
     }
@@ -52,19 +55,23 @@ export async function POST(req: NextRequest) {
       )
       .join("\n");
 
-    const userMsg = `Tema: "${prompt}"
+    const angleBlock = angle
+      ? `\nANGULO VIRAL: "${angle.titulo}"\nFRAMEWORK: ${angle.framework}\nHINT: ${angle.hint}\n`
+      : "";
+
+    const userMsg = `Tema: "${prompt}"${angleBlock}
 
 Lista de plantas disponiveis (escolha 6):
 ${list}
 
-Retorne JSON puro com 6 IDs + rationale.`;
+Retorne JSON puro com 6 IDs + rationale.${angle ? ` O rationale DEVE explicar como as 6 plantas resolvem o angulo "${angle.titulo}".` : ""}`;
 
     const resp = await getAi().chat.completions.create({
       model: MODEL,
       max_tokens: 800,
       temperature: 0.6,
       messages: [
-        { role: "system", content: SYSTEM },
+        { role: "system", content: SYSTEM_BASE },
         { role: "user", content: userMsg },
       ],
     });

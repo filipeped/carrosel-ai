@@ -4,8 +4,10 @@ import { useProgressSim } from "@/lib/hooks";
 import { ProgressBar } from "../ProgressBar";
 import { PlantPicker } from "../PlantPicker";
 import { PlantGallery } from "../PlantGallery";
+import { CatalogAngles } from "../CatalogAngles";
 import type { CarouselFormat } from "@/lib/types";
 import type { VegetacaoRow } from "@/lib/supabase";
+import type { CatalogAngle } from "@/lib/catalog-angles";
 
 const IDEAS_KEY = "carrosel:ideas:v1";
 
@@ -43,6 +45,8 @@ export function Step1({
   setFormat,
   plantasEscolhidas,
   setPlantasEscolhidas,
+  selectedAngle,
+  setSelectedAngle,
 }: {
   prompt: string;
   setPrompt: (s: string) => void;
@@ -54,6 +58,8 @@ export function Step1({
   setFormat: (f: CarouselFormat) => void;
   plantasEscolhidas: VegetacaoRow[];
   setPlantasEscolhidas: (next: VegetacaoRow[]) => void;
+  selectedAngle: CatalogAngle | null;
+  setSelectedAngle: (a: CatalogAngle | null) => void;
 }) {
   const formatHint = FORMAT_OPTIONS.find((f) => f.value === format)?.hint || "";
   const [sugerirLoading, setSugerirLoading] = useState(false);
@@ -65,7 +71,7 @@ export function Step1({
 
   async function sugerirCatalogIa() {
     if (!prompt.trim()) {
-      setIdeasErr("Digite um tema antes de pedir pra IA escolher.");
+      setIdeasErr("Escolhe um angulo ou digita um tema antes.");
       return;
     }
     setCatalogIaLoading(true);
@@ -75,7 +81,10 @@ export function Step1({
       const r = await fetch("/api/sugerir-catalog", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({
+          prompt,
+          angle: selectedAngle || undefined,
+        }),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -89,6 +98,20 @@ export function Step1({
     } finally {
       setCatalogIaLoading(false);
     }
+  }
+
+  function handleAngleSelect(angle: CatalogAngle) {
+    if (selectedAngle?.id === angle.id) {
+      // toggle off
+      setSelectedAngle(null);
+      return;
+    }
+    setSelectedAngle(angle);
+    setPrompt(angle.titulo);
+    // Limpa selecao anterior pra novo angulo curar do zero
+    setPlantasEscolhidas([]);
+    setCatalogRationale("");
+    userTouchedPlantas.current = false;
   }
   // FIX hydration: state inicial SEMPRE vazio (match SSR).
   // Hidrata do localStorage em useEffect apos mount. Evita React #418.
@@ -390,16 +413,26 @@ export function Step1({
         </label>
         {format === "catalog" ? (
           <>
-            {/* Botao destacado: IA escolhe 6 plantas pelo tema */}
+            {/* Angulos virais pre-validados */}
+            <div className="mb-4">
+              <CatalogAngles
+                selectedId={selectedAngle?.id || null}
+                onSelect={handleAngleSelect}
+                disabled={loading || catalogIaLoading}
+              />
+            </div>
+
+            {/* Botao destacado: IA cura 6 plantas pelo angulo escolhido */}
             <div className="mb-4 border border-[#d6e7c4]/30 bg-[#d6e7c4]/5 rounded-lg p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex-1 min-w-[200px]">
                   <div className="text-sm font-medium text-[#d6e7c4] mb-1">
-                    ✨ Deixa a IA escolher pelo tema
+                    ✨ Deixa a IA escolher pelo angulo
                   </div>
                   <div className="text-[11px] opacity-60 leading-relaxed">
-                    Le seu tema, escolhe 6 plantas reais do banco que combinam, e ja
-                    seleciona pra voce. Voce pode trocar qualquer uma na galeria abaixo.
+                    {selectedAngle
+                      ? `Angulo: "${selectedAngle.titulo}" — IA cura 6 plantas que casam com esse problema especifico.`
+                      : "Escolhe um angulo acima ou digita um tema custom no campo abaixo. Depois clica pra IA curar 6 plantas."}
                   </div>
                 </div>
                 <button
