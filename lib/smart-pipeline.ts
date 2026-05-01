@@ -6,7 +6,7 @@ import { analyzePrompt } from "./agents/prompt-analyst";
 import { critiqueCarousel } from "./agents/carousel-critic";
 import { planSlides, type SlideOutline } from "./agents/slides-architect";
 import { extractJson } from "./utils";
-import { getSupabase, ImageBankRow, VegetacaoRow } from "./supabase";
+import { getSupabase, ImageBankRow, VegetacaoRow, isPaisagistica } from "./supabase";
 import type { SlideSpec } from "./pipeline";
 import type { CarouselFormat } from "./types";
 import { getRecentlyUsedImageIds, saveCarrossel } from "./history";
@@ -542,8 +542,12 @@ export async function fetchVegetacoesForPrompt(
 
   const { data } = await query;
   const rows = (data || []) as VegetacaoRow[];
-  // Filtra entradas sem nome popular (item incompleto nao serve)
-  return rows.filter((r) => r.nome_popular && r.nome_popular.trim().length > 0).slice(0, count);
+  // Filtra entradas sem nome popular E exclui nao-paisagisticas
+  // (horticolas, daninhas, toxicas, ervas condimentares, frutas e legumes, panc).
+  return rows
+    .filter((r) => r.nome_popular && r.nome_popular.trim().length > 0)
+    .filter((r) => isPaisagistica(r.categorias))
+    .slice(0, count);
 }
 
 /**
