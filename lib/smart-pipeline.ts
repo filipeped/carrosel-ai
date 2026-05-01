@@ -691,7 +691,7 @@ VOCABULARIO PREMIUM:
 - "orcamento" -> "investimento"
 - "fazer o jardim" -> "desenvolver o projeto"`;
 
-const FORMAT_SYSTEMS: Record<Exclude<CarouselFormat, "classic">, string> = {
+const FORMAT_SYSTEMS: Record<Exclude<CarouselFormat, "classic" | "catalog">, string> = {
   transformation: `Voce escreve copy pra carrossel de TRANSFORMACAO (antes/depois) do @digitalpaisagismo.
 ESTRUTURA: capa + 6 slides beforeAfter (2 ANTES, 2 PROCESSO, 2 DEPOIS) + cta.
 
@@ -772,7 +772,7 @@ CTA: afirmacao contemplativa sobre diagnostico cedo (ex: "Identificar o problema
 ${FORMAT_VIRAL_RULES}`,
 };
 
-function buildFormatSchema(format: Exclude<CarouselFormat, "classic">, slideCount: number): string {
+function buildFormatSchema(format: Exclude<CarouselFormat, "classic" | "catalog">, slideCount: number): string {
   const lastIdx = slideCount - 1;
   const common = `Retorne JSON: { "slides": [${slideCount} items] } sem markdown.
 [0] cover: { type:"cover", imageIdx:0, topLabel, numeral${format === "listicle" ? '' : ':null'}, title, italicWords:[] }
@@ -813,6 +813,7 @@ export const FORMAT_SLIDE_COUNTS: Record<Exclude<CarouselFormat, "classic">, num
   myths: 7,
   listicle: 9,
   problemSolution: 7,
+  catalog: 6,
 };
 
 /**
@@ -825,7 +826,7 @@ export const FORMAT_SLIDE_COUNTS: Record<Exclude<CarouselFormat, "classic">, num
 export async function generateCopyForFormat(
   prompt: string,
   imagesOrdered: AnalyzedImage[],
-  format: Exclude<CarouselFormat, "classic">,
+  format: Exclude<CarouselFormat, "classic" | "catalog">,
   outline: SlideOutline[],
   hookFramework?: string,
   plantasEscolhidas?: VegetacaoRow[],
@@ -940,6 +941,8 @@ export async function runSmartCarousel(
   let hookFramework: string | undefined;
   if (isClassic) {
     slideCount = Math.max(6, Math.min(10, opts.slideCount ?? 6));
+  } else if (format === "catalog") {
+    throw new Error("catalog usa fluxo proprio em /api/catalog/generate, nao runSmartCarousel");
   } else {
     const plan = await planSlides({ prompt, format, plantasEscolhidas: opts.plantasEscolhidas });
     slideCount = plan.slideCount;
@@ -994,7 +997,7 @@ export async function runSmartCarousel(
     const { slides: rawSlides } = await generateCopyForFormat(
       prompt,
       ordered,
-      format as Exclude<CarouselFormat, "classic">,
+      format as Exclude<CarouselFormat, "classic" | "catalog">,
       outline!,
       hookFramework,
       opts.plantasEscolhidas,

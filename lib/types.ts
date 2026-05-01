@@ -38,7 +38,8 @@ export type CarouselFormat =
   | "transformation"
   | "myths"
   | "listicle"
-  | "problemSolution";
+  | "problemSolution"
+  | "catalog";
 
 export type SlideData = {
   type: SlideKind;

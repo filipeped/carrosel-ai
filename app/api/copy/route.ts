@@ -58,14 +58,14 @@ export async function POST(req: NextRequest) {
       : undefined;
 
     // Despacha pra pipeline de formato novo (transformation/myths/listicle/problemSolution)
-    if (format !== "classic") {
+    if (format !== "classic" && format !== "catalog") {
       const { generateCopyForFormat, validateFormattedSlides } = await import("@/lib/smart-pipeline");
       const { planSlides } = await import("@/lib/agents/slides-architect");
       const plan = await planSlides({ prompt: prompt || "", format, plantasEscolhidas });
       const result = await generateCopyForFormat(
         prompt || "",
         images,
-        format as Exclude<CarouselFormat, "classic">,
+        format as Exclude<CarouselFormat, "classic" | "catalog">,
         plan.outline,
         plan.recommended_hook_framework,
         plantasEscolhidas,

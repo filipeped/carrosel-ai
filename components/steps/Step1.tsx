@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useProgressSim } from "@/lib/hooks";
 import { ProgressBar } from "../ProgressBar";
 import { PlantPicker } from "../PlantPicker";
+import { PlantGallery } from "../PlantGallery";
 import type { CarouselFormat } from "@/lib/types";
 import type { VegetacaoRow } from "@/lib/supabase";
 
@@ -16,6 +17,7 @@ const FORMAT_OPTIONS: { value: CarouselFormat; label: string; hint: string }[] =
   { value: "myths", label: "Mitos (verdade vs mentira)", hint: "Capa + 5 mitos com correcao + CTA. Geram comentarios." },
   { value: "listicle", label: "Lista pratica", hint: "Capa + 7 plantas com dica + CTA. Salvamentos altos." },
   { value: "problemSolution", label: "Problema / Solucao", hint: "Capa + 5 diagnosticos + CTA. Geram marcacoes." },
+  { value: "catalog", label: "Catalogo (so plantas)", hint: "Galeria visual: escolhe 6 plantas do banco e cada uma vira 1 slide com sua foto. Pula a busca de imagens de jardim." },
 ];
 
 function loadStoredIdeas(): Idea[] | null {
@@ -347,23 +349,36 @@ export function Step1({
       <div className="mt-4">
         <label className="block mb-2 text-sm opacity-80 flex items-center justify-between">
           <span>
-            Plantas no carrossel{" "}
-            <span className="opacity-50 font-normal">(opcional)</span>
+            {format === "catalog" ? "Galeria de plantas" : "Plantas no carrossel"}
+            {format !== "catalog" && (
+              <span className="opacity-50 font-normal"> (opcional)</span>
+            )}
           </span>
           <span className="text-[10px] opacity-50 uppercase tracking-widest">
             do banco vegetacoes
           </span>
         </label>
-        <PlantPicker
-          value={plantasEscolhidas}
-          onChange={handlePlantasChange}
-          disabled={loading}
-          suggestionsLoading={sugerirLoading}
-        />
-        <div className="text-[11px] opacity-50 mt-1.5 leading-relaxed">
-          Sugestoes aparecem automaticamente quando voce digita o tema. Edite se quiser
-          guiar a copy pra plantas especificas.
-        </div>
+        {format === "catalog" ? (
+          <PlantGallery
+            selected={plantasEscolhidas}
+            onChange={setPlantasEscolhidas}
+            prompt={prompt}
+            disabled={loading}
+          />
+        ) : (
+          <>
+            <PlantPicker
+              value={plantasEscolhidas}
+              onChange={handlePlantasChange}
+              disabled={loading}
+              suggestionsLoading={sugerirLoading}
+            />
+            <div className="text-[11px] opacity-50 mt-1.5 leading-relaxed">
+              Sugestoes aparecem automaticamente quando voce digita o tema. Edite se quiser
+              guiar a copy pra plantas especificas.
+            </div>
+          </>
+        )}
       </div>
 
       <div className="mt-4 grid grid-cols-1 sm:flex sm:flex-wrap gap-2">

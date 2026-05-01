@@ -189,7 +189,84 @@ export default function Home() {
     }
   }
 
+  async function doCatalogGenerate() {
+    if (plantasEscolhidas.length < 6) {
+      setError("Catalogo: selecione 6 plantas pra gerar.");
+      return;
+    }
+    setLoading(true);
+    setCurrentFlow("copy");
+    setError("");
+    setCarrosselId(null);
+    try {
+      const r = await fetch("/api/catalog/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          plantas: plantasEscolhidas.map((p) => p.id),
+        }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      const sel: Selection = d.selection;
+      const sl: SlideData[] = d.slides || [];
+      setSelection(sel);
+      setSlides(sl);
+      setAllImages([sel.cover, ...sel.inner, sel.cta]);
+      setStep(3); // Pula Step 2 — catalog ja tem fotos definidas
+      setAutoGenCaption(Date.now());
+
+      // Persiste em carrosseis_gerados
+      fetch("/api/carrosseis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: prompt || "(catalogo de plantas)",
+          slides: sl,
+          imagens_ids: [sel.cover, ...sel.inner, sel.cta].map((im) => im.id),
+        }),
+      })
+        .then((res) => res.json())
+        .then((saved) => {
+          if (saved.id) setCarrosselId(saved.id);
+        })
+        .catch(() => {});
+
+      // Legendas em background
+      const imageUrls = [sel.cover, ...sel.inner, sel.cta]
+        .map((im) => im.url)
+        .filter(Boolean);
+      fetch("/api/caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt || "catalogo de plantas", slides: sl, imageUrls }),
+      })
+        .then((res) => res.json())
+        .then((cap) => {
+          if (cap.options?.length) {
+            fetch("/api/captions-history", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt: prompt || "catalogo de plantas", options: cap.options }),
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {});
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+      setCurrentFlow(null);
+    }
+  }
+
   async function doSmartSearch(overridePrompt?: string) {
+    // Catalog tem fluxo proprio (sem image_bank)
+    if (format === "catalog") {
+      await doCatalogGenerate();
+      return;
+    }
     const effective = (overridePrompt ?? prompt).trim();
     if (!effective) return;
     if (overridePrompt) setPrompt(overridePrompt);
